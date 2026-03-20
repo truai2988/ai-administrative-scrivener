@@ -1,0 +1,42 @@
+import React from 'react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { VisaStatus } from '@/utils/mockData';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+interface StatusBadgeProps {
+  status: VisaStatus;
+}
+
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  const getStatusStyles = (status: VisaStatus) => {
+    switch (status) {
+      case '完了':
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case '申請済':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case '追加資料待機':
+        return 'bg-amber-100 text-amber-700 border-amber-200 animate-pulse';
+      case '準備中':
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+      case '期限切れ警告':
+        return 'bg-rose-100 text-rose-700 border-rose-200 font-bold';
+      default:
+        return 'bg-gray-100 text-gray-600 border-gray-200';
+    }
+  };
+
+  return (
+    <span
+      className={cn(
+        'px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all duration-300',
+        getStatusStyles(status)
+      )}
+    >
+      {status}
+    </span>
+  );
+};
