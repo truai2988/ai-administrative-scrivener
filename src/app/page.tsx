@@ -118,6 +118,24 @@ export default function DashboardPage() {
             </div>
             
             <button 
+              onClick={async () => {
+                if (confirm('デモデータを3件投入します。よろしいですか？')) {
+                  const { seedDatabaseAction } = await import('@/app/actions/seedActions');
+                  const res = await seedDatabaseAction();
+                  if (res.success) {
+                    alert('デモデータを投入しました。画面を更新します。');
+                    window.location.reload();
+                  } else {
+                    alert('エラーが発生しました: ' + res.error);
+                  }
+                }
+              }}
+              className="px-4 py-2.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-xl border border-slate-200 hover:bg-slate-200 transition-all active:scale-95 flex items-center gap-2"
+            >
+              <span>🔧 デモデータ一括投入</span>
+            </button>
+
+            <button 
               onClick={() => window.open('/foreigner/entry/dummy-token-123', '_blank')}
               className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2"
             >

@@ -1,5 +1,3 @@
-'use client'; // This is a mistake, Server Actions should not have 'use client' at the top if they are in an action file, but I'll use 'use server'
-
 "use server";
 
 import { foreignerService } from "@/services/foreignerService";
