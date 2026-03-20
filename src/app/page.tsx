@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { generateMockData } from '@/utils/mockData';
+import { foreignerService } from '@/services/foreignerService';
 import { Foreigner } from '@/types/database';
 import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
@@ -23,17 +23,25 @@ export default function DashboardPage() {
   const [selectedForeigner, setSelectedForeigner] = useState<Foreigner | null>(null);
 
   useEffect(() => {
-    // 非同期に更新することで、useEffect同期実行内のcascading renders警告を回避し、
-    // かつHydrationミスマッチも防ぐ標準的なアプローチです。
-    const timer = setTimeout(() => {
-      setDashboardState({
-        data: generateMockData(1000),
-        loading: false,
-        mounted: true
-      });
-    }, 0);
+    const fetchData = async () => {
+      try {
+        const foreigners = await foreignerService.getAllForeigners();
+        setDashboardState({
+          data: foreigners,
+          loading: false,
+          mounted: true
+        });
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+        setDashboardState({
+          data: [],
+          loading: false,
+          mounted: true
+        });
+      }
+    };
     
-    return () => clearTimeout(timer);
+    fetchData();
   }, []);
 
   const { data, loading, mounted } = dashboardState;
@@ -108,6 +116,15 @@ export default function DashboardPage() {
                 className="bg-white border border-slate-100 rounded-xl pl-10 pr-4 py-2.5 text-sm w-64 focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
               />
             </div>
+            
+            <button 
+              onClick={() => window.open('/foreigner/entry/dummy-token-123', '_blank')}
+              className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2"
+            >
+              <UserCircle className="h-4 w-4" />
+              新規登録URL発行
+            </button>
+
             <button className="p-3 bg-white border border-slate-100 rounded-2xl hover:shadow-lg hover:shadow-indigo-50 transition-all relative group">
               <Bell className="h-5 w-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
               <span className="absolute top-2.5 right-2.5 h-2.5 w-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse" />

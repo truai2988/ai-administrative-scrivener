@@ -1,18 +1,18 @@
 import React from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { VisaStatus } from '@/utils/mockData';
+import { ForeignerStatus } from '@/types/database';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 interface StatusBadgeProps {
-  status: VisaStatus;
+  status: ForeignerStatus;
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const getStatusStyles = (status: VisaStatus) => {
+  const getStatusStyles = (status: ForeignerStatus) => {
     switch (status) {
       case '完了':
         return 'bg-emerald-100 text-emerald-700 border-emerald-200';
@@ -22,6 +22,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return 'bg-amber-100 text-amber-700 border-amber-200 animate-pulse';
       case '準備中':
         return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'チェック中':
+        return 'bg-indigo-100 text-indigo-700 border-indigo-200 font-bold';
       case '期限切れ警告':
         return 'bg-rose-100 text-rose-700 border-rose-200 font-bold';
       default:

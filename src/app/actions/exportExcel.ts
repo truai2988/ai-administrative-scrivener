@@ -52,7 +52,7 @@ export async function generateApplicationExcel(foreigner: Foreigner, client?: Cl
       worksheet.getCell('C20').value = client.name;
     } else {
       // clientがない場合はForeignerのモックデータから補完（プロトタイプ用）
-      worksheet.getCell('C20').value = (foreigner as Record<string, any>).company || '未登録';
+      worksheet.getCell('C20').value = foreigner.company || '未登録';
     }
 
     // バッファを生成してBase64で返す

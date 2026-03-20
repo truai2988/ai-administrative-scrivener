@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
-import { format, differenceInDays } from 'date-fns';
-import { Search, ChevronRight, Clock, ShieldCheck } from 'lucide-react';
+import { differenceInDays } from 'date-fns';
+import { Search, ChevronRight, Clock, ShieldCheck, Edit3 } from 'lucide-react';
+import Link from 'next/link';
 
 interface ForeignerListProps {
   data: Foreigner[];
@@ -18,7 +19,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
     (item) =>
       item.name.includes(searchTerm) ||
       item.nationality.includes(searchTerm) ||
-      ((item as any).company && (item as any).company.includes(searchTerm))
+      (item.company && item.company.includes(searchTerm))
   );
 
   const getDaysRemaining = (date: string) => {
@@ -73,10 +74,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
                       <span className="text-xs text-slate-400">{person.nationality}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-700">{(person as any).company || '未所属'}</span>
-                      <span className="text-xs text-slate-400 line-clamp-1">{(person as any).visaType || '特定技能'}</span>
+                      <span className="text-sm font-medium text-slate-700">{person.company || '未所属'}</span>
+                      <span className="text-xs text-slate-400 line-clamp-1">{person.visaType || '特定技能'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -101,9 +102,19 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-2 hover:bg-white hover:shadow-sm rounded-lg transition-all group-hover:text-indigo-600">
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Link 
+                        href={`/client/edit/${person.id}`}
+                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-1.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Edit3 className="h-3 w-3" />
+                        編集
+                      </Link>
+                      <button className="p-2 hover:bg-white hover:shadow-sm rounded-lg transition-all text-slate-300 group-hover:text-indigo-600">
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

@@ -2,7 +2,7 @@
  * Firestore Data Models (Schema)
  */
 
-export type ForeignerStatus = '準備中' | 'チェック中' | '申請済';
+export type ForeignerStatus = '準備中' | 'チェック中' | '申請済' | '追加資料待機' | '完了' | '期限切れ警告';
 
 export interface Foreigner {
   id: string; // Firestore Document ID

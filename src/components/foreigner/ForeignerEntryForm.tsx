@@ -1,0 +1,306 @@
+'use client';
+
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { z } from 'zod';
+import { ForeignerSchema } from '@/utils/validation';
+import { StepProgress } from '../client/StepProgress';
+import { FileUploadZone } from '../client/FileUploadZone';
+import { ChevronRight, ChevronLeft, Send, CheckCircle2, User, CreditCard, FileText, Landmark } from 'lucide-react';
+
+import { submitForeignerEntryAction } from '@/app/actions/foreignerActions';
+
+const STEPS = ['基本情報', '在留情報', '書類添付', '委任同意'];
+
+interface ForeignerEntryFormProps {
+  token: string;
+}
+
+export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState({
+    name: '',
+    nationality: '',
+    birthday: '',
+    residenceCardNumber: '',
+    expiryDate: '',
+    jobType: '',
+    experienceYears: '',
+    files: {} as Record<string, File | null>,
+    isAgreed: false,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateStep = () => {
+    const newErrors: Record<string, string> = {};
+    if (currentStep === 0) {
+      if (!formData.name) newErrors.name = '氏名を入力してください';
+      if (!formData.nationality) newErrors.nationality = '国籍を選択してください';
+    } else if (currentStep === 1) {
+      const result = ForeignerSchema.safeParse({
+        ...formData,
+        residenceCardNumber: formData.residenceCardNumber,
+        expiryDate: formData.expiryDate || '2099-12-31',
+      });
+      if (!result.success) {
+        result.error.issues.forEach((err: z.ZodIssue) => {
+          if (err.path.toString().includes('residenceCardNumber')) newErrors.residenceCardNumber = err.message;
+        });
+      }
+    } else if (currentStep === 3) {
+      if (!formData.isAgreed) newErrors.isAgreed = '同意が必要です';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateStep()) {
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+    window.scrollTo(0, 0);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateStep()) {
+      setIsSubmitting(true);
+      
+      const result = await submitForeignerEntryAction(token, {
+        name: formData.name,
+        nationality: formData.nationality,
+        birthDate: formData.birthday,
+        residenceCardNumber: formData.residenceCardNumber,
+        expiryDate: formData.expiryDate,
+        // ファイルアップロードは別途Storageで対応する前提だが、今はプレビュー用としてメタデータのみ保存を想定
+      });
+
+      if (result.success) {
+        setIsSubmitted(true);
+      } else {
+        alert(result.error);
+      }
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isSubmitted) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-md mx-auto mt-10 p-8 bg-white rounded-3xl shadow-xl text-center border border-slate-100"
+      >
+        <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">送信が完了しました</h2>
+        <p className="text-slate-600 mb-8 leading-relaxed">
+          ご入力いただいた情報は、行政書士および支援機関にて確認いたします。<br />
+          確認が完了するまで、このままお待ちください。
+        </p>
+        <div className="p-4 bg-slate-50 rounded-xl text-sm text-slate-500 italic">
+          ※法的委任への同意が記録されました。
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="max-w-md mx-auto px-4 pb-20 pt-6">
+      <div className="mb-8">
+        <h1 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-indigo-600" />
+          ビザ申請データ入力
+        </h1>
+        <p className="text-xs text-slate-500">
+          スマホで簡単に申請書類の準備ができます。
+        </p>
+      </div>
+
+      <StepProgress currentStep={currentStep + 1} totalSteps={STEPS.length} steps={STEPS} />
+
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -20, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Step 0: Basic Info */}
+            {currentStep === 0 && (
+              <div className="space-y-4">
+                <div className="bg-indigo-50/50 p-4 rounded-2xl mb-6 flex items-start gap-3">
+                  <User className="w-5 h-5 text-indigo-600 mt-1" />
+                  <p className="text-sm text-indigo-900 leading-relaxed font-medium">
+                    まずは、あなたのお名前と国籍を教えてください。
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">氏名 (アルファベット)</label>
+                  <input
+                    type="text"
+                    placeholder="例: DELA CRUZ JUAN"
+                    className={`w-full p-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all text-lg ${errors.name ? 'ring-2 ring-red-500' : ''}`}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
+                  />
+                  {errors.name && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{errors.name}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">国籍</label>
+                  <select
+                    className={`w-full p-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all text-lg appearance-none ${errors.nationality ? 'ring-2 ring-red-500' : ''}`}
+                    value={formData.nationality}
+                    onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                  >
+                    <option value="">選択してください</option>
+                    <option value="Philippines">フィリピン</option>
+                    <option value="Vietnam">ベトナム</option>
+                    <option value="China">中国</option>
+                    <option value="Indonesia">インドネシア</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1: Residence Info */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div className="bg-blue-50/50 p-4 rounded-2xl mb-6 flex items-start gap-3">
+                  <CreditCard className="w-5 h-5 text-blue-600 mt-1" />
+                  <p className="text-sm text-blue-900 leading-relaxed font-medium">
+                    在留カードの情報を入力してください。カードをお手元に用意してください。
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">在留カード番号</label>
+                  <input
+                    type="text"
+                    placeholder="例: AB12345678CD"
+                    maxLength={12}
+                    className={`w-full p-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-lg uppercase ${errors.residenceCardNumber ? 'ring-2 ring-red-500' : ''}`}
+                    value={formData.residenceCardNumber}
+                    onChange={(e) => setFormData({ ...formData, residenceCardNumber: e.target.value })}
+                  />
+                  {errors.residenceCardNumber && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{errors.residenceCardNumber}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">在留期限</label>
+                  <input
+                    type="date"
+                    className="w-full p-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-lg"
+                    value={formData.expiryDate}
+                    onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Documents */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="bg-amber-50/50 p-4 rounded-2xl mb-4 flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-amber-600 mt-1" />
+                  <p className="text-sm text-amber-900 leading-relaxed font-medium">
+                    スマートフォンのカメラで撮影してアップロードしてください。
+                  </p>
+                </div>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (表面)</h3>
+                    <FileUploadZone label="在留カード(表面)" onFileSelect={(f) => console.log('RC Front', f)} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (裏面)</h3>
+                    <FileUploadZone label="在留カード(裏面)" onFileSelect={(f) => console.log('RC Back', f)} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">パスポート (顔写真ページ)</h3>
+                    <FileUploadZone label="パスポート" onFileSelect={(f) => console.log('Passport', f)} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Consent */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Landmark className="w-6 h-6 text-emerald-600" />
+                    <h3 className="text-lg font-bold text-emerald-900">法的委任への同意</h3>
+                  </div>
+                  <div className="text-sm text-emerald-800 leading-relaxed space-y-3 prose prose-sm">
+                    <p>私は、本申請に関する手続きを、提携する行政書士に委任することに同意します。</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li>入力された情報の正確性を保証します。</li>
+                      <li>申請に必要な個人情報の提供に同意します。</li>
+                      <li>委任内容に変更がある場合は速やかに通知します。</li>
+                    </ul>
+                  </div>
+                  <label className="mt-8 flex items-center gap-4 p-4 bg-white rounded-2xl cursor-pointer shadow-sm border border-emerald-100 transition-all active:scale-95">
+                    <input
+                      type="checkbox"
+                      className="w-6 h-6 rounded-lg border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      checked={formData.isAgreed}
+                      onChange={(e) => setFormData({ ...formData, isAgreed: e.target.checked })}
+                    />
+                    <span className="text-sm font-bold text-slate-700">上記の内容を理解し、同意します</span>
+                  </label>
+                  {errors.isAgreed && <p className="text-red-500 text-xs mt-2 font-medium">{errors.isAgreed}</p>}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation */}
+        <div className="flex gap-3 pt-4">
+          {currentStep > 0 && (
+            <button
+              type="button"
+              onClick={prevStep}
+              className="flex-1 p-4 flex items-center justify-center gap-2 bg-slate-100 text-slate-600 font-bold rounded-2xl transition-all active:bg-slate-200"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              戻る
+            </button>
+          )}
+          {currentStep < STEPS.length - 1 ? (
+            <button
+              type="button"
+              onClick={nextStep}
+              className="flex-2 p-4 flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95 active:bg-indigo-700"
+            >
+              次へ
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!formData.isAgreed || isSubmitting}
+              className={`flex-2 p-4 flex items-center justify-center gap-2 font-bold rounded-2xl shadow-lg transition-all active:scale-95 ${
+                formData.isAgreed && !isSubmitting
+                  ? 'bg-emerald-600 text-white shadow-emerald-200 active:bg-emerald-700' 
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+              }`}
+            >
+              <Send className={isSubmitting ? "w-5 h-5 animate-pulse" : "w-5 h-5"} />
+              {isSubmitting ? '送信中...' : '申請を委任して送信'}
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+};
