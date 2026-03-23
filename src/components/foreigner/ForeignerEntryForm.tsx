@@ -10,7 +10,38 @@ import { ChevronRight, ChevronLeft, Send, CheckCircle2, User, CreditCard, FileTe
 
 import { submitForeignerEntryAction } from '@/app/actions/foreignerActions';
 
-const STEPS = ['基本情報', '在留情報', '書類添付', '委任同意'];
+const STEPS = ['書類添付', '基本情報', '在留情報', '委任同意'];
+
+const normalizeNationality = (raw: string | null | undefined): string => {
+  if (!raw) return '';
+  const r = raw.toLowerCase();
+  if (r.includes('中国') || r.includes('china') || r.includes('prc')) return 'China';
+  if (r.includes('フィリピン') || r.includes('philippines')) return 'Philippines';
+  if (r.includes('ベトナム') || r.includes('vietnam')) return 'Vietnam';
+  if (r.includes('インドネシア') || r.includes('indonesia')) return 'Indonesia';
+  if (r.includes('ネパール') || r.includes('nepal')) return 'Nepal';
+  if (r.includes('ミャンマー') || r.includes('myanmar')) return 'Myanmar';
+  return raw;
+};
+
+const normalizeDate = (raw: string | null | undefined): string => {
+  if (!raw) return '';
+  // 数字のみを抽出
+  const numbers = raw.replace(/\D/g, '');
+  if (numbers.length === 8) {
+    // 19900101 -> 1990-01-01
+    return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6, 8)}`;
+  }
+  // すでに YYYY-MM-DD 形式に近い場合は調整
+  const parts = raw.split(/[-/.]/);
+  if (parts.length === 3) {
+    const y = parts[0].length === 4 ? parts[0] : parts[2];
+    const m = parts[1].padStart(2, '0');
+    const d = parts[0].length === 4 ? parts[2].padStart(2, '0') : parts[0].padStart(2, '0');
+    if (y.length === 4) return `${y}-${m}-${d}`;
+  }
+  return raw;
+};
 
 interface ForeignerEntryFormProps {
   token: string;
@@ -24,6 +55,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
     birthday: '',
     residenceCardNumber: '',
     expiryDate: '',
+    visaType: '',
     jobType: '',
     experienceYears: '',
     files: {} as Record<string, File | null>,
@@ -35,10 +67,10 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
 
   const validateStep = () => {
     const newErrors: Record<string, string> = {};
-    if (currentStep === 0) {
+    if (currentStep === 1) {
       if (!formData.name) newErrors.name = '氏名を入力してください';
       if (!formData.nationality) newErrors.nationality = '国籍を選択してください';
-    } else if (currentStep === 1) {
+    } else if (currentStep === 2) {
       const result = ForeignerSchema.safeParse({
         ...formData,
         residenceCardNumber: formData.residenceCardNumber,
@@ -79,6 +111,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
         birthDate: formData.birthday,
         residenceCardNumber: formData.residenceCardNumber,
         expiryDate: formData.expiryDate,
+        visaType: formData.visaType,
         // ファイルアップロードは別途Storageで対応する前提だが、今はプレビュー用としてメタデータのみ保存を想定
       });
 
@@ -136,13 +169,62 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
             exit={{ x: -20, opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Step 0: Basic Info */}
+            {/* Step 0: Documents */}
             {currentStep === 0 && (
+              <div className="space-y-6">
+                <div className="bg-amber-50/50 p-4 rounded-2xl mb-4 flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-amber-600 mt-1" />
+                  <p className="text-sm text-amber-900 leading-relaxed font-medium">
+                    スマートフォンのカメラで撮影してアップロードしてください。AIが文字情報を自動入力します。
+                  </p>
+                </div>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (表面)</h3>
+                    <FileUploadZone 
+                      label="在留カード(表面)" 
+                      file={formData.files['rc-front']}
+                      onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'rc-front': f } }))} 
+                      onValidationSuccess={(data) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          name: data.name || prev.name,
+                          nationality: normalizeNationality(data.nationality) || prev.nationality,
+                          birthday: normalizeDate(data.birthDate) || prev.birthday,
+                          residenceCardNumber: data.residenceCardNumber || prev.residenceCardNumber,
+                          expiryDate: normalizeDate(data.expiryDate) || prev.expiryDate,
+                          visaType: data.visaType || prev.visaType,
+                        }));
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (裏面)</h3>
+                    <FileUploadZone 
+                      label="在留カード(裏面)" 
+                      file={formData.files['rc-back']}
+                      onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'rc-back': f } }))} 
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">パスポート (顔写真ページ)</h3>
+                    <FileUploadZone 
+                      label="パスポート" 
+                      file={formData.files['passport']}
+                      onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'passport': f } }))} 
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1: Basic Info */}
+            {currentStep === 1 && (
               <div className="space-y-4">
                 <div className="bg-indigo-50/50 p-4 rounded-2xl mb-6 flex items-start gap-3">
                   <User className="w-5 h-5 text-indigo-600 mt-1" />
                   <p className="text-sm text-indigo-900 leading-relaxed font-medium">
-                    まずは、あなたのお名前と国籍を教えてください。
+                    AIが読み取った内容を確認し、間違いがあれば修正してください。
                   </p>
                 </div>
                 <div>
@@ -168,18 +250,20 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
                     <option value="Vietnam">ベトナム</option>
                     <option value="China">中国</option>
                     <option value="Indonesia">インドネシア</option>
+                    <option value="Nepal">ネパール</option>
+                    <option value="Myanmar">ミャンマー</option>
                   </select>
                 </div>
               </div>
             )}
 
-            {/* Step 1: Residence Info */}
-            {currentStep === 1 && (
+            {/* Step 2: Residence Info */}
+            {currentStep === 2 && (
               <div className="space-y-4">
                 <div className="bg-blue-50/50 p-4 rounded-2xl mb-6 flex items-start gap-3">
                   <CreditCard className="w-5 h-5 text-blue-600 mt-1" />
                   <p className="text-sm text-blue-900 leading-relaxed font-medium">
-                    在留カードの情報を入力してください。カードをお手元に用意してください。
+                    AIが読み取った在留カード番号と有効期限に間違いがないか確認してください。
                   </p>
                 </div>
                 <div>
@@ -203,31 +287,15 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
                     onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Step 2: Documents */}
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                <div className="bg-amber-50/50 p-4 rounded-2xl mb-4 flex items-start gap-3">
-                  <FileText className="w-5 h-5 text-amber-600 mt-1" />
-                  <p className="text-sm text-amber-900 leading-relaxed font-medium">
-                    スマートフォンのカメラで撮影してアップロードしてください。
-                  </p>
-                </div>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (表面)</h3>
-                    <FileUploadZone label="在留カード(表面)" onFileSelect={(f) => console.log('RC Front', f)} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (裏面)</h3>
-                    <FileUploadZone label="在留カード(裏面)" onFileSelect={(f) => console.log('RC Back', f)} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">パスポート (顔写真ページ)</h3>
-                    <FileUploadZone label="パスポート" onFileSelect={(f) => console.log('Passport', f)} />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">在留資格</label>
+                  <input
+                    type="text"
+                    placeholder="例: 技術・人文知識・国際業務"
+                    className="w-full p-4 bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all text-lg"
+                    value={formData.visaType}
+                    onChange={(e) => setFormData({ ...formData, visaType: e.target.value })}
+                  />
                 </div>
               </div>
             )}

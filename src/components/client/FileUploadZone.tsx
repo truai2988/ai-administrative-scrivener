@@ -7,11 +7,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface FileUploadZoneProps {
   label: string;
   accept?: string;
+  file?: File | null;
   onFileSelect?: (file: File | null) => void;
+  onValidationSuccess?: (extractedData: Record<string, string | null>) => void;
 }
 
-export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = "image/*", onFileSelect }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = "image/*", file, onFileSelect, onValidationSuccess }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [errorReason, setErrorReason] = useState<string | null>(null);
@@ -20,7 +21,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = 
     setErrorReason(null);
     if (!file.type.startsWith('image/')) {
       // PDF等の場合はそのまま許可
-      setSelectedFile(file);
       if (onFileSelect) onFileSelect(file);
       return;
     }
@@ -53,8 +53,10 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = 
         const input = document.getElementById(`file-input-${label}`) as HTMLInputElement;
         if (input) input.value = '';
       } else {
-        setSelectedFile(file);
         if (onFileSelect) onFileSelect(file);
+        if (onValidationSuccess && data.extractedData) {
+          onValidationSuccess(data.extractedData);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -69,14 +71,12 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = 
     if (file) {
       processFile(file);
     } else {
-      setSelectedFile(null);
       if (onFileSelect) onFileSelect(null);
     }
   };
 
   const handleRemove = () => {
     setErrorReason(null);
-    setSelectedFile(null);
     if (onFileSelect) onFileSelect(null);
   };
 
@@ -104,7 +104,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = 
       <div 
         className={`relative border-2 border-dashed rounded-2xl p-4 transition-all duration-300 ${
           isDragOver ? 'border-indigo-500 bg-indigo-50/50' : 
-          selectedFile ? 'border-emerald-500 bg-emerald-50/30' : 
+          file ? 'border-emerald-500 bg-emerald-50/30' : 
           errorReason ? 'border-rose-300 bg-rose-50/30' :
           'border-slate-200 hover:border-slate-300 bg-slate-50/50'
         }`}
@@ -130,7 +130,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = 
               <p className="text-sm font-bold text-indigo-700">AIが画像の鮮明さをチェックしています...</p>
               <p className="text-[10px] text-indigo-400 mt-1">光の反射やピンボケがないか確認中</p>
             </motion.div>
-          ) : !selectedFile ? (
+          ) : !file ? (
             <motion.div 
               key="empty"
               initial={{ opacity: 0 }}
@@ -161,11 +161,11 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({ label, accept = 
               className="flex items-center gap-4 bg-white p-3 rounded-xl border border-emerald-100 shadow-sm"
             >
               <div className="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500 overflow-hidden">
-                {selectedFile.type.startsWith('image/') ? <ImageIcon className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
+                {file.type.startsWith('image/') ? <ImageIcon className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-slate-700 truncate">{selectedFile.name}</p>
-                <p className="text-[10px] text-slate-400">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
+                <p className="text-[10px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
               <button 
                 onClick={handleRemove}
