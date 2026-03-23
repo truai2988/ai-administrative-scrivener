@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { FileText, Save, CheckCircle, AlertCircle, Building2, Briefcase, CreditCard } from 'lucide-react';
+import { FileText, Save, CheckCircle, AlertCircle, Building2, Briefcase, CreditCard, ArrowLeft } from 'lucide-react';
 import { foreignerService } from '@/services/foreignerService';
 import { submitClientEditAction } from '@/app/actions/clientActions';
 import { Foreigner } from '@/types/database';
@@ -88,9 +88,18 @@ export const ClientEditForm: React.FC<ClientEditFormProps> = ({ foreignerId }) =
     <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50">
       {/* Left: Preview Section */}
       <div className="flex-1 lg:max-w-md bg-white border-r border-slate-200 overflow-y-auto max-h-screen p-6 sticky top-0">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">本人入力内容のプレビュー</h2>
-          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">本人確認済</span>
+        <div className="mb-6 flex items-center gap-4">
+          <button
+            onClick={() => window.location.href = '/'}
+            className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-full shadow-sm transition-colors flex shrink-0"
+            title="ダッシュボードへ戻る"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900">本人入力内容のプレビュー</h2>
+            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">本人確認済</span>
+          </div>
         </div>
 
         <div className="space-y-8">

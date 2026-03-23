@@ -31,13 +31,18 @@ export const foreignerService = {
    * 全外国人を取得（一覧用）
    */
   async getAllForeigners(): Promise<Foreigner[]> {
+    console.log('[DEBUG_SERVICE] getAllForeigners: クエリを実行します...');
     const q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
     const querySnapshot = await getDocs(q);
     
-    return querySnapshot.docs.map(doc => ({
+    console.log(`[DEBUG_SERVICE] getAllForeigners: クエリを実行しました。取得件数: ${querySnapshot.docs.length}件`);
+    const results = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as Foreigner[];
+    
+    console.log('[DEBUG_SERVICE] getAllForeigners: マッピング完了', results.slice(0, 2));
+    return results;
   },
 
   /**
@@ -74,5 +79,103 @@ export const foreignerService = {
       status: 'チェック中', // 行政書士への依頼時はこのステータス
       updatedAt: new Date().toISOString(),
     });
+  },
+
+  /**
+   * デモデータ一括投入
+   */
+  async seedDemoData(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const now = new Date();
+      
+      const date1 = new Date();
+      date1.setMonth(now.getMonth() + 2);
+      const idSuffix = Date.now().toString().slice(-6); // ユニーク化のためのサフィックス
+
+      const demo1: Foreigner = {
+        id: `demo-normal-${idSuffix}`,
+        name: 'CHEN WEI',
+        residenceCardNumber: 'AB12345678CD',
+        expiryDate: date1.toISOString().split('T')[0],
+        birthDate: '1995-05-15',
+        nationality: '中国',
+        passportImageUrl: 'https://placehold.jp/400x300.png?text=Passport+Demo',
+        status: '準備中',
+        company: '株式会社テクノレイド',
+        visaType: '技術・人文知識・国際業務',
+        aiReview: {
+          riskScore: 15,
+          reason: '職歴と業務内容に矛盾はありません。',
+          checkedAt: now.toISOString(),
+          jobTitle: 'ソフトウェアエンジニア',
+          pastExperience: '北京のIT企業で5年の開発経験あり。'
+        },
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      };
+
+      const date2 = new Date();
+      date2.setDate(now.getDate() + 21);
+      
+      const demo2: Foreigner = {
+        id: `demo-warning-${idSuffix}`,
+        name: 'NGUYEN VAN A',
+        residenceCardNumber: 'XY98765432ZZ',
+        expiryDate: date2.toISOString().split('T')[0],
+        birthDate: '1998-10-20',
+        nationality: 'ベトナム',
+        passportImageUrl: 'https://placehold.jp/400x300.png?text=Passport+Demo',
+        status: 'チェック中',
+        company: '未来創生建設',
+        visaType: '技術・人文知識・国際業務',
+        aiReview: {
+          riskScore: 85,
+          reason: '【警告】過去の経歴と従事業務の関連性が薄く、理由書の詳細化が必要です。',
+          checkedAt: now.toISOString(),
+          jobTitle: '施工管理補助',
+          pastExperience: '母国の大学で経済学を専攻。建設関連の実務経験なし。'
+        },
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      };
+
+      const date3 = new Date();
+      date3.setMonth(now.getMonth() + 4);
+      
+      const demo3: Foreigner = {
+        id: `demo-completed-${idSuffix}`,
+        name: 'MARIA GARCIA',
+        residenceCardNumber: 'JK11223344ML',
+        expiryDate: date3.toISOString().split('T')[0],
+        birthDate: '1992-03-10',
+        nationality: 'フィリピン',
+        passportImageUrl: 'https://placehold.jp/400x300.png?text=Passport+Demo',
+        status: '申請済',
+        company: 'さくらフーズ',
+        visaType: '特定技能',
+        aiReview: {
+          riskScore: 5,
+          reason: '全ての書類が揃っており、要件を満たしています。',
+          checkedAt: now.toISOString(),
+          jobTitle: '外食業',
+          pastExperience: 'フィリピンのレストランでの実務経験3年。特定技能評価試験合格済み。'
+        },
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      };
+
+      console.log(`[DEBUG_SERVICE] seedDemoData: Firebaseへの一括登録を開始します。`);
+      await Promise.all([
+        setDoc(doc(db, COLLECTION_NAME, demo1.id), demo1),
+        setDoc(doc(db, COLLECTION_NAME, demo2.id), demo2),
+        setDoc(doc(db, COLLECTION_NAME, demo3.id), demo3),
+      ]);
+      console.log(`[DEBUG_SERVICE] seedDemoData: Firebaseへの一括登録が成功しました。`);
+
+      return { success: true };
+    } catch (error) {
+      console.error('[DEBUG_SERVICE] seedDemoData Error:', error);
+      return { success: false, error: String(error) };
+    }
   }
 };
