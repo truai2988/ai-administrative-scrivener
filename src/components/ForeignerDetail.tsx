@@ -1,10 +1,21 @@
 import React, { useEffect } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
-import { X, ShieldAlert, Info, Building2, Calendar, CreditCard, ClipboardList } from 'lucide-react';
+import { X, ShieldAlert, Info, Building2, Calendar, CreditCard, ClipboardList, Lock, Globe, Monitor } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ExcelDownloadButton } from './ExcelDownloadButton';
+
+function formatAgreeDate(isoString: string): string {
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  } catch {
+    return isoString;
+  }
+}
 
 interface ForeignerDetailProps {
   foreigner: Foreigner | null;
@@ -137,6 +148,35 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({ foreigner, onC
                 </div>
               </div>
             </section>
+
+            {/* Legal Consent Log */}
+            {foreigner.consentLog && (
+              <section className="space-y-4 mt-8 pt-6 border-t border-slate-200 border-dashed">
+                <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-slate-500" />
+                  法的証拠ログ（電磁的同意記録）
+                </h3>
+                <div className="bg-slate-100/80 border border-slate-200 rounded-2xl p-5 shadow-inner">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <InfoItem icon={Calendar} label="同意成立日時" value={formatAgreeDate(foreigner.consentLog.agreedAt)} />
+                    <InfoItem icon={Globe} label="送信元IPアドレス" value={foreigner.consentLog.ipAddress} />
+                    <div className="md:col-span-2">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-white rounded-lg border border-slate-200 shadow-sm">
+                          <Monitor className="h-4 w-4 text-slate-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">認証端末情報（ユーザーエージェント）</p>
+                          <p className="text-xs font-medium text-slate-600 mt-1 break-all leading-relaxed">
+                            {foreigner.consentLog.userAgent}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
           </div>
         </motion.div>
       </div>

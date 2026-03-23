@@ -25,6 +25,13 @@ export interface Foreigner {
     pastExperience: string;
   };
 
+  // Legal Consent Log
+  consentLog?: {
+    ipAddress: string;
+    userAgent: string;
+    agreedAt: string;
+  };
+
   createdAt: string;
   updatedAt: string;
 }

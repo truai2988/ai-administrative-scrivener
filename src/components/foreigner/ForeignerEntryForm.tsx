@@ -137,7 +137,8 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
         <h2 className="text-2xl font-bold text-slate-800 mb-4">送信が完了しました</h2>
         <p className="text-slate-600 mb-8 leading-relaxed">
           ご入力いただいた情報は、行政書士および支援機関にて確認いたします。<br />
-          確認が完了するまで、このままお待ちください。
+          今後の手続きのご案内があるまでお待ちください。<br />
+          <strong className="text-indigo-600 mt-2 block">こちらの画面は閉じて終了していただいて構いません。</strong>
         </p>
         <div className="p-4 bg-slate-50 rounded-xl text-sm text-slate-500 italic">
           ※法的委任への同意が記録されました。
