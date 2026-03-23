@@ -32,6 +32,10 @@ export interface Foreigner {
     agreedAt: string;
   };
 
+  // Original Data Snapshot for Legal Compliance
+  isEditedByAdmin?: boolean;
+  originalSubmittedData?: Partial<Foreigner>;
+
   createdAt: string;
   updatedAt: string;
 }

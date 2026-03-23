@@ -12,13 +12,14 @@ export async function submitForeignerEntryAction(id: string, formData: Partial<F
     const userAgent = headersList.get("user-agent") || "unknown";
     const agreedAt = new Date().toISOString();
 
-    const dataWithConsent = {
+    const dataWithConsent: Partial<Foreigner> = {
       ...formData,
       consentLog: {
         ipAddress,
         userAgent,
         agreedAt,
       },
+      originalSubmittedData: { ...formData }, // 確実にスナップショットとして別の参照で保存
     };
 
     await foreignerService.submitForeignerEntry(id, dataWithConsent);

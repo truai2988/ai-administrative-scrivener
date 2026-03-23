@@ -18,7 +18,16 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   // 共有モーダル用のステート
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const entryUrl = typeof window !== 'undefined' ? `${window.location.origin}/foreigner/entry/dummy-token-123` : '';
+  const [shareToken, setShareToken] = useState('dummy-token-123');
+
+  // モーダルを開くたびに新しいテスト用トークンを生成
+  useEffect(() => {
+    if (showShareModal) {
+      setShareToken(`test-${Math.random().toString(36).slice(2, 6)}-${Date.now().toString().slice(-4)}`);
+    }
+  }, [showShareModal]);
+
+  const entryUrl = typeof window !== 'undefined' ? `${window.location.origin}/foreigner/entry/${shareToken}` : '';
 
   useEffect(() => {
     setMounted(true);
@@ -188,6 +197,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           <ForeignerDetail 
             foreigner={selectedForeigner} 
             onClose={() => setSelectedForeigner(null)} 
+            onUpdate={(updatedInfo) => {
+              setData((prev) => prev.map((f) => f.id === updatedInfo.id ? updatedInfo : f));
+              setSelectedForeigner(updatedInfo);
+            }}
           />
         )}
 

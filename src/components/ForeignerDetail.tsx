@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Foreigner } from '@/types/database';
+import { foreignerService } from '@/services/foreignerService';
 import { StatusBadge } from './StatusBadge';
-import { X, ShieldAlert, Info, Building2, Calendar, CreditCard, ClipboardList, Lock, Globe, Monitor } from 'lucide-react';
+import { X, ShieldAlert, Info, Building2, Calendar, CreditCard, ClipboardList, Lock, Globe, Monitor, Edit3, Save, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ExcelDownloadButton } from './ExcelDownloadButton';
@@ -20,17 +21,48 @@ function formatAgreeDate(isoString: string): string {
 interface ForeignerDetailProps {
   foreigner: Foreigner | null;
   onClose: () => void;
+  onUpdate?: (updatedInfo: Foreigner) => void;
 }
 
-export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({ foreigner, onClose }) => {
+export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({ foreigner, onClose, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Foreigner>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+
   useEffect(() => {
     if (foreigner) {
       document.body.style.overflow = 'hidden';
+      setEditForm(foreigner);
+      setIsEditing(false);
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [foreigner]);
+
+  const handleSave = async () => {
+    if (!foreigner) return;
+    setIsSaving(true);
+    try {
+      await foreignerService.updateForeignerDataAdmin(foreigner.id, editForm);
+      if (onUpdate) {
+        // 原本データが消失しないよう、元の foreigner から確実に引き継ぐ
+        const updatedData = { 
+          ...foreigner, 
+          ...editForm, 
+          originalSubmittedData: foreigner.originalSubmittedData, 
+          isEditedByAdmin: true 
+        } as Foreigner;
+        onUpdate(updatedData);
+      }
+      setIsEditing(false);
+    } catch {
+      alert("保存に失敗しました");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!foreigner) return null;
 
@@ -46,15 +78,51 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({ foreigner, onC
         >
           <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100 p-6 flex items-center justify-between z-10">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">{foreigner.name}</h2>
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+                {foreigner.name}
+                {foreigner.originalSubmittedData && [
+                  'name', 'nationality', 'birthDate', 'residenceCardNumber', 
+                  'expiryDate', 'company', 'visaType'
+                ].some((key) => {
+                  const k = key as keyof Foreigner;
+                  return foreigner.originalSubmittedData && foreigner.originalSubmittedData[k] !== foreigner[k];
+                }) && (
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 shadow-sm">
+                    <Edit3 className="w-3 h-3" />
+                    修正履歴あり
+                  </span>
+                )}
+              </h2>
               <p className="text-sm text-slate-500">{foreigner.nationality} / {foreigner.id}</p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-            >
-              <X className="h-6 w-6 text-slate-400" />
-            </button>
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm shadow-sm"
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  保存する
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-2 text-sm"
+                >
+                  <Edit3 className="w-4 h-4 text-slate-500" />
+                  編集する
+                </button>
+              )}
+              <div className="w-px h-6 bg-slate-200 mx-1"></div>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                title="閉じる"
+              >
+                <X className="h-6 w-6 text-slate-400" />
+              </button>
+            </div>
           </div>
 
           <div className="p-8 space-y-8">
@@ -107,28 +175,135 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({ foreigner, onC
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-10 text-center">
                   <ClipboardList className="h-10 w-10 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 text-sm">AIによるチェックはまだ行われていません。</p>
-                  <button className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all">
-                    今すぐチェックを実行
-                  </button>
                 </div>
               )}
 
               {/* Excel Download Section */}
-              <div className="pt-4">
+              <div className="pt-4 text-center">
                 <ExcelDownloadButton foreigner={foreigner} />
-                <p className="mt-2 text-[10px] text-center text-slate-400">
+                <p className="mt-2 text-[10px] text-slate-400">
                   ※入管指定の最新Excel書式（更新用）にデータを流し込みます。
                 </p>
               </div>
             </section>
 
             {/* Basic Info */}
-            <section className="grid grid-cols-2 gap-6">
-              <InfoItem icon={CreditCard} label="在留カード番号" value={foreigner.residenceCardNumber} />
-              <InfoItem icon={Calendar} label="生年月日" value={foreigner.birthDate} />
-              <InfoItem icon={Building2} label="所属機関" value={(foreigner as unknown as { company?: string }).company || '未登録'} />
-              <InfoItem icon={ClipboardList} label="在留資格種別" value={(foreigner as unknown as { visaType?: string }).visaType || '特定技能'} />
+            <section className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                <h3 className="text-lg font-bold text-slate-900 border-l-4 border-indigo-500 pl-3">基本情報</h3>
+                {isEditing && <span className="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg">編集中</span>}
+              </div>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                {isEditing ? (
+                  <>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">氏名 (アルファベット)</label>
+                      <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.name || ''} onChange={(e) => setEditForm({...editForm, name: e.target.value.toUpperCase()})} />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">国籍</label>
+                      <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.nationality || ''} onChange={(e) => setEditForm({...editForm, nationality: e.target.value})} />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">在留カード番号</label>
+                      <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none uppercase" value={editForm.residenceCardNumber || ''} onChange={(e) => setEditForm({...editForm, residenceCardNumber: e.target.value})} maxLength={12} />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">生年月日</label>
+                      <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.birthDate || ''} onChange={(e) => setEditForm({...editForm, birthDate: e.target.value})} />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">在留期限</label>
+                      <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.expiryDate || ''} onChange={(e) => setEditForm({...editForm, expiryDate: e.target.value})} />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">所属機関</label>
+                      <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.company || ''} onChange={(e) => setEditForm({...editForm, company: e.target.value})} />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">在留資格種別</label>
+                      <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.visaType || ''} onChange={(e) => setEditForm({...editForm, visaType: e.target.value})} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <InfoItem icon={Globe} label="国籍" value={foreigner.nationality} />
+                    <InfoItem icon={Calendar} label="生年月日" value={foreigner.birthDate} />
+                    <InfoItem icon={CreditCard} label="在留カード番号" value={foreigner.residenceCardNumber} />
+                    <InfoItem icon={Calendar} label="在留期限" value={foreigner.expiryDate} />
+                    <InfoItem icon={Building2} label="所属機関" value={foreigner.company || '未登録'} />
+                    <InfoItem icon={ClipboardList} label="在留資格種別" value={foreigner.visaType || '特定技能'} />
+                  </>
+                )}
+              </div>
             </section>
+
+            {/* Original Data View (Shows only if differences exist) */}
+            {foreigner.originalSubmittedData && [
+              'name', 'nationality', 'birthDate', 'residenceCardNumber', 
+              'expiryDate', 'company', 'visaType'
+            ].some((key) => {
+              const k = key as keyof Foreigner;
+              return foreigner.originalSubmittedData && foreigner.originalSubmittedData[k] !== foreigner[k];
+            }) && (
+              <section className="bg-amber-50/50 border border-amber-200 rounded-2xl overflow-hidden mt-6">
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Lock className="w-4 h-4 text-amber-600" />
+                    <h3 className="text-sm font-bold text-amber-800">
+                      本人が同意した原本データ（修正前）
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {foreigner.originalSubmittedData.name !== foreigner.name && (
+                      <div className="bg-white/60 p-3 rounded-xl border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600/70 mb-1">氏名 (Original Name)</p>
+                        <p className="text-sm font-bold text-amber-900">{foreigner.originalSubmittedData.name}</p>
+                      </div>
+                    )}
+                    {foreigner.originalSubmittedData.nationality !== foreigner.nationality && (
+                      <div className="bg-white/60 p-3 rounded-xl border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600/70 mb-1">国籍 (Nationality)</p>
+                        <p className="text-sm font-bold text-amber-900">{foreigner.originalSubmittedData.nationality}</p>
+                      </div>
+                    )}
+                    {foreigner.originalSubmittedData.birthDate !== foreigner.birthDate && (
+                      <div className="bg-white/60 p-3 rounded-xl border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600/70 mb-1">生年月日 (Birth Date)</p>
+                        <p className="text-sm font-bold text-amber-900">{foreigner.originalSubmittedData.birthDate}</p>
+                      </div>
+                    )}
+                    {foreigner.originalSubmittedData.residenceCardNumber !== foreigner.residenceCardNumber && (
+                      <div className="bg-white/60 p-3 rounded-xl border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600/70 mb-1">在留カード番号 (Card No)</p>
+                        <p className="text-sm font-bold text-amber-900">{foreigner.originalSubmittedData.residenceCardNumber}</p>
+                      </div>
+                    )}
+                    {foreigner.originalSubmittedData.expiryDate !== foreigner.expiryDate && (
+                      <div className="bg-white/60 p-3 rounded-xl border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600/70 mb-1">在留期限 (Expiry Date)</p>
+                        <p className="text-sm font-bold text-amber-900">{foreigner.originalSubmittedData.expiryDate || '-'}</p>
+                      </div>
+                    )}
+                    {foreigner.originalSubmittedData.company !== foreigner.company && (
+                      <div className="bg-white/60 p-3 rounded-xl border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600/70 mb-1">所属機関 (Company)</p>
+                        <p className="text-sm font-bold text-amber-900">{foreigner.originalSubmittedData.company || '未登録'}</p>
+                      </div>
+                    )}
+                    {foreigner.originalSubmittedData.visaType !== foreigner.visaType && (
+                      <div className="bg-white/60 p-3 rounded-xl border border-amber-100 col-span-2">
+                        <p className="text-[10px] font-bold text-amber-600/70 mb-1">在留資格種別 (Visa Type)</p>
+                        <p className="text-sm font-bold text-amber-900">{foreigner.originalSubmittedData.visaType || '特定技能'}</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-amber-700/60 mt-4 leading-relaxed bg-amber-100/30 p-3 rounded-lg">
+                    ※このデータは、本フォームを通じて外国人が申告・同意した時点の不可変なスナップショットです。
+                  </p>
+                </div>
+              </section>
+            )}
 
             {/* Job Content / Experience */}
             <section className="space-y-4">
