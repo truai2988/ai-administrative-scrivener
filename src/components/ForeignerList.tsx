@@ -4,12 +4,11 @@ import React, { useState } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Search, ChevronRight, Clock, ShieldCheck, Edit3 } from 'lucide-react';
-import Link from 'next/link';
+import { Search, ChevronRight, Clock, ShieldCheck } from 'lucide-react';
 
 interface ForeignerListProps {
   data: Foreigner[];
-  onSelect: (foreigner: Foreigner) => void;
+  onSelect: (foreigner: Foreigner, editMode?: boolean) => void;
 }
 
 export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) => {
@@ -102,18 +101,8 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link 
-                        href={`/client/edit/${person.id}`}
-                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-1.5"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Edit3 className="h-3 w-3" />
-                        編集
-                      </Link>
-                      <button className="p-2 hover:bg-white hover:shadow-sm rounded-lg transition-all text-slate-300 group-hover:text-indigo-600">
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
+                    <div className="flex items-center justify-end px-2 text-slate-300 group-hover:text-indigo-600 transition-colors">
+                      <ChevronRight className="h-5 w-5" />
                     </div>
                   </td>
                 </tr>

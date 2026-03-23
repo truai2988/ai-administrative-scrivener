@@ -31,18 +31,13 @@ export const foreignerService = {
    * 全外国人を取得（一覧用）
    */
   async getAllForeigners(): Promise<Foreigner[]> {
-    console.log('[DEBUG_SERVICE] getAllForeigners: クエリを実行します...');
     const q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
     const querySnapshot = await getDocs(q);
     
-    console.log(`[DEBUG_SERVICE] getAllForeigners: クエリを実行しました。取得件数: ${querySnapshot.docs.length}件`);
-    const results = querySnapshot.docs.map(doc => ({
+    return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as Foreigner[];
-    
-    console.log('[DEBUG_SERVICE] getAllForeigners: マッピング完了', results.slice(0, 2));
-    return results;
   },
 
   /**
@@ -68,18 +63,6 @@ export const foreignerService = {
     }
   },
 
-  /**
-   * 支援機関用フォームからの追記・ステータス更新
-   */
-  async updateBySupportAgency(id: string, data: Partial<Foreigner>): Promise<void> {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    
-    await updateDoc(docRef, {
-      ...data,
-      status: 'チェック中', // 行政書士への依頼時はこのステータス
-      updatedAt: new Date().toISOString(),
-    });
-  },
 
   /**
    * 行政書士専用：ダッシュボードからのデータ直接編集・上書き
@@ -199,13 +182,11 @@ export const foreignerService = {
       // demo2を最初から「編集済み」としてマークし、ボタンを確認しやすくする
       demo2.isEditedByAdmin = true;
 
-      console.log(`[DEBUG_SERVICE] seedDemoData: Firebaseへの一括登録を開始します。`);
       await Promise.all([
         setDoc(doc(db, COLLECTION_NAME, demo1.id), demo1),
         setDoc(doc(db, COLLECTION_NAME, demo2.id), demo2),
         setDoc(doc(db, COLLECTION_NAME, demo3.id), demo3),
       ]);
-      console.log(`[DEBUG_SERVICE] seedDemoData: Firebaseへの一括登録が成功しました。`);
 
       return { success: true };
     } catch (error) {

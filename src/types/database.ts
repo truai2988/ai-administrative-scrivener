@@ -15,6 +15,14 @@ export interface Foreigner {
   status: ForeignerStatus;
   company?: string; // 所属機関
   visaType?: string; // 在留資格種別
+  jobTitle?: string; // 職務の名称 (受入情報)
+  experience?: string; // 経験・スキル要約 (受入情報)
+  
+  // 雇用・待遇情報
+  salary?: string; // 基本給 (月額)
+  allowances?: string; // 諸手当 (月額)
+  socialInsurance?: boolean; // 社会保険加入
+  housingProvided?: boolean; // 住宅の提供
   
   // AI Review fields
   aiReview?: {

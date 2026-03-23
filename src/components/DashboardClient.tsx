@@ -58,20 +58,24 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-slate-100 p-8 shadow-sm z-20">
-        <div className="flex items-center gap-3 mb-12 px-2">
-          <div className="h-10 w-10 bg-linear-to-br from-indigo-600 to-violet-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-            <LayoutDashboard className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <span className="text-xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-violet-600 tracking-tight">
-              AI 行政書士
-            </span>
-            <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Management Suite</p>
+      <aside className="hidden lg:flex flex-col w-72 h-screen sticky top-0 bg-white border-r border-slate-100 shadow-sm z-20">
+        {/* Logo - Fixed */}
+        <div className="p-8 pb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 bg-linear-to-br from-indigo-600 to-violet-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+              <LayoutDashboard className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <span className="text-xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-violet-600 tracking-tight">
+                AI 行政書士
+              </span>
+              <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Management Suite</p>
+            </div>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-2">
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 overflow-y-auto px-8 py-4 space-y-2 no-scrollbar">
           <SidebarItem icon={LayoutDashboard} label="総合ダッシュボード" active />
           <SidebarItem icon={UserCircle} label="外国人管理・台帳" />
           <SidebarItem icon={Bell} label="通知・期限アラート" badge={12} />
@@ -79,7 +83,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           <SidebarItem icon={Settings} label="システム設定" />
         </nav>
 
-        <div className="mt-auto pt-8 border-t border-slate-50 space-y-4">
+        {/* Support & Logout - Fixed at bottom */}
+        <div className="p-8 pt-4 border-t border-slate-50 space-y-4 bg-white">
           <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100/50">
             <p className="text-xs font-bold text-indigo-600 mb-1">サポート窓口</p>
             <p className="text-[10px] text-slate-500 leading-relaxed">ご不明点はいつでもAIアシスタントへお尋ねください。</p>
@@ -196,7 +201,9 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         {selectedForeigner && (
           <ForeignerDetail 
             foreigner={selectedForeigner} 
-            onClose={() => setSelectedForeigner(null)} 
+            onClose={() => {
+              setSelectedForeigner(null);
+            }} 
             onUpdate={(updatedInfo) => {
               setData((prev) => prev.map((f) => f.id === updatedInfo.id ? updatedInfo : f));
               setSelectedForeigner(updatedInfo);
