@@ -4,14 +4,16 @@ import React, { useState } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Search, ChevronRight, Clock, ShieldCheck } from 'lucide-react';
+import { Search, ChevronRight, Clock, ShieldCheck, CheckSquare, Square, MinusSquare, Gavel } from 'lucide-react';
 
 interface ForeignerListProps {
   data: Foreigner[];
   onSelect: (foreigner: Foreigner, editMode?: boolean) => void;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (selectedIds: Set<string>) => void;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) => {
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, selectedIds, onSelectionChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredData = data.filter(
@@ -21,8 +23,37 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
       (item.company && item.company.includes(searchTerm))
   );
 
+  const displayedData = filteredData.slice(0, 100);
+
   const getDaysRemaining = (date: string) => {
     return differenceInDays(new Date(date), new Date());
+  };
+
+  // チェックボックス選択ロジック
+  const isSelectable = !!onSelectionChange;
+  const allSelected = isSelectable && displayedData.length > 0 && displayedData.every(f => selectedIds?.has(f.id));
+  const someSelected = isSelectable && displayedData.some(f => selectedIds?.has(f.id));
+
+  const toggleAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onSelectionChange) return;
+    if (allSelected) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(displayedData.map(f => f.id)));
+    }
+  };
+
+  const toggleOne = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!onSelectionChange || !selectedIds) return;
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    onSelectionChange(next);
   };
 
   return (
@@ -31,6 +62,11 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
         <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
           <Clock className="h-5 w-5 text-indigo-500" />
           管理対象者リスト
+          {isSelectable && selectedIds && selectedIds.size > 0 && (
+            <span className="ml-2 text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-100">
+              {selectedIds.size}名選択中
+            </span>
+          )}
         </h2>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -48,25 +84,58 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/50">
+              {isSelectable && (
+                <th className="px-4 py-4 w-10">
+                  <button
+                    onClick={toggleAll}
+                    className="text-slate-400 hover:text-indigo-600 transition-colors"
+                    title={allSelected ? '全選択解除' : '全選択'}
+                  >
+                    {allSelected ? (
+                      <CheckSquare className="h-5 w-5 text-teal-600" />
+                    ) : someSelected ? (
+                      <MinusSquare className="h-5 w-5 text-teal-400" />
+                    ) : (
+                      <Square className="h-5 w-5" />
+                    )}
+                  </button>
+                </th>
+              )}
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">氏名 / 国籍</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">所属 / 在留資格</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">在留期限</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">進捗ステータス</th>
+              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">法的同意</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">AIレビュー</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filteredData.slice(0, 100).map((person) => {
+            {displayedData.map((person) => {
               const daysLeft = getDaysRemaining(person.expiryDate);
               const isUrgent = daysLeft < 90;
+              const isChecked = selectedIds?.has(person.id) ?? false;
 
               return (
                 <tr 
                   key={person.id} 
-                  className="hover:bg-indigo-50/30 transition-colors group cursor-pointer"
+                  className={`hover:bg-indigo-50/30 transition-colors group cursor-pointer ${isChecked ? 'bg-teal-50/30' : ''}`}
                   onClick={() => onSelect(person)}
                 >
+                  {isSelectable && (
+                    <td className="px-4 py-4">
+                      <button
+                        onClick={(e) => toggleOne(e, person.id)}
+                        className="text-slate-400 hover:text-teal-600 transition-colors"
+                      >
+                        {isChecked ? (
+                          <CheckSquare className="h-5 w-5 text-teal-600" />
+                        ) : (
+                          <Square className="h-5 w-5" />
+                        )}
+                      </button>
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-slate-900">{person.name}</span>
@@ -89,6 +158,19 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect }) 
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={person.status} />
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {person.consentLog ? (
+                      <div className="flex flex-col items-center gap-1" title="法的同意済み (PDF出力可能)">
+                        <Gavel className="h-4 w-4 text-emerald-500" />
+                        <span className="text-[8px] font-bold text-emerald-600 uppercase">DONE</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 opacity-20" title="同意未完了">
+                        <Gavel className="h-4 w-4 text-slate-400" />
+                        <span className="text-[8px] font-bold text-slate-400 uppercase">PENDING</span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     {person.aiReview ? (

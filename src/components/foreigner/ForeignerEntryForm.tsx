@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { ForeignerSchema } from '@/utils/validation';
 import { StepProgress } from '../client/StepProgress';
 import { FileUploadZone } from '../client/FileUploadZone';
+import { PhotoUploadZone } from '../client/PhotoUploadZone';
 import { ChevronRight, ChevronLeft, Send, CheckCircle2, User, CreditCard, FileText, Landmark } from 'lucide-react';
 
 import { submitForeignerEntryAction } from '@/app/actions/foreignerActions';
@@ -65,6 +66,15 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 合計ファイルサイズの計算
+  const calculateTotalSize = (files: Record<string, File | null>) => {
+    return Object.values(files).reduce((acc, file) => acc + (file?.size || 0), 0);
+  };
+
+  const currentTotalSize = calculateTotalSize(formData.files);
+  const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB
+  const isOverTotalLimit = currentTotalSize > MAX_TOTAL_SIZE;
+
   const validateStep = () => {
     const newErrors: Record<string, string> = {};
     if (currentStep === 1) {
@@ -80,6 +90,10 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
         result.error.issues.forEach((err: z.ZodIssue) => {
           if (err.path.toString().includes('residenceCardNumber')) newErrors.residenceCardNumber = err.message;
         });
+      }
+    } else if (currentStep === 0) {
+      if (isOverTotalLimit) {
+        newErrors.files = `合計サイズが制限(25MB)を超えています。現在は${(currentTotalSize / (1024 * 1024)).toFixed(2)}MBです。`;
       }
     } else if (currentStep === 3) {
       if (!formData.isAgreed) newErrors.isAgreed = '同意が必要です';
@@ -179,12 +193,47 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
                     スマートフォンのカメラで撮影してアップロードしてください。AIが文字情報を自動入力します。
                   </p>
                 </div>
+
+                <div className={`p-4 rounded-2xl mb-6 border ${isOverTotalLimit ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-100'}`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">合計ファイルサイズ</span>
+                    <span className={`text-xs font-bold ${isOverTotalLimit ? 'text-rose-600' : 'text-slate-600'}`}>
+                      {(currentTotalSize / (1024 * 1024)).toFixed(2)} / 25.00 MB
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <motion.div 
+                      className={`h-full ${isOverTotalLimit ? 'bg-rose-500' : 'bg-indigo-500'}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min((currentTotalSize / MAX_TOTAL_SIZE) * 100, 100)}%` }}
+                    />
+                  </div>
+                  {isOverTotalLimit && (
+                    <p className="text-[10px] text-rose-600 font-bold mt-2">
+                      【警告】合計サイズが25MBを超えています。一部のファイルを削除、または画質を下げて再度アップロードしてください。
+                    </p>
+                  )}
+                </div>
+
+                {errors.files && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-600 text-xs p-3 rounded-xl mb-4 font-bold">
+                    {errors.files}
+                  </div>
+                )}
                 <div className="space-y-6">
                   <div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">顔写真（証明写真）</h3>
+                    <PhotoUploadZone
+                      file={formData.files['photo']}
+                      onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'photo': f } }))}
+                    />
+                  </div>
+                  <div className="border-t border-slate-100 pt-6">
                     <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (表面)</h3>
                     <FileUploadZone 
                       label="在留カード(表面)" 
                       file={formData.files['rc-front']}
+                      compressionType="document"
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'rc-front': f } }))} 
                       onValidationSuccess={(data) => {
                         setFormData(prev => ({
@@ -204,6 +253,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
                     <FileUploadZone 
                       label="在留カード(裏面)" 
                       file={formData.files['rc-back']}
+                      compressionType="document"
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'rc-back': f } }))} 
                     />
                   </div>
@@ -212,6 +262,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
                     <FileUploadZone 
                       label="パスポート" 
                       file={formData.files['passport']}
+                      compressionType="document"
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'passport': f } }))} 
                     />
                   </div>

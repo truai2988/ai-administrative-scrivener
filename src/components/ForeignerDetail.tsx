@@ -6,6 +6,7 @@ import { X, ShieldAlert, Info, Calendar, ClipboardList, Lock, Globe, Monitor, Ed
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ExcelDownloadButton } from './ExcelDownloadButton';
+import { ConsentPdfButton } from './ConsentPdfButton';
 
 function formatAgreeDate(isoString: string): string {
   try {
@@ -140,7 +141,10 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
               </div>
               <div className="flex items-center gap-3">
                 {!isEditing && (
-                  <ExcelDownloadButton foreigner={foreigner} variant="compact" />
+                  <div className="flex items-center gap-2">
+                    <ExcelDownloadButton foreigner={foreigner} variant="compact" />
+                    <ConsentPdfButton foreigner={foreigner} variant="compact" />
+                  </div>
                 )}
                 
                 {isEditing ? (
@@ -445,6 +449,11 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                           </div>
                         </div>
                       </div>
+
+                    {/* 依頼書・承諾書PDF生成ボタン */}
+                    <div className="mt-6">
+                      <ConsentPdfButton foreigner={foreigner} />
+                    </div>
                     </section>
                   )}
 

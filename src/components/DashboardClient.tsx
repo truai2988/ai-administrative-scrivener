@@ -6,14 +6,16 @@ import { Foreigner } from '@/types/database';
 import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 import { ForeignerDetail } from '@/components/ForeignerDetail';
+import { CsvDownloadButton } from '@/components/CsvDownloadButton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Menu, Search, Filter, Database, Loader2, QrCode, Copy, Check, ExternalLink, X } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Menu, Filter, Database, Loader2, QrCode, Copy, Check, ExternalLink, X } from 'lucide-react';
 
 export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[] }) {
   const [data, setData] = useState<Foreigner[]>(initialData);
   const [loading, setLoading] = useState<boolean>(true);
   const [mounted, setMounted] = useState<boolean>(false);
   const [selectedForeigner, setSelectedForeigner] = useState<Foreigner | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
   // 共有モーダル用のステート
   const [showShareModal, setShowShareModal] = useState(false);
@@ -127,14 +129,11 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{loading ? '-' : total}名</span>の外国人を管理しています。</p>
           </div>
           <div className="flex items-center gap-5">
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-              <input 
-                type="text" 
-                placeholder="グローバル検索..." 
-                className="bg-white border border-slate-100 rounded-xl pl-10 pr-4 py-2.5 text-sm w-64 focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-              />
-            </div>
+            {!loading && (
+              <div className="hidden sm:block">
+                <CsvDownloadButton foreigners={data.filter(f => selectedIds.has(f.id))} />
+              </div>
+            )}
 
             <button 
               onClick={() => setShowShareModal(true)}
@@ -192,6 +191,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               <ForeignerList 
                 data={data} 
                 onSelect={(f) => setSelectedForeigner(f)}
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
               />
             </motion.div>
           </div>
