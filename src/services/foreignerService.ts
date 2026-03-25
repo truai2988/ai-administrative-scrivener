@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
 import { Foreigner } from "../types/database";
+import { emailService } from "./emailService";
 
 const COLLECTION_NAME = "foreigners";
 
@@ -70,11 +71,22 @@ export const foreignerService = {
    */
   async updateForeignerDataAdmin(id: string, data: Partial<Foreigner>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
+    
+    // 現在のデータを取得してステータス変更を確認
+    const currentDoc = await getDoc(docRef);
+    const oldStatus = currentDoc.exists() ? currentDoc.data().status : null;
+
     await updateDoc(docRef, {
       ...data,
       isEditedByAdmin: true,
       updatedAt: new Date().toISOString(),
     });
+
+    // ステータスが変わった場合にメール送信
+    if (data.status && data.status !== oldStatus) {
+      const updatedForeigner = { id, ...currentDoc.data(), ...data } as Foreigner;
+      await emailService.sendStatusUpdateNotification(updatedForeigner);
+    }
   },
 
   /**

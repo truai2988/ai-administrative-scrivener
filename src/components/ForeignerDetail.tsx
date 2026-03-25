@@ -44,6 +44,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
     experience: foreigner.experience || '',
     salary: foreigner.salary || '',
     allowances: foreigner.allowances || '',
+    email: foreigner.email || '',
     socialInsurance: foreigner.socialInsurance || false,
     housingProvided: foreigner.housingProvided || false
   });
@@ -63,6 +64,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
         experience: foreigner.experience || foreigner.aiReview?.pastExperience || '',
         salary: foreigner.salary || '',
         allowances: foreigner.allowances || '',
+        email: foreigner.email || '',
         socialInsurance: foreigner.socialInsurance || false,
         housingProvided: foreigner.housingProvided || false
       });
@@ -256,6 +258,10 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                       <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.expiryDate || ''} onChange={(e) => setEditForm({...editForm, expiryDate: e.target.value})} />
                     </div>
                     <div className="col-span-2 md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">メールアドレス</label>
+                      <input type="email" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.email || ''} onChange={(e) => setEditForm({...editForm, email: e.target.value})} placeholder="example@mail.com" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">所属機関</label>
                       <input type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.company || ''} onChange={(e) => setEditForm({...editForm, company: e.target.value})} />
                     </div>
@@ -326,6 +332,10 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">生年月日</p>
                         <p className="text-base font-black text-slate-900">{foreigner.birthDate}</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">メールアドレス</p>
+                        <p className="text-sm font-black text-slate-900">{foreigner.email || '未設定'}</p>
                       </div>
                     </div>
 
