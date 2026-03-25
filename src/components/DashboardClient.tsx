@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { foreignerService } from '@/services/foreignerService';
 import { Foreigner } from '@/types/database';
 import { SummaryCards } from '@/components/SummaryCards';
@@ -8,7 +8,45 @@ import { ForeignerList } from '@/components/ForeignerList';
 import { ForeignerDetail } from '@/components/ForeignerDetail';
 import { CsvDownloadButton } from '@/components/CsvDownloadButton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Menu, Filter, Database, Loader2, QrCode, Copy, Check, ExternalLink, X } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Menu, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles } from 'lucide-react';
+
+// ─── Toast Message Component ─────────────────────────────────────────────────
+function ToastNotification({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3500);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-100 flex items-center gap-3 px-6 py-4 bg-slate-900 text-white rounded-2xl shadow-2xl shadow-slate-900/30 border border-slate-700/50 backdrop-blur-lg"
+    >
+      <div className="h-8 w-8 bg-indigo-500/20 rounded-lg flex items-center justify-center shrink-0">
+        <Sparkles className="h-4 w-4 text-indigo-400" />
+      </div>
+      <div>
+        <p className="text-sm font-bold">{message}</p>
+        <p className="text-[11px] text-slate-400 font-medium">Coming Soon: 2026年実装予定</p>
+      </div>
+      <button onClick={onClose} className="ml-2 p-1 text-slate-500 hover:text-white transition-colors rounded-lg">
+        <X className="h-4 w-4" />
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Coming Soon Sidebar Items ───────────────────────────────────────────────
+const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage: string; badge?: number }[] = [
+  { icon: UserCircle, label: '外国人管理・台帳', toastMessage: '高度な外国人台帳管理' },
+  { icon: Bell, label: '通知・期限アラート', toastMessage: '自動期限監視アラート', badge: 12 },
+  { icon: FileText, label: '附属書類PDFの自動生成', toastMessage: '附属書類PDFの自動生成' },
+  { icon: PenTool, label: '完全電子署名', toastMessage: '完全電子署名' },
+  { icon: Settings, label: 'システム設定', toastMessage: 'エンタープライズ設定パネル' },
+];
 
 export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[] }) {
   const [data, setData] = useState<Foreigner[]>(initialData);
@@ -17,6 +55,12 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [selectedForeigner, setSelectedForeigner] = useState<Foreigner | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
+  // Welcome banner
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  // Toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // 共有モーダル用のステート
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -46,6 +90,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     loadData();
   }, []);
 
+  const showComingSoon = useCallback((message: string) => {
+    setToastMessage(message);
+  }, []);
+
   // Calculate summaries (use 0/empty if loading)
   const total = data.length;
   const expiringSoon = data.filter((p) => {
@@ -63,26 +111,39 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
       <aside className="hidden lg:flex flex-col w-72 h-screen sticky top-0 bg-white border-r border-slate-100 shadow-sm z-20">
         {/* Logo - Fixed */}
         <div className="p-8 pb-4">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 bg-linear-to-br from-indigo-600 to-violet-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
               <LayoutDashboard className="h-6 w-6 text-white" />
             </div>
             <div>
               <span className="text-xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-violet-600 tracking-tight">
-                AI 行政書士
+                Noctiluca
               </span>
-              <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">Management Suite</p>
+              <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">AI Labor Management</p>
             </div>
+          </div>
+          {/* Demo Version Badge */}
+          <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200/60 rounded-lg">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <span className="text-[10px] font-bold text-amber-700 tracking-wide">DEMO VERSION</span>
           </div>
         </div>
 
         {/* Navigation - Scrollable */}
         <nav className="flex-1 overflow-y-auto px-8 py-4 space-y-2 no-scrollbar">
           <SidebarItem icon={LayoutDashboard} label="総合ダッシュボード" active />
-          <SidebarItem icon={UserCircle} label="外国人管理・台帳" />
-          <SidebarItem icon={Bell} label="通知・期限アラート" badge={12} />
-          <SidebarItem icon={Filter} label="申請カテゴリ" />
-          <SidebarItem icon={Settings} label="システム設定" />
+          {COMING_SOON_ITEMS.map((item) => (
+            <SidebarItem
+              key={item.label}
+              icon={item.icon}
+              label={item.label}
+              badge={item.badge}
+              onClick={() => showComingSoon(item.toastMessage)}
+            />
+          ))}
         </nav>
 
         {/* Support & Logout - Fixed at bottom */}
@@ -152,7 +213,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 <UserCircle className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-900 leading-tight">行政書士 太郎 様</p>
+                <p className="text-xs font-black text-slate-900 leading-tight">管理者 様</p>
                 <p className="text-[10px] font-bold text-emerald-500">プロフェッショナル認証</p>
               </div>
             </div>
@@ -161,6 +222,48 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             </button>
           </div>
         </header>
+
+        {/* Welcome Banner */}
+        <AnimatePresence>
+          {showWelcome && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="mb-10"
+            >
+              <div className="relative overflow-hidden bg-linear-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-3xl p-8 md:p-10 shadow-xl shadow-indigo-200/40">
+                {/* Decorative elements */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
+                <div className="absolute top-8 right-12 w-2 h-2 bg-white/30 rounded-full" />
+                <div className="absolute top-16 right-32 w-1.5 h-1.5 bg-white/20 rounded-full" />
+                
+                <button
+                  onClick={() => setShowWelcome(false)}
+                  className="absolute top-4 right-4 p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="px-3 py-1 bg-white/15 backdrop-blur-sm text-white text-[10px] font-bold rounded-full border border-white/20 tracking-wider uppercase">
+                      Noctiluca Demo
+                    </span>
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black text-white leading-snug mb-3 tracking-tight">
+                    1,000名規模の外国人管理から、<br className="hidden md:block" />紙とハンコを完全撤廃。
+                  </h2>
+                  <p className="text-sm md:text-base text-indigo-100 font-medium leading-relaxed max-w-xl">
+                    法改正リスクをゼロにする、AI労務管理システムへようこそ
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Content */}
         {loading ? (
@@ -293,6 +396,16 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Toast Notification */}
+        <AnimatePresence>
+          {toastMessage && (
+            <ToastNotification
+              message={toastMessage}
+              onClose={() => setToastMessage(null)}
+            />
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -302,15 +415,18 @@ function SidebarItem({
   icon: Icon, 
   label, 
   active = false, 
-  badge 
+  badge,
+  onClick
 }: { 
   icon: React.ElementType; 
   label: string; 
   active?: boolean;
   badge?: number;
+  onClick?: () => void;
 }) {
   return (
     <button
+      onClick={onClick}
       className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
         active 
           ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-100' 
