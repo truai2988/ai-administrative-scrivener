@@ -254,7 +254,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                     </span>
                   </div>
                   <h2 className="text-2xl md:text-3xl font-black text-white leading-snug mb-3 tracking-tight">
-                    1,000名規模の外国人管理から、<br className="hidden md:block" />紙とハンコを完全撤廃。
+                    外国人管理から、<br className="hidden md:block" />紙とハンコを完全撤廃。
                   </h2>
                   <p className="text-sm md:text-base text-indigo-100 font-medium leading-relaxed max-w-xl">
                     法改正リスクをゼロにする、AI労務管理システムへようこそ

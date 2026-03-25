@@ -1,11 +1,17 @@
 import { resend } from '../lib/resend';
 import { Foreigner } from '../types/database';
 
+const IS_MOCK_MODE = !process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 're_mock_key';
+
 export const emailService = {
   /**
    * 送信テスト
    */
   async sendTestEmail(to: string) {
+    if (IS_MOCK_MODE) {
+      console.log('DEMO MODE: Email sending skipped (RESEND_API_KEY not set). Destination:', to);
+      return { success: true, mock: true };
+    }
     try {
       const { data, error } = await resend.emails.send({
         from: 'Visa Manager <onboarding@resend.dev>',
@@ -31,6 +37,10 @@ export const emailService = {
    */
   async sendExpiryAlert(foreigner: Foreigner) {
     if (!foreigner.email) return;
+    if (IS_MOCK_MODE) {
+      console.log('DEMO MODE: Expiry alert email skipped for', foreigner.name);
+      return { success: true, mock: true };
+    }
 
     return await resend.emails.send({
       from: 'Visa Manager <onboarding@resend.dev>',
@@ -50,6 +60,10 @@ export const emailService = {
    */
   async sendStatusUpdateNotification(foreigner: Foreigner) {
     if (!foreigner.email) return;
+    if (IS_MOCK_MODE) {
+      console.log('DEMO MODE: Status update email skipped for', foreigner.name);
+      return { success: true, mock: true };
+    }
 
     return await resend.emails.send({
       from: 'Visa Manager <onboarding@resend.dev>',
