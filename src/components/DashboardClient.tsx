@@ -253,8 +253,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                       Noctiluca Demo
                     </span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black text-white leading-snug mb-3 tracking-tight">
-                    外国人管理から、<br className="hidden md:block" />紙とハンコを完全撤廃。
+                  <h2 className="text-xl md:text-2xl lg:text-3xl font-black text-white leading-snug mb-4 tracking-tight">
+                    行政監査は「書類の有無」から、<br className="hidden md:block" />「プロセスの正当性とデータの完全な整合性」へ。
                   </h2>
                   <p className="text-sm md:text-base text-indigo-100 font-medium leading-relaxed max-w-xl">
                     法改正リスクをゼロにする、AI労務管理システムへようこそ
