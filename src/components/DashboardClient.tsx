@@ -1,14 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { foreignerService } from '@/services/foreignerService';
-import { Foreigner } from '@/types/database';
+import { Foreigner, USER_ROLE_LABELS } from '@/types/database';
+import { canCreateForeigner, canExportCsv } from '@/utils/permissions';
 import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 import { ForeignerDetail } from '@/components/ForeignerDetail';
 import { CsvDownloadButton } from '@/components/CsvDownloadButton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Menu, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles, Shield } from 'lucide-react';
 
 // ─── Toast Message Component ─────────────────────────────────────────────────
 function ToastNotification({ message, onClose }: { message: string; onClose: () => void }) {
@@ -48,7 +51,16 @@ const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage:
   { icon: Settings, label: 'システム設定', toastMessage: 'エンタープライズ設定パネル' },
 ];
 
+// ─── Role Badge Colors ───────────────────────────────────────────────────────
+const ROLE_BADGE_STYLES: Record<string, string> = {
+  branch_staff: 'bg-sky-50 text-sky-600 border-sky-100',
+  hq_admin: 'bg-violet-50 text-violet-600 border-violet-100',
+  scrivener: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+};
+
 export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[] }) {
+  const { currentUser, loading: authLoading, logout } = useAuth();
+  const router = useRouter();
   const [data, setData] = useState<Foreigner[]>(initialData);
   const [loading, setLoading] = useState<boolean>(true);
   const [mounted, setMounted] = useState<boolean>(false);
@@ -73,13 +85,23 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     }
   }, [showShareModal]);
 
-  const entryUrl = typeof window !== 'undefined' ? `${window.location.origin}/foreigner/entry/${shareToken}` : '';
+  const entryUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/foreigner/entry/${shareToken}${currentUser?.branchId ? `?b=${currentUser.branchId}` : ''}` 
+    : '';
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // ロールベースのデータ取得
+  useEffect(() => {
+    if (!currentUser) return;
     const loadData = async () => {
       try {
-        const fetched = await foreignerService.getAllForeigners();
+        const fetched = await foreignerService.getForeignersByRole(
+          currentUser.role,
+          currentUser.branchId
+        );
         setData(fetched);
       } catch (err) {
         console.error(err);
@@ -88,11 +110,23 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
       }
     };
     loadData();
-  }, []);
+  }, [currentUser]);
+
+  // 未ログインチェック（Middlewareを通過しても念のためクライアント側でもチェック）
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      router.push('/login');
+    }
+  }, [authLoading, currentUser, router]);
 
   const showComingSoon = useCallback((message: string) => {
     setToastMessage(message);
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    await logout();
+    router.push('/login');
+  }, [logout, router]);
 
   // Calculate summaries (use 0/empty if loading)
   const total = data.length;
@@ -103,7 +137,12 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const pending = data.filter((p) => p.status === 'チェック中' || p.status === '準備中').length;
   const completed = data.filter(p => p.status === '申請済').length;
 
-  if (!mounted) return null;
+  if (!mounted || authLoading) return null;
+  if (!currentUser) return null;
+
+  const userRole = currentUser.role;
+  const roleLabel = USER_ROLE_LABELS[userRole] || userRole;
+  const roleBadgeStyle = ROLE_BADGE_STYLES[userRole] || 'bg-slate-50 text-slate-600 border-slate-100';
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans">
@@ -154,29 +193,29 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           </div>
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <SidebarItem icon={LogOut} label="ログアウト" />
+              <SidebarItem icon={LogOut} label="ログアウト" onClick={handleLogout} />
             </div>
-            <button 
-              onClick={async () => {
-                if (confirm('デモデータを3件投入します。よろしいですか？')) {
-                  // データ投入中はローディングにする
-                  setLoading(true);
-                  const res = await foreignerService.seedDemoData();
-                  if (res.success) {
-                    // 最新データを再取得する
-                    const fetched = await foreignerService.getAllForeigners();
-                    setData(fetched);
-                  } else {
-                    alert('エラーが発生しました: ' + res.error);
+            {canCreateForeigner(userRole) && (
+              <button 
+                onClick={async () => {
+                  if (confirm('デモデータを3件投入します。よろしいですか？')) {
+                    setLoading(true);
+                    const res = await foreignerService.seedDemoData(currentUser.branchId);
+                    if (res.success) {
+                      const fetched = await foreignerService.getForeignersByRole(currentUser.role, currentUser.branchId);
+                      setData(fetched);
+                    } else {
+                      alert('エラーが発生しました: ' + res.error);
+                    }
+                    setLoading(false);
                   }
-                  setLoading(false);
-                }
-              }}
-              title="デモデータ一括投入"
-              className="p-2.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-95"
-            >
-              <Database className="h-5 w-5" />
-            </button>
+                }}
+                title="デモデータ一括投入"
+                className="p-2.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-95"
+              >
+                <Database className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
       </aside>
@@ -190,36 +229,43 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{loading ? '-' : total}名</span>の外国人を管理しています。</p>
           </div>
           <div className="flex items-center gap-5">
-            {!loading && (
+            {!loading && canExportCsv(userRole) && (
               <div className="hidden sm:block">
                 <CsvDownloadButton foreigners={data.filter(f => selectedIds.has(f.id))} />
               </div>
             )}
 
-            <button 
-              onClick={() => setShowShareModal(true)}
-              className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2"
-            >
-              <QrCode className="h-4 w-4" />
-              新規登録URL発行
-            </button>
+            {canCreateForeigner(userRole) && (
+              <button 
+                onClick={() => setShowShareModal(true)}
+                className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2"
+              >
+                <QrCode className="h-4 w-4" />
+                新規登録URL発行
+              </button>
+            )}
 
             <button className="p-3 bg-white border border-slate-100 rounded-2xl hover:shadow-lg hover:shadow-indigo-50 transition-all relative group">
               <Bell className="h-5 w-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
               <span className="absolute top-2.5 right-2.5 h-2.5 w-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
             </button>
+
+            {/* ユーザー情報（ロール表示） */}
             <div className="flex items-center gap-4 bg-white p-2 pr-6 rounded-2xl border border-slate-100 shadow-sm">
               <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-100">
-                <UserCircle className="h-6 w-6" />
+                {userRole === 'scrivener' ? (
+                  <Shield className="h-6 w-6 text-emerald-500" />
+                ) : (
+                  <UserCircle className="h-6 w-6" />
+                )}
               </div>
               <div>
-                <p className="text-xs font-black text-slate-900 leading-tight">管理者 様</p>
-                <p className="text-[10px] font-bold text-emerald-500">プロフェッショナル認証</p>
+                <p className="text-xs font-black text-slate-900 leading-tight">{currentUser.displayName} 様</p>
+                <p className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
+                  {roleLabel}
+                </p>
               </div>
             </div>
-            <button className="lg:hidden p-3 bg-white border border-slate-100 rounded-2xl">
-              <Menu className="h-5 w-5" />
-            </button>
           </div>
         </header>
 
@@ -251,6 +297,11 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                   <div className="flex items-center gap-2 mb-5">
                     <span className="px-3 py-1 bg-white/15 backdrop-blur-sm text-white text-[10px] font-bold rounded-full border border-white/20 tracking-wider uppercase">
                       Noctiluca Demo
+                    </span>
+                    <span className={`px-3 py-1 backdrop-blur-sm text-white text-[10px] font-bold rounded-full border border-white/20 tracking-wider ${
+                      userRole === 'scrivener' ? 'bg-emerald-500/30' : userRole === 'hq_admin' ? 'bg-violet-500/30' : 'bg-sky-500/30'
+                    }`}>
+                      {roleLabel}
                     </span>
                   </div>
                   <h2 className="text-xl md:text-2xl lg:text-3xl font-black text-white leading-snug mb-4 tracking-tight">
@@ -312,6 +363,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               setData((prev) => prev.map((f) => f.id === updatedInfo.id ? updatedInfo : f));
               setSelectedForeigner(updatedInfo);
             }}
+            userRole={userRole}
           />
         )}
 

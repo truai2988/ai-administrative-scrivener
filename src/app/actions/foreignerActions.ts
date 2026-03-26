@@ -26,6 +26,7 @@ export async function submitForeignerEntryAction(id: string, formData: Partial<F
     return { success: true };
   } catch (error) {
     console.error("Error submitting foreigner entry:", error);
-    return { success: false, error: "送信に失敗しました。" };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, error: `送信に失敗しました: ${errorMessage}` };
   }
 }

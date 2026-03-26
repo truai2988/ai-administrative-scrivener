@@ -3,11 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("=== API KEY CHECK ===");
-    console.log("GEMINI_API_KEY exists?", !!process.env.GEMINI_API_KEY);
-    console.log("Length:", process.env.GEMINI_API_KEY?.length);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('GEMINI_API_KEY is not set');
+      return NextResponse.json({
+        isValid: false,
+        reason: 'APIキーが設定されていません。管理者にお問い合わせください。',
+        systemError: true
+      }, { status: 500 });
+    }
+
     // Initialize Gemini API
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    const genAI = new GoogleGenerativeAI(apiKey);
     
     const { imageBase64, mimeType } = await req.json();
 
@@ -74,13 +81,13 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
     console.error('AI Validate Image Error:', errorMessage);
+    console.error('Stack:', errorStack);
     
-    // If there is an error (like missing API key), we shouldn't block the user from uploading.
-    // However, for this feature, returning an error message lets the frontend handle it.
     return NextResponse.json({ 
       isValid: false, 
-      reason: 'AIによる画像検査中にエラーが発生しました。時間を置いて再度お試しください。',
+      reason: `AIエラー: ${errorMessage}`,
       systemError: true
     }, { status: 500 });
   }

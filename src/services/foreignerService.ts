@@ -6,11 +6,13 @@ import {
   setDoc, 
   updateDoc, 
   query,
-  orderBy
+  orderBy,
+  where
 } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
-import { Foreigner } from "../types/database";
+import { Foreigner, UserRole, DEFAULT_BRANCH_ID } from "../types/database";
 import { emailService } from "./emailService";
+import { canViewAllBranches } from "../utils/permissions";
 
 const COLLECTION_NAME = "foreigners";
 
@@ -29,7 +31,7 @@ export const foreignerService = {
   },
 
   /**
-   * 全外国人を取得（一覧用）
+   * 全外国人を取得（一覧用）- 後方互換性のため残す
    */
   async getAllForeigners(): Promise<Foreigner[]> {
     const q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
@@ -42,14 +44,47 @@ export const foreignerService = {
   },
 
   /**
-   * 本人用フォームからの新規申請保存（または更新）
+   * ロールに基づいて外国人データを取得
+   * - branch_staff: 自分の支部のデータのみ
+   * - hq_admin / scrivener: 全支部のデータ
    */
-  async submitForeignerEntry(id: string, data: Partial<Foreigner>): Promise<void> {
+  async getForeignersByRole(role: UserRole, branchId?: string): Promise<Foreigner[]> {
+    let q;
+
+    if (canViewAllBranches(role)) {
+      // 本部管理者・行政書士: 全データ取得
+      q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
+    } else {
+      // 支部事務員: 自支部のデータのみ
+      if (!branchId) {
+        console.error("[foreignerService] branch_staff requires branchId");
+        return [];
+      }
+      q = query(
+        collection(db, COLLECTION_NAME),
+        where("branchId", "==", branchId),
+        orderBy("updatedAt", "desc")
+      );
+    }
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Foreigner[];
+  },
+
+  /**
+   * 本人用フォームからの新規申請保存（または更新）
+   * branchId を自動設定する
+   */
+  async submitForeignerEntry(id: string, data: Partial<Foreigner>, branchId?: string): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
     const docSnap = await getDoc(docRef);
 
     const commonData = {
       ...data,
+      branchId: branchId || data.branchId || DEFAULT_BRANCH_ID,
       updatedAt: new Date().toISOString(),
     };
 
@@ -90,11 +125,35 @@ export const foreignerService = {
   },
 
   /**
+   * 支部事務員用：自支部のデータを編集
+   */
+  async updateForeignerByStaff(id: string, data: Partial<Foreigner>, userBranchId: string): Promise<void> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const currentDoc = await getDoc(docRef);
+
+    if (!currentDoc.exists()) {
+      throw new Error("Document not found");
+    }
+
+    // 支部IDが一致するかチェック
+    const docBranchId = currentDoc.data().branchId;
+    if (docBranchId !== userBranchId) {
+      throw new Error("Permission denied: Cannot edit data from another branch");
+    }
+
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  },
+
+  /**
    * デモデータ一括投入
    */
-  async seedDemoData(): Promise<{ success: boolean; error?: string }> {
+  async seedDemoData(branchId?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const now = new Date();
+      const activeBranchId = branchId || DEFAULT_BRANCH_ID;
       
       const date1 = new Date();
       date1.setMonth(now.getMonth() + 2);
@@ -102,6 +161,7 @@ export const foreignerService = {
 
       const demo1: Foreigner = {
         id: `demo-normal-${idSuffix}`,
+        branchId: activeBranchId,
         name: 'CHEN WEI',
         residenceCardNumber: 'AB12345678CD',
         expiryDate: date1.toISOString().split('T')[0],
@@ -134,6 +194,7 @@ export const foreignerService = {
       
       const demo2: Foreigner = {
         id: `demo-warning-${idSuffix}`,
+        branchId: activeBranchId,
         name: 'NGUYEN VAN A',
         residenceCardNumber: 'XY98765432ZZ',
         expiryDate: date2.toISOString().split('T')[0],
@@ -165,6 +226,7 @@ export const foreignerService = {
       
       const demo3: Foreigner = {
         id: `demo-completed-${idSuffix}`,
+        branchId: activeBranchId,
         name: 'MARIA GARCIA',
         residenceCardNumber: 'JK11223344ML',
         expiryDate: date3.toISOString().split('T')[0],

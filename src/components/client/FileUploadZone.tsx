@@ -71,6 +71,25 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
     }
   };
 
+  /** 検証用に長辺800pxにリサイズする（転送量削減） */
+  const resizeForValidation = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 800;
+        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = url;
+    });
+  };
+
   const processFile = async (rawFile: File) => {
     setErrorReason(null);
     setCompressionResult(null);
@@ -81,33 +100,36 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
       return;
     }
 
-    // まず圧縮処理
-    const compressedFile = await compressFile(rawFile);
-
-    // 次にAI画像検証
+    // 圧縮とリサイズを並行して実行
     setIsChecking(true);
-    try {
-      const reader = new FileReader();
-      // 検証はオリジナル画像で行う（圧縮前のもの）
-      const fileForValidation = rawFile;
-      const base64Promise = new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(fileForValidation);
-      });
-      const base64 = await base64Promise;
+    const [compressedFile, base64ForValidation] = await Promise.all([
+      compressFile(rawFile),
+      resizeForValidation(rawFile),
+    ]);
 
+    try {
       const res = await fetch('/api/validate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mimeType: fileForValidation.type }),
+        body: JSON.stringify({ imageBase64: base64ForValidation, mimeType: 'image/jpeg' }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseError) {
+        console.error("Failed to parse JSON response:", parseError);
+        setErrorReason('サーバーから予期せぬエラーが返されました（500エラー等）。サーバーのログを確認してください。');
+        const input = document.getElementById(`file-input-${label}`) as HTMLInputElement;
+        if (input) input.value = '';
+        return;
+      }
+
       if (!data.isValid) {
-        if (data.systemError) {
+        if (data.systemError && !data.reason) {
           setErrorReason('AIのエラーが発生しました。APIキー等が未設定の可能性があります。');
         } else {
-          setErrorReason(data.reason);
+          setErrorReason(data.reason || '画像の検証に失敗しました。');
         }
 
         const input = document.getElementById(`file-input-${label}`) as HTMLInputElement;
@@ -126,6 +148,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
       setIsChecking(false);
     }
   };
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;

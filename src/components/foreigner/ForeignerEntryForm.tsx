@@ -46,9 +46,10 @@ const normalizeDate = (raw: string | null | undefined): string => {
 
 interface ForeignerEntryFormProps {
   token: string;
+  branchId?: string;
 }
 
-export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token }) => {
+export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, branchId }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
@@ -126,7 +127,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token })
         residenceCardNumber: formData.residenceCardNumber,
         expiryDate: formData.expiryDate,
         visaType: formData.visaType,
-        // ファイルアップロードは別途Storageで対応する前提だが、今はプレビュー用としてメタデータのみ保存を想定
+        branchId: branchId,
       });
 
       if (result.success) {

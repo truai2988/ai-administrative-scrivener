@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "foreigners",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "branchId",  "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

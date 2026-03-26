@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Foreigner } from '@/types/database';
+import { Foreigner, ForeignerStatus, UserRole } from '@/types/database';
 import { foreignerService } from '@/services/foreignerService';
+import { canEditForeigner, canChangeStatus } from '@/utils/permissions';
 import { StatusBadge } from './StatusBadge';
-import { X, ShieldAlert, Info, Calendar, ClipboardList, Lock, Globe, Monitor, Edit3, Save, Loader2, UserCircle, CheckCircle2, ExternalLink, Building2 } from 'lucide-react';
+import { X, ShieldAlert, Info, Calendar, ClipboardList, Lock, Globe, Monitor, Edit3, Save, Loader2, UserCircle, CheckCircle2, ExternalLink, Building2, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ExcelDownloadButton } from './ExcelDownloadButton';
@@ -23,13 +24,19 @@ interface ForeignerDetailProps {
   foreigner: Foreigner;
   onClose: () => void;
   onUpdate: (updated: Foreigner) => void;
+  userRole?: UserRole;
 }
+
+const STATUS_OPTIONS: ForeignerStatus[] = ['準備中', 'チェック中', '申請済', '追加資料待機', '完了', '期限切れ警告'];
 
 export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({ 
   foreigner, 
   onClose, 
-  onUpdate
+  onUpdate,
+  userRole = 'scrivener'
 }) => {
+  const allowEdit = canEditForeigner(userRole);
+  const allowStatusChange = canChangeStatus(userRole);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Foreigner>>({
@@ -149,23 +156,25 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                   </div>
                 )}
                 
-                {isEditing ? (
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-indigo-100 active:scale-95"
-                  >
-                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    修正内容を保存
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 text-sm active:scale-95"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    登録内容を修正
-                  </button>
+                {allowEdit && (
+                  isEditing ? (
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-indigo-100 active:scale-95"
+                    >
+                      {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      修正内容を保存
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 text-sm active:scale-95"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      登録内容を修正
+                    </button>
+                  )
                 )}
               </div>
             </div>
@@ -183,6 +192,69 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                 <p className="text-lg font-bold text-rose-600">{foreigner.expiryDate}</p>
               </div>
             </section>
+
+            {/* Scrivener: Status Change & Approve/Reject */}
+            {allowStatusChange && (
+              <section className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6 space-y-4">
+                <h3 className="text-sm font-bold text-emerald-700 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  行政書士アクション（最終確認者）
+                </h3>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">ステータス変更</label>
+                    <select
+                      value={foreigner.status}
+                      onChange={async (e) => {
+                        const newStatus = e.target.value as ForeignerStatus;
+                        try {
+                          await foreignerService.updateForeignerDataAdmin(foreigner.id, { status: newStatus });
+                          onUpdate({ ...foreigner, status: newStatus });
+                        } catch (err) {
+                          console.error('Status update failed:', err);
+                          alert('ステータスの更新に失敗しました');
+                        }
+                      }}
+                      className="p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 transition-all outline-none cursor-pointer"
+                    >
+                      {STATUS_OPTIONS.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await foreignerService.updateForeignerDataAdmin(foreigner.id, { status: '完了' });
+                        onUpdate({ ...foreigner, status: '完了' });
+                      } catch (err) {
+                        console.error(err);
+                        alert('承認に失敗しました');
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-emerald-100"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    承認
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await foreignerService.updateForeignerDataAdmin(foreigner.id, { status: '追加資料待機' });
+                        onUpdate({ ...foreigner, status: '追加資料待機' });
+                      } catch (err) {
+                        console.error(err);
+                        alert('差し戻しに失敗しました');
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-amber-100"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    差し戻し
+                  </button>
+                </div>
+              </section>
+            )}
 
             {/* AI Review Section */}
             <section className="space-y-4">

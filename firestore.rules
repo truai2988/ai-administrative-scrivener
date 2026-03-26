@@ -1,0 +1,118 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // -------------------------------------------------------------------------
+    // Utility Functions
+    // -------------------------------------------------------------------------
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return getUserData().role;
+    }
+
+    function getUserBranchId() {
+      return getUserData().branchId;
+    }
+
+    function isHqAdmin()     { return getUserRole() == 'hq_admin'; }
+    function isScrivener()   { return getUserRole() == 'scrivener'; }
+    function isBranchStaff() { return getUserRole() == 'branch_staff'; }
+
+    // 本部管理者・行政書士は全支部閲覧可
+    function canViewAllBranches() {
+      return isHqAdmin() || isScrivener();
+    }
+
+
+    // -------------------------------------------------------------------------
+    // /users コレクション
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // /branches コレクション
+    // -------------------------------------------------------------------------
+    match /branches/{branchId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // /foreigners コレクション
+    // -------------------------------------------------------------------------
+    match /foreigners/{foreignerId} {
+      
+      // ===== 読み取り =====
+      // 未認証ユーザーもURLトークンを知っていれば対象データのみ読み取り可能（getDoc用）
+      allow get: if true; 
+      
+      allow list: if isAuthenticated() && (
+        canViewAllBranches() ||
+        (isBranchStaff() && resource.data.branchId == getUserBranchId())
+      );
+
+      // ===== 作成 =====
+      // - 行政書士・管理者: 認証済みユーザーによる作成
+      // - 未認証: 外国人本人が申請フォームから作成する場合（URLトークン = ドキュメントID）
+      allow create: if 
+        // 認証済みユーザーによる作成（既存ルール）
+        (isAuthenticated() && (
+          isScrivener() ||
+          (isHqAdmin()     && request.resource.data.branchId == 'hq_direct') ||
+          (isBranchStaff() && request.resource.data.branchId == getUserBranchId())
+        )) ||
+        // 未認証ユーザー（外国人本人）による申請フォームからの作成
+        (!isAuthenticated() && request.resource.data.keys().hasAll(['name', 'updatedAt']));
+
+      // ===== 更新 =====
+      // - scrivener: 全データ更新可（ステータス変更含む）
+      // - hq_admin: 全データ更新可（ただしステータス変更は不可）
+      // - branch_staff: 自支部のデータのみ更新可（ステータス変更・支部ID変更不可）
+      // - 未認証: 外国人本人が申請フォームから更新する場合（URLトークン = ドキュメントID）
+      allow update: if 
+        // 認証済みユーザーによる更新（既存ルール）
+        (isAuthenticated() && (
+          isScrivener() ||
+          (
+            isHqAdmin() && (
+              !('status' in request.resource.data) ||
+              request.resource.data.status == resource.data.status
+            )
+          ) ||
+          (
+            isBranchStaff() &&
+            resource.data.branchId == getUserBranchId() &&
+            request.resource.data.branchId == resource.data.branchId &&
+            (
+              !('status' in request.resource.data) ||
+              request.resource.data.status == resource.data.status
+            )
+          )
+        )) ||
+        // 未認証ユーザー（外国人本人）による申請フォームからの更新
+        // ステータス変更・isEditedByAdmin変更は不可
+        (!isAuthenticated() &&
+          request.resource.data.keys().hasAll(['name', 'updatedAt']) &&
+          (!('status' in request.resource.data) || request.resource.data.status == resource.data.status) &&
+          (!('isEditedByAdmin' in request.resource.data) || request.resource.data.isEditedByAdmin == resource.data.get('isEditedByAdmin', false))
+        );
+
+      // ===== 削除 =====（物理削除は全ロール禁止）
+      allow delete: if false;
+    }
+  }
+}
