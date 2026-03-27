@@ -70,9 +70,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [activeTab, setActiveTab] = useState<string>('all');
   // データ整合性チェックパネル（scrivener専用）
   const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
-  
-  // Welcome banner
-  const [showWelcome, setShowWelcome] = useState(true);
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -333,53 +330,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             </div>
           </div>
         </header>
-
-        {/* Welcome Banner */}
-        <AnimatePresence>
-          {showWelcome && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="mb-10"
-            >
-              <div className="relative overflow-hidden bg-linear-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-3xl p-8 md:p-10 shadow-xl shadow-indigo-200/40">
-                {/* Decorative elements */}
-                <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
-                <div className="absolute top-8 right-12 w-2 h-2 bg-white/30 rounded-full" />
-                <div className="absolute top-16 right-32 w-1.5 h-1.5 bg-white/20 rounded-full" />
-                
-                <button
-                  onClick={() => setShowWelcome(false)}
-                  className="absolute top-4 right-4 p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-                
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-5">
-                    <span className="px-3 py-1 bg-white/15 backdrop-blur-sm text-white text-[10px] font-bold rounded-full border border-white/20 tracking-wider uppercase">
-                      Noctiluca Demo
-                    </span>
-                    <span className={`px-3 py-1 backdrop-blur-sm text-white text-[10px] font-bold rounded-full border border-white/20 tracking-wider ${
-                      userRole === 'scrivener' ? 'bg-emerald-500/30' : userRole === 'hq_admin' ? 'bg-violet-500/30' : 'bg-sky-500/30'
-                    }`}>
-                      {roleLabel}
-                    </span>
-                  </div>
-                  <h2 className="text-xl md:text-2xl lg:text-3xl font-black text-white leading-snug mb-4 tracking-tight">
-                    行政監査は「書類の有無」から、<br className="hidden md:block" />「プロセスの正当性とデータの完全な整合性」へ。
-                  </h2>
-                  <p className="text-sm md:text-base text-indigo-100 font-medium leading-relaxed max-w-xl">
-                    法改正リスクをゼロにする、AI労務管理システムへようこそ
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Content */}
         {loading ? (

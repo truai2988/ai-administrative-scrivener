@@ -96,6 +96,16 @@ export interface Foreigner {
   updatedAt: string;
 }
 
+// ─── Correction History (修正履歴) ────────────────────────────────────────────
+export interface CorrectionHistory {
+  id?: string;
+  foreignerId: string;
+  correctedBy: string; // 実行者のユーザーIDや名前
+  correctedAt: string; // ISO 8601
+  reason: string;
+  diff: Record<string, { old: unknown; new: unknown }>;
+}
+
 // ─── Application ──────────────────────────────────────────────────────────────
 export type ApplicationType = '更新' | '変更' | '認定';
 

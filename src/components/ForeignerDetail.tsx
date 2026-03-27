@@ -2,7 +2,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Foreigner, UserRole } from '@/types/database';
 import { foreignerService } from '@/services/foreignerService';
-import { canEditForeigner, canRequestReview, canApproveOrReturn } from '@/utils/permissions';
+import { canEditForeigner, canRequestReview, canApproveOrReturn, canCorrectData } from '@/utils/permissions';
+import { useAuth } from '@/contexts/AuthContext';
+import { InlineEditForm } from './foreigner/InlineEditForm';
+import { CorrectionHistoryList } from './CorrectionHistoryList';
 import { StatusBadge } from './StatusBadge';
 import {
   X, ShieldAlert, Info, Calendar, ClipboardList, Lock, Globe, Monitor,
@@ -63,6 +66,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   onUpdate,
   userRole = 'scrivener',
 }) => {
+  useAuth(); // 現状はInlineEditForm内部でuseAuth()を直接呼ぶため、ここでは呼び出しのみ保持
   // ── 権限フラグ ──────────────────────────────────────────────────────────────
   const isHqAdmin = userRole === 'hq_admin';
 
@@ -91,10 +95,13 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
 
   const allowApproveOrReturn = canApproveOrReturn(userRole);
 
+  const allowCorrection = canCorrectData(userRole) && foreigner.status === 'チェック中';
+
 
 
   // ── ローカルステート ────────────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
+  const [isCorrectionMode, setIsCorrectionMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isWorkflowLoading, setIsWorkflowLoading] = useState(false);
   const [returnReasonInput, setReturnReasonInput] = useState('');
@@ -293,13 +300,34 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                     </button>
                   )
                 )}
+                {allowCorrection && !isEditing && !isCorrectionMode && (
+                  <button
+                    onClick={() => setIsCorrectionMode(true)}
+                    className="px-6 py-2.5 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-100 flex items-center gap-2 text-sm active:scale-95"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    修正モードで開く
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           {/* ─── Main Content ──────────────────────────────────────────────── */}
           <div className="max-w-5xl mx-auto p-8 space-y-10">
-
+            {isCorrectionMode ? (
+              <div className="overflow-y-auto">
+                <InlineEditForm
+                  foreigner={foreigner}
+                  onSuccess={(updated) => {
+                    onUpdate({ ...foreigner, ...updated, isEditedByAdmin: true } as Foreigner);
+                    setIsCorrectionMode(false);
+                  }}
+                  onCancel={() => setIsCorrectionMode(false)}
+                />
+              </div>
+            ) : (
+              <>
             {/* データ不整合アラート（バグ修復用。正常時は非表示） */}
             {hasStatusMismatch && (
               <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
@@ -470,6 +498,13 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                 <ViewMode foreigner={foreigner} hasAdminDiff={hasAdminDiff} diffKeys={DIFF_KEYS} />
               )}
             </div>
+            
+            {/* データ修正履歴 */}
+            {!isEditing && (
+              <CorrectionHistoryList foreignerId={foreigner.id} userRole={userRole} />
+            )}
+              </>
+            )}
           </div>
         </motion.div>
       </div>

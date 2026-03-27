@@ -11,8 +11,7 @@ import { ChevronRight, ChevronLeft, Send, CheckCircle2, User, CreditCard, FileTe
 
 import { submitForeignerEntryAction } from '@/app/actions/foreignerActions';
 import { storageService } from '@/services/storageService';
-
-const STEPS = ['書類添付', '基本情報', '在留情報', '委任同意'];
+import { Foreigner } from '@/types/database';
 
 const normalizeNationality = (raw: string | null | undefined): string => {
   if (!raw) return '';
@@ -48,21 +47,39 @@ const normalizeDate = (raw: string | null | undefined): string => {
 interface ForeignerEntryFormProps {
   token: string;
   branchId?: string;
+  isCorrectionMode?: boolean;
+  initialData?: Partial<Foreigner>;
+  onCorrectionSuccess?: (updatedData: Partial<Foreigner>) => void;
+  onCorrectionCancel?: () => void;
+  currentUser?: { id: string; name: string };
 }
 
-export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, branchId }) => {
+export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ 
+  token, 
+  branchId,
+  isCorrectionMode = false,
+  initialData,
+  onCorrectionSuccess,
+  onCorrectionCancel,
+  currentUser
+}) => {
+  const STEPS = isCorrectionMode 
+    ? ['書類添付', '基本情報', '在留情報', '修正の確認']
+    : ['書類添付', '基本情報', '在留情報', '委任同意'];
+
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
-    name: '',
-    nationality: '',
-    birthday: '',
-    residenceCardNumber: '',
-    expiryDate: '',
-    visaType: '',
-    jobType: '',
-    experienceYears: '',
+    name: initialData?.name || '',
+    nationality: initialData?.nationality || '',
+    birthday: initialData?.birthDate || '',
+    residenceCardNumber: initialData?.residenceCardNumber || '',
+    expiryDate: initialData?.expiryDate || '',
+    visaType: initialData?.visaType || '',
+    jobType: initialData?.jobTitle || '',
+    experienceYears: initialData?.experience || '',
     files: {} as Record<string, File | null>,
     isAgreed: false,
+    correctionReason: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -98,7 +115,8 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, b
         newErrors.files = `合計サイズが制限(25MB)を超えています。現在は${(currentTotalSize / (1024 * 1024)).toFixed(2)}MBです。`;
       }
     } else if (currentStep === 3) {
-      if (!formData.isAgreed) newErrors.isAgreed = '同意が必要です';
+      if (!isCorrectionMode && !formData.isAgreed) newErrors.isAgreed = '同意が必要です';
+      if (isCorrectionMode && !formData.correctionReason.trim()) newErrors.correctionReason = '修正理由は必須です';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -132,7 +150,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, b
         const passportUrl = formData.files['passport'] 
           ? await storageService.uploadFile(formData.files['passport'], `foreigners/${token}/passport_${Date.now()}`) : undefined;
 
-        const result = await submitForeignerEntryAction(token, {
+        const updatedPayload: Partial<Foreigner> = {
           name: formData.name,
           nationality: formData.nationality,
           birthDate: formData.birthday,
@@ -140,16 +158,30 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, b
           expiryDate: formData.expiryDate,
           visaType: formData.visaType,
           branchId: branchId,
-          photoUrl,
-          residenceCardFrontUrl: rcFrontUrl,
-          residenceCardBackUrl: rcBackUrl,
-          passportImageUrl: passportUrl,
-        });
+        };
+        if (photoUrl) updatedPayload.photoUrl = photoUrl;
+        if (rcFrontUrl) updatedPayload.residenceCardFrontUrl = rcFrontUrl;
+        if (rcBackUrl) updatedPayload.residenceCardBackUrl = rcBackUrl;
+        if (passportUrl) updatedPayload.passportImageUrl = passportUrl;
 
-        if (result.success) {
-          setIsSubmitted(true);
+        if (isCorrectionMode) {
+          const { foreignerService } = await import('@/services/foreignerService');
+          await foreignerService.correctForeignerData(
+            token,
+            updatedPayload,
+            formData.correctionReason,
+            currentUser?.id || 'unknown'
+          );
+          alert('データの修正が完了し、履歴が保存されました。');
+          if (onCorrectionSuccess) onCorrectionSuccess(updatedPayload);
         } else {
-          alert(result.error);
+          const result = await submitForeignerEntryAction(token, updatedPayload);
+
+          if (result.success) {
+            setIsSubmitted(true);
+          } else {
+            alert(result.error);
+          }
         }
       } catch (error) {
         console.error('Submit error:', error);
@@ -374,33 +406,52 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, b
               </div>
             )}
 
-            {/* Step 3: Consent */}
+            {/* Step 3: Consent or Correction Confirm */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Landmark className="w-6 h-6 text-emerald-600" />
-                    <h3 className="text-lg font-bold text-emerald-900">法的委任への同意</h3>
-                  </div>
-                  <div className="text-sm text-emerald-800 leading-relaxed space-y-3 prose prose-sm">
-                    <p>私は、本申請に関する手続きを、提携する行政書士に委任することに同意します。</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li>入力された情報の正確性を保証します。</li>
-                      <li>申請に必要な個人情報の提供に同意します。</li>
-                      <li>委任内容に変更がある場合は速やかに通知します。</li>
-                    </ul>
-                  </div>
-                  <label className="mt-8 flex items-center gap-4 p-4 bg-white rounded-2xl cursor-pointer shadow-sm border border-emerald-100 transition-all active:scale-95">
-                    <input
-                      type="checkbox"
-                      className="w-6 h-6 rounded-lg border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      checked={formData.isAgreed}
-                      onChange={(e) => setFormData({ ...formData, isAgreed: e.target.checked })}
+                {isCorrectionMode ? (
+                  <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100">
+                    <div className="flex items-center gap-3 mb-4">
+                      <FileText className="w-6 h-6 text-amber-600" />
+                      <h3 className="text-lg font-bold text-amber-900">修正理由の入力</h3>
+                    </div>
+                    <div className="text-sm text-amber-800 leading-relaxed mb-4">
+                      <p>修正内容を保存するためには、理由の入力が必須です。この理由は関係支部に履歴として共有されます。</p>
+                    </div>
+                    <textarea
+                      placeholder="例: 在留カード番号の読み取りミスを修正"
+                      className={`w-full p-4 bg-white border rounded-2xl focus:ring-2 focus:ring-amber-500 transition-all text-sm resize-none h-32 ${errors.correctionReason ? 'border-red-500 ring-2 ring-red-500' : 'border-amber-200'}`}
+                      value={formData.correctionReason}
+                      onChange={(e) => setFormData({ ...formData, correctionReason: e.target.value })}
                     />
-                    <span className="text-sm font-bold text-slate-700">上記の内容を理解し、同意します</span>
-                  </label>
-                  {errors.isAgreed && <p className="text-red-500 text-xs mt-2 font-medium">{errors.isAgreed}</p>}
-                </div>
+                    {errors.correctionReason && <p className="text-red-500 text-xs mt-2 font-medium">{errors.correctionReason}</p>}
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Landmark className="w-6 h-6 text-emerald-600" />
+                      <h3 className="text-lg font-bold text-emerald-900">法的委任への同意</h3>
+                    </div>
+                    <div className="text-sm text-emerald-800 leading-relaxed space-y-3 prose prose-sm">
+                      <p>私は、本申請に関する手続きを、提携する行政書士に委任することに同意します。</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>入力された情報の正確性を保証します。</li>
+                        <li>申請に必要な個人情報の提供に同意します。</li>
+                        <li>委任内容に変更がある場合は速やかに通知します。</li>
+                      </ul>
+                    </div>
+                    <label className="mt-8 flex items-center gap-4 p-4 bg-white rounded-2xl cursor-pointer shadow-sm border border-emerald-100 transition-all active:scale-95">
+                      <input
+                        type="checkbox"
+                        className="w-6 h-6 rounded-lg border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        checked={formData.isAgreed}
+                        onChange={(e) => setFormData({ ...formData, isAgreed: e.target.checked })}
+                      />
+                      <span className="text-sm font-bold text-slate-700">上記の内容を理解し、同意します</span>
+                    </label>
+                    {errors.isAgreed && <p className="text-red-500 text-xs mt-2 font-medium">{errors.isAgreed}</p>}
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
@@ -430,18 +481,30 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, b
           ) : (
             <button
               type="submit"
-              disabled={!formData.isAgreed || isSubmitting}
+              disabled={(!isCorrectionMode && !formData.isAgreed) || isSubmitting}
               className={`flex-2 p-4 flex items-center justify-center gap-2 font-bold rounded-2xl shadow-lg transition-all active:scale-95 ${
-                formData.isAgreed && !isSubmitting
-                  ? 'bg-emerald-600 text-white shadow-emerald-200 active:bg-emerald-700' 
+                (isCorrectionMode || formData.isAgreed) && !isSubmitting
+                  ? (isCorrectionMode ? 'bg-amber-500 text-white shadow-amber-200 active:bg-amber-600' : 'bg-emerald-600 text-white shadow-emerald-200 active:bg-emerald-700')
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
               }`}
             >
               <Send className={isSubmitting ? "w-5 h-5 animate-pulse" : "w-5 h-5"} />
-              {isSubmitting ? '送信中...' : '申請を委任して送信'}
+              {isSubmitting ? '処理中...' : (isCorrectionMode ? '修正を確定する' : '申請を委任して送信')}
             </button>
           )}
         </div>
+        
+        {isCorrectionMode && onCorrectionCancel && (
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={onCorrectionCancel}
+              className="text-sm font-bold text-slate-400 hover:text-slate-600 underline"
+            >
+              修正をキャンセル
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

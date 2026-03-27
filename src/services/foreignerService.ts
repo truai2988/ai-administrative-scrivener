@@ -7,7 +7,8 @@ import {
   updateDoc, 
   query,
   orderBy,
-  where
+  where,
+  writeBatch
 } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
 import { Foreigner, UserRole, DEFAULT_BRANCH_ID } from "../types/database";
@@ -120,6 +121,71 @@ export const foreignerService = {
     // ステータスが変わった場合にメール送信
     if (data.status && data.status !== oldStatus) {
       const updatedForeigner = { id, ...currentDoc.data(), ...data } as Foreigner;
+      await emailService.sendStatusUpdateNotification(updatedForeigner);
+    }
+  },
+
+  /**
+   * 行政書士専用：修正モードを用いたデータ修正（サーバーサイドでの差分計算と履歴のバッチ保存を含む）
+   */
+  async correctForeignerData(
+    id: string,
+    updatedData: Partial<Foreigner>,
+    reason: string,
+    correctedBy: string
+  ): Promise<void> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const currentDoc = await getDoc(docRef);
+
+    if (!currentDoc.exists()) {
+      throw new Error("対象のデータが見つかりませんでした");
+    }
+
+    const currentData = currentDoc.data() as Foreigner;
+
+    // 変更差分の検出（ネストしないプリミティブ値を中心に比較）
+    const diff: Record<string, { old: unknown; new: unknown }> = {};
+    const IGNORED_KEYS = ['id', 'updatedAt', 'originalSubmittedData'];
+    
+    for (const key of Object.keys(updatedData) as (keyof Foreigner)[]) {
+      if (IGNORED_KEYS.includes(key as string)) continue;
+
+      const newVal = updatedData[key];
+      const oldVal = currentData[key];
+
+      // 単純な JSON 比較で値の変更をチェック
+      if (newVal !== undefined && JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
+        diff[key as string] = { old: oldVal ?? null, new: newVal };
+      }
+    }
+
+    const batch = writeBatch(db);
+
+    // 1. 本体の更新（isEditedByAdminもtrueにする）
+    const updatePayload = {
+      ...updatedData,
+      isEditedByAdmin: true,
+      updatedAt: new Date().toISOString(),
+    };
+    batch.update(docRef, updatePayload);
+
+    // 2. 修正履歴（サブコレクション）の追加
+    const historyColRef = collection(docRef, 'correction_histories');
+    const historyDocRef = doc(historyColRef);
+    batch.set(historyDocRef, {
+      foreignerId: id,
+      correctedBy: correctedBy,
+      correctedAt: new Date().toISOString(),
+      reason: reason,
+      diff: diff,
+    });
+
+    // 3. バッチ送信
+    await batch.commit();
+
+    // ステータス等の変更があれば通知（任意）
+    if (updatedData.status && updatedData.status !== currentData.status) {
+      const updatedForeigner = { ...currentData, ...updatePayload } as Foreigner;
       await emailService.sendStatusUpdateNotification(updatedForeigner);
     }
   },

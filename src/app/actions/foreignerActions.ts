@@ -32,6 +32,29 @@ export async function submitForeignerEntryAction(id: string, formData: Partial<F
 }
 
 /**
+ * 行政書士: エラーデータの修正（修正モード）
+ */
+export async function correctDataAction(
+  id: string,
+  updatedData: Partial<Foreigner>,
+  reason: string,
+  correctedBy: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!reason?.trim()) {
+      return { success: false, error: "修正理由が入力されていません。" };
+    }
+    
+    await foreignerService.correctForeignerData(id, updatedData, reason, correctedBy);
+    return { success: true };
+  } catch (error) {
+    console.error("Error correcting data:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, error: `データの修正に失敗しました: ${errorMessage}` };
+  }
+}
+
+/**
  * 支部事務員: 行政書士へ確認依頼 (approvalStatus: pending_review へ)
  */
 export async function requestReviewAction(id: string): Promise<{ success: boolean; error?: string }> {

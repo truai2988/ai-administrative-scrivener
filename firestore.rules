@@ -143,5 +143,20 @@ service cloud.firestore {
       // ===== 削除 =====（物理削除は全ロール禁止）
       allow delete: if false;
     }
+
+    // -------------------------------------------------------------------------
+    // /foreigners/{foreignerId}/correction_histories サブコレクション
+    // -------------------------------------------------------------------------
+    match /foreigners/{foreignerId}/correction_histories/{historyId} {
+      allow read: if isAuthenticated() && (
+        canViewAllBranches() ||
+        (isBranchStaff() && get(/databases/$(database)/documents/foreigners/$(foreignerId)).data.branchId == getUserBranchId())
+      );
+      
+      allow create: if isAuthenticated() && isScrivener() && 
+                    request.resource.data.keys().hasAll(['reason', 'diff', 'correctedBy']);
+                    
+      allow update, delete: if false;
+    }
   }
 }

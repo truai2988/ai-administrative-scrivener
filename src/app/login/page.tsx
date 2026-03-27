@@ -2,13 +2,11 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { LayoutDashboard, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +19,9 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push("/");
+      // Next.jsの router.push では即座にセットしたCookieがMiddlewareのルーティングに
+      // 反映されず、再度/loginにリダイレクトされてしまうことがあるため、Locationで遷移させます。
+      window.location.href = "/";
     } catch (err: unknown) {
       console.error("Login error:", err);
       const firebaseError = err as { code?: string };
@@ -57,16 +57,39 @@ export default function LoginPage() {
         className="w-full max-w-md relative z-10"
       >
         {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center h-16 w-16 bg-linear-to-br from-indigo-600 to-violet-700 rounded-2xl shadow-xl shadow-indigo-200/50 mb-5">
-            <LayoutDashboard className="h-8 w-8 text-white" />
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center h-12 w-12 bg-linear-to-br from-indigo-600 to-violet-700 rounded-xl shadow-lg shadow-indigo-200/50 mb-3">
+            <LayoutDashboard className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-violet-600 tracking-tight">
+          <h1 className="text-2xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-violet-600 tracking-tight">
             Noctiluca
           </h1>
-          <p className="text-xs font-bold text-slate-400 tracking-widest uppercase mt-1">
-            AI Labor Management System
-          </p>
+        </div>
+
+        {/* Concept Banner */}
+        <div className="relative overflow-hidden bg-linear-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-3xl p-6 shadow-lg shadow-indigo-200/40 mb-6 w-full">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
+          <div className="absolute top-4 right-6 w-1 h-1 bg-white/30 rounded-full" />
+          <div className="absolute top-8 right-10 w-1.5 h-1.5 bg-white/20 rounded-full" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+               <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm text-white text-[9px] font-bold rounded-full border border-white/20 tracking-wider uppercase">
+                 Noctiluca Demo
+               </span>
+               <span className="px-2 py-0.5 bg-emerald-500/40 backdrop-blur-sm text-white text-[9px] font-bold rounded-full border border-white/20 tracking-wider">
+                 行政書士
+               </span>
+            </div>
+            <h2 className="text-[13px] md:text-[14px] font-black text-white leading-snug mb-2 tracking-tight">
+              行政監査は「書類の有無」から、<br />「プロセスの正当性とデータの完全な整合性」へ。
+            </h2>
+            <p className="text-[9px] md:text-[10px] text-indigo-100 font-medium">
+              法改正リスクをゼロにする、AI労務管理システムへようこそ
+            </p>
+          </div>
         </div>
 
         {/* Login Card */}

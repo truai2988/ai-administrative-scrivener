@@ -21,7 +21,7 @@ export function canViewAllBranches(role: UserRole): boolean {
 
 /** 外国人データを編集できるか */
 export function canEditForeigner(role: UserRole): boolean {
-  return role === "branch_staff" || role === "hq_admin" || role === "scrivener";
+  return role === "branch_staff" || role === "hq_admin";
 }
 
 /** 外国人データを新規作成できるか（支部事務員・本部管理者のみ） */
@@ -56,5 +56,15 @@ export function canRequestReview(role: UserRole): boolean {
 
 /** 承認・差し戻しができるか（scrivenerのみ） */
 export function canApproveOrReturn(role: UserRole): boolean {
+  return role === "scrivener";
+}
+
+/** 修正履歴を閲覧できるか */
+export function canViewHistory(role: UserRole): boolean {
+  return role === "hq_admin" || role === "branch_staff" || role === "scrivener";
+}
+
+/** 修正モードによるデータ編集ができるか */
+export function canCorrectData(role: UserRole): boolean {
   return role === "scrivener";
 }

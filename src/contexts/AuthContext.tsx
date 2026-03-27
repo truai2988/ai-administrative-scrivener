@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import { signIn, signOut, onAuthStateChanged, getIdToken } from "@/lib/firebase/auth";
+import { signIn, signOut, onAuthStateChanged } from "@/lib/firebase/auth";
 import { User } from "@/types/database";
 
 interface AuthContextType {
@@ -35,20 +35,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        // Firestore の users コレクションからロール情報を取得
         try {
-          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          // Firestore ユーザー情報取得 と IDトークン取得を並列実行（逐次→並列で時間を短縮）
+          const [userDoc, token] = await Promise.all([
+            getDoc(doc(db, "users", firebaseUser.uid)),
+            firebaseUser.getIdToken(),
+          ]);
+
           if (userDoc.exists()) {
             setCurrentUser({ id: userDoc.id, ...userDoc.data() } as User);
           } else {
-            // Firestore にユーザードキュメントがない場合はログアウト
             console.error("User document not found in Firestore for UID:", firebaseUser.uid);
             await signOut();
             setCurrentUser(null);
           }
 
-          // Middleware 用にセッション Cookie をセット
-          const token = await getIdToken();
           if (token) {
             document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax`;
           }
@@ -58,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setCurrentUser(null);
-        // セッション Cookie をクリア
         document.cookie = "__session=; path=/; max-age=0";
       }
       setLoading(false);
