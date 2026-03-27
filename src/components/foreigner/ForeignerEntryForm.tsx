@@ -61,7 +61,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
   initialData,
   onCorrectionSuccess,
   onCorrectionCancel,
-  currentUser
+  currentUser,
 }) => {
   const STEPS = isCorrectionMode 
     ? ['書類添付', '基本情報', '在留情報', '修正の確認']
@@ -192,6 +192,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
     }
   };
 
+
   if (isSubmitted) {
     return (
       <motion.div 
@@ -276,16 +277,14 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
                 )}
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">顔写真（証明写真）</h3>
                     <PhotoUploadZone
                       file={formData.files['photo']}
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'photo': f } }))}
                     />
                   </div>
                   <div className="border-t border-slate-100 pt-6">
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (表面)</h3>
                     <FileUploadZone 
-                      label="在留カード(表面)" 
+                      label="在留カード（表面）" 
                       file={formData.files['rc-front']}
                       compressionType="document"
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'rc-front': f } }))} 
@@ -303,18 +302,16 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
                     />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">在留カード (裏面)</h3>
                     <FileUploadZone 
-                      label="在留カード(裏面)" 
+                      label="在留カード（裏面）" 
                       file={formData.files['rc-back']}
                       compressionType="document"
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'rc-back': f } }))} 
                     />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 ml-1">パスポート (顔写真ページ)</h3>
                     <FileUploadZone 
-                      label="パスポート" 
+                      label="パスポート（顔写真ページ）" 
                       file={formData.files['passport']}
                       compressionType="document"
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'passport': f } }))} 
@@ -493,7 +490,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
             </button>
           )}
         </div>
-        
+
         {isCorrectionMode && onCorrectionCancel && (
           <div className="pt-2 text-center">
             <button

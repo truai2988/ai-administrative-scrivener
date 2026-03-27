@@ -80,11 +80,11 @@ service cloud.firestore {
 
       // ===== 更新 =====
       // - scrivener: 全データ更新可（ステータス変更含む）
-      // - hq_admin: 本部直轄（branchId == 'hq_direct'）のデータのみ更新可（ステータス変更不可）
-      // - branch_staff: 自支部のデータのみ更新可（ステータス変更・支部ID変更不可）
-      // - 未認証: 外国人本人が申請フォームから更新する場合（URLトークン = ドキュメントID）
+      // - hq_admin: 本部直轄（branchId == 'hq_direct'）のデータのみ更新可
+      // - branch_staff: 自支部のデータのみ更新可（支部ID変更不可）
+      // - 修正時、status を「編集中」に変更し、approvalStatus を null または削除することは全認証ユーザー（管理・書士・事務員）に許可する
       allow update: if 
-        // 認証済みユーザーによる更新（既存ルール）
+        // 認証済みユーザーによる更新
         (isAuthenticated() && (
           isScrivener() ||
           (
@@ -92,7 +92,8 @@ service cloud.firestore {
             resource.data.branchId == 'hq_direct' &&
             (
               !('status' in request.resource.data) ||
-              request.resource.data.status == resource.data.status
+              request.resource.data.status == resource.data.status ||
+              request.resource.data.status == '編集中'
             )
           ) ||
           (
@@ -101,7 +102,8 @@ service cloud.firestore {
             request.resource.data.branchId == resource.data.branchId &&
             (
               !('status' in request.resource.data) ||
-              request.resource.data.status == resource.data.status
+              request.resource.data.status == resource.data.status ||
+              request.resource.data.status == '編集中'
             )
           )
         )) ||
@@ -122,9 +124,9 @@ service cloud.firestore {
           (isBranchStaff() && resource.data.branchId == getUserBranchId()) ||
           (isHqAdmin() && resource.data.branchId == 'hq_direct')
         ) &&
-        resource.data.get('approvalStatus', 'draft') in ['draft', 'returned'] &&
+        (resource.data.get('approvalStatus', 'draft') in ['draft', 'returned'] || resource.data.get('approvalStatus', null) == null) &&
         request.resource.data.approvalStatus == 'pending_review' &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'status', 'updatedAt']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'status', 'returnReason', 'updatedAt']);
 
       // scrivener または hq_admin: approved/returned への遷移（差し戻し理由も同時書き込み可）
       allow update: if
@@ -153,8 +155,12 @@ service cloud.firestore {
         (isBranchStaff() && get(/databases/$(database)/documents/foreigners/$(foreignerId)).data.branchId == getUserBranchId())
       );
       
-      allow create: if isAuthenticated() && isScrivener() && 
-                    request.resource.data.keys().hasAll(['reason', 'diff', 'correctedBy']);
+      allow create: if isAuthenticated() && (
+                      isScrivener() ||
+                      (isHqAdmin() && get(/databases/$(database)/documents/foreigners/$(foreignerId)).data.branchId == 'hq_direct') ||
+                      (isBranchStaff() && get(/databases/$(database)/documents/foreigners/$(foreignerId)).data.branchId == getUserBranchId())
+                    ) && 
+                    request.resource.data.keys().hasAll(['reason', 'diff', 'correctedBy', 'foreignerId', 'correctedAt']);
                     
       allow update, delete: if false;
     }

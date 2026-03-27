@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Foreigner, UserRole } from '@/types/database';
 import { foreignerService } from '@/services/foreignerService';
-import { canEditForeigner, canRequestReview, canApproveOrReturn, canCorrectData } from '@/utils/permissions';
+import { canRequestReview, canApproveOrReturn, canCorrectData } from '@/utils/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { InlineEditForm } from './foreigner/InlineEditForm';
 import { CorrectionHistoryList } from './CorrectionHistoryList';
@@ -81,23 +81,24 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
     foreigner.approvalStatus === 'pending_review' ||
     foreigner.status === 'チェック中';
 
-  const allowEdit =
-    canEditForeigner(userRole) &&
-    !isSubmittedOrBeyond &&
-    !(userRole !== 'scrivener' && isReviewLocked) &&
-    !(isHqAdmin && foreigner.branchId !== 'hq_direct');
-  // 行政書士への確認依頼ができるか:
-  // - 支部事務員: 常に可
-  // - 本部管理者: 本部直轄案件のみ可
+  // 紫ボタン「登録内容を修正」は廃止。全ロール共通でInlineEditFormを使用。
+  const allowEdit = false;
+
+  // 修正モード（InlineEditForm）を開けるか:
+  // - scrivener: 「チェック中」のみ
+  // - branch_staff / hq_admin: 「準備中」「差し戻し」のみ（申請済以降は不可）
+  const allowCorrection = canCorrectData(userRole) && !isSubmittedOrBeyond && (
+    userRole === 'scrivener'
+      ? foreigner.status === 'チェック中'
+      : !isReviewLocked && !(isHqAdmin && foreigner.branchId !== 'hq_direct')
+  );
+
+  // 行政書士への確認依頼ができるか（修正モードとは独立）
   const allowRequestReview =
     canRequestReview(userRole) ||
     (isHqAdmin && foreigner.branchId === 'hq_direct');
 
   const allowApproveOrReturn = canApproveOrReturn(userRole);
-
-  const allowCorrection = canCorrectData(userRole) && foreigner.status === 'チェック中';
-
-
 
   // ── ローカルステート ────────────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
@@ -109,7 +110,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   const [editForm, setEditForm] = useState<Partial<Foreigner>>(() => buildEditForm(foreigner));
 
   // ── 表示用判定フラグ（可読性・保守性向上のためJSXから抽出） ───────────────
-  const isStatusDraft = foreigner.status === '準備中';
+  const isStatusDraft = foreigner.status === '準備中' || foreigner.status === '編集中';
   const isStatusPendingReview = foreigner.approvalStatus === 'pending_review' || foreigner.status === 'チェック中';
   const isStatusReturned = foreigner.approvalStatus === 'returned';
   
@@ -249,7 +250,16 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
             <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <button
-                  onClick={onClose}
+                  onClick={() => {
+                    if (isEditing) {
+                      if (window.confirm('編集中のデータがあります。変更を破棄して閉じますか？')) {
+                        setIsEditing(false);
+                        onClose();
+                      }
+                    } else {
+                      onClose();
+                    }
+                  }}
                   className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition-all"
                   title="一覧に戻る"
                 >
@@ -320,7 +330,13 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                 <InlineEditForm
                   foreigner={foreigner}
                   onSuccess={(updated) => {
-                    onUpdate({ ...foreigner, ...updated, isEditedByAdmin: true } as Foreigner);
+                    onUpdate({ 
+                      ...foreigner, 
+                      ...updated, 
+                      isEditedByAdmin: true,
+                      status: '編集中',
+                      approvalStatus: null 
+                    } as Foreigner);
                     setIsCorrectionMode(false);
                   }}
                   onCancel={() => setIsCorrectionMode(false)}

@@ -161,10 +161,12 @@ export const foreignerService = {
 
     const batch = writeBatch(db);
 
-    // 1. 本体の更新（isEditedByAdminもtrueにする）
-    const updatePayload = {
+    // 1. 本体の更新（isEditedByAdminもtrueにする、ステータスを編集中に変更）
+    const updatePayload: Partial<Foreigner> & Record<string, unknown> = {
       ...updatedData,
       isEditedByAdmin: true,
+      status: '編集中',
+      approvalStatus: 'draft', // 確認依頼前なのでクリア（draftに戻す）する
       updatedAt: new Date().toISOString(),
     };
     batch.update(docRef, updatePayload);

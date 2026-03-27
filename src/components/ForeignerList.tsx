@@ -138,7 +138,9 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                   )}
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-900">{person.name}</span>
+                      <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        {person.name}
+                      </span>
                       <span className="text-xs text-slate-400">{person.nationality}</span>
                     </div>
                   </td>

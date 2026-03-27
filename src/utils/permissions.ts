@@ -64,7 +64,7 @@ export function canViewHistory(role: UserRole): boolean {
   return role === "hq_admin" || role === "branch_staff" || role === "scrivener";
 }
 
-/** 修正モードによるデータ編集ができるか */
+/** 修正モードによるデータ編集ができるか（全ログインユーザー共通） */
 export function canCorrectData(role: UserRole): boolean {
-  return role === "scrivener";
+  return role === 'branch_staff' || role === 'hq_admin' || role === 'scrivener';
 }
