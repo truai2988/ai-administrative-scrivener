@@ -80,7 +80,7 @@ service cloud.firestore {
 
       // ===== 更新 =====
       // - scrivener: 全データ更新可（ステータス変更含む）
-      // - hq_admin: 全データ更新可（ただしステータス変更は不可）
+      // - hq_admin: 本部直轄（branchId == 'hq_direct'）のデータのみ更新可（ステータス変更不可）
       // - branch_staff: 自支部のデータのみ更新可（ステータス変更・支部ID変更不可）
       // - 未認証: 外国人本人が申請フォームから更新する場合（URLトークン = ドキュメントID）
       allow update: if 
@@ -88,7 +88,9 @@ service cloud.firestore {
         (isAuthenticated() && (
           isScrivener() ||
           (
-            isHqAdmin() && (
+            isHqAdmin() &&
+            resource.data.branchId == 'hq_direct' &&
+            (
               !('status' in request.resource.data) ||
               request.resource.data.status == resource.data.status
             )
@@ -110,6 +112,33 @@ service cloud.firestore {
           (!('status' in request.resource.data) || request.resource.data.status == resource.data.status) &&
           (!('isEditedByAdmin' in request.resource.data) || request.resource.data.isEditedByAdmin == resource.data.get('isEditedByAdmin', false))
         );
+
+      // ===== 承認ワークフロー専用更新 =====
+      // branch_staff または hq_admin (本部直轄のみ): draft/returned → pending_review への遷移のみ許可
+      // approvalStatus, status, updatedAt 以外フィールド変更禁止（hasOnly制約）
+      allow update: if
+        isAuthenticated() &&
+        (
+          (isBranchStaff() && resource.data.branchId == getUserBranchId()) ||
+          (isHqAdmin() && resource.data.branchId == 'hq_direct')
+        ) &&
+        resource.data.get('approvalStatus', 'draft') in ['draft', 'returned'] &&
+        request.resource.data.approvalStatus == 'pending_review' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'status', 'updatedAt']);
+
+      // scrivener または hq_admin: approved/returned への遷移（差し戻し理由も同時書き込み可）
+      allow update: if
+        isAuthenticated() &&
+        (isScrivener() || isHqAdmin()) &&
+        resource.data.get('approvalStatus', 'draft') == 'pending_review' &&
+        request.resource.data.approvalStatus in ['approved', 'returned'] &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'status', 'returnReason', 'updatedAt']);
+
+      // 緊急修復用：バグで不正なステータスになったデータを「準備中」に戻す処理は、認証ユーザーなら誰でも許可する
+      allow update: if
+        isAuthenticated() &&
+        resource.data.get('approvalStatus', 'draft') == 'returned' &&
+        request.resource.data.status == '準備中';
 
       // ===== 削除 =====（物理削除は全ロール禁止）
       allow delete: if false;

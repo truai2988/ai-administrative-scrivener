@@ -49,7 +49,7 @@ ${pastExperience}
     // Extract JSON from response (handling potential markdown code blocks)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('Failed to parse AI response as JSON');
+      throw new Error('AIの応答データの解析に失敗しました');
     }
     
     const analysis = JSON.parse(jsonMatch[0]);

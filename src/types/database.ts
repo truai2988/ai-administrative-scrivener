@@ -31,7 +31,17 @@ export interface Branch {
 export const DEFAULT_BRANCH_ID = 'hq_direct';
 
 // ─── Foreigner (外国人データ) ─────────────────────────────────────────────────
-export type ForeignerStatus = '準備中' | 'チェック中' | '申請済' | '追加資料待機' | '完了' | '期限切れ警告';
+export type ForeignerStatus = '準備中' | 'チェック中' | '申請済' | '追加資料待機' | '入管審査中' | '完了' | '期限切れ警告';
+
+/** 承認ワークフロー専用ステータス（status フィールドとは独立して管理）*/
+export type ApprovalStatus = 'draft' | 'pending_review' | 'approved' | 'returned';
+
+export const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
+  draft: '入力中',
+  pending_review: '確認待ち',
+  approved: '承認済',
+  returned: '差し戻し',
+};
 
 export interface Foreigner {
   id: string; // Firestore Document ID
@@ -42,7 +52,10 @@ export interface Foreigner {
   expiryDate: string; // ISO 8601 (yyyy-MM-dd)
   birthDate: string; // ISO 8601 (yyyy-MM-dd)
   nationality: string;
-  passportImageUrl: string;
+  passportImageUrl?: string;
+  photoUrl?: string; // 顔写真
+  residenceCardFrontUrl?: string; // 在留カード(表)
+  residenceCardBackUrl?: string; // 在留カード(裏)
   status: ForeignerStatus;
   company?: string; // 所属機関
   visaType?: string; // 在留資格種別
@@ -74,6 +87,10 @@ export interface Foreigner {
   // Original Data Snapshot for Legal Compliance
   isEditedByAdmin?: boolean;
   originalSubmittedData?: Partial<Foreigner>;
+
+  // 承認ワークフロー
+  approvalStatus?: ApprovalStatus; // 承認ステータス（既存の status フィールドとは独立）
+  returnReason?: string; // 差し戻し時の理由
 
   createdAt: string;
   updatedAt: string;

@@ -8,7 +8,7 @@ import type { UserRole } from "@/types/database";
  * |----------------------|:---:|:---:|:---:|
  * | 自支部データの閲覧     | ✅ | ✅ | ✅ |
  * | 他支部データの閲覧     | ❌ | ✅ | ✅ |
- * | データの作成          | ✅ | ✅ | ✅ |
+ * | データの作成          | ✅ | ✅ | ❌ |
  * | データの編集          | ✅ | ✅ | ✅ |
  * | データの承認・差し戻し   | ❌ | ❌ | ✅ |
  * | ステータス変更         | ❌ | ❌ | ✅ |
@@ -24,9 +24,9 @@ export function canEditForeigner(role: UserRole): boolean {
   return role === "branch_staff" || role === "hq_admin" || role === "scrivener";
 }
 
-/** 外国人データを新規作成できるか */
+/** 外国人データを新規作成できるか（支部事務員・本部管理者のみ） */
 export function canCreateForeigner(role: UserRole): boolean {
-  return role === "branch_staff" || role === "hq_admin" || role === "scrivener";
+  return role === 'branch_staff' || role === 'hq_admin';
 }
 
 /** データの承認・差し戻しができるか（最終確認者権限） */
@@ -46,5 +46,15 @@ export function canViewSummary(): boolean {
 
 /** CSVエクスポートができるか */
 export function canExportCsv(role: UserRole): boolean {
+  return role === "scrivener";
+}
+
+/** 行政書士への確認依頼ができるか（branch_staffのみ） */
+export function canRequestReview(role: UserRole): boolean {
+  return role === "branch_staff";
+}
+
+/** 承認・差し戻しができるか（scrivenerのみ） */
+export function canApproveOrReturn(role: UserRole): boolean {
   return role === "scrivener";
 }

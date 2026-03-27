@@ -10,6 +10,7 @@ import { PhotoUploadZone } from '../client/PhotoUploadZone';
 import { ChevronRight, ChevronLeft, Send, CheckCircle2, User, CreditCard, FileText, Landmark } from 'lucide-react';
 
 import { submitForeignerEntryAction } from '@/app/actions/foreignerActions';
+import { storageService } from '@/services/storageService';
 
 const STEPS = ['書類添付', '基本情報', '在留情報', '委任同意'];
 
@@ -120,22 +121,42 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ token, b
     if (validateStep()) {
       setIsSubmitting(true);
       
-      const result = await submitForeignerEntryAction(token, {
-        name: formData.name,
-        nationality: formData.nationality,
-        birthDate: formData.birthday,
-        residenceCardNumber: formData.residenceCardNumber,
-        expiryDate: formData.expiryDate,
-        visaType: formData.visaType,
-        branchId: branchId,
-      });
+      try {
+        // Upload files if they exist
+        const photoUrl = formData.files['photo'] 
+          ? await storageService.uploadFile(formData.files['photo'], `foreigners/${token}/photo_${Date.now()}`) : undefined;
+        const rcFrontUrl = formData.files['rc-front'] 
+          ? await storageService.uploadFile(formData.files['rc-front'], `foreigners/${token}/rc_front_${Date.now()}`) : undefined;
+        const rcBackUrl = formData.files['rc-back'] 
+          ? await storageService.uploadFile(formData.files['rc-back'], `foreigners/${token}/rc_back_${Date.now()}`) : undefined;
+        const passportUrl = formData.files['passport'] 
+          ? await storageService.uploadFile(formData.files['passport'], `foreigners/${token}/passport_${Date.now()}`) : undefined;
 
-      if (result.success) {
-        setIsSubmitted(true);
-      } else {
-        alert(result.error);
+        const result = await submitForeignerEntryAction(token, {
+          name: formData.name,
+          nationality: formData.nationality,
+          birthDate: formData.birthday,
+          residenceCardNumber: formData.residenceCardNumber,
+          expiryDate: formData.expiryDate,
+          visaType: formData.visaType,
+          branchId: branchId,
+          photoUrl,
+          residenceCardFrontUrl: rcFrontUrl,
+          residenceCardBackUrl: rcBackUrl,
+          passportImageUrl: passportUrl,
+        });
+
+        if (result.success) {
+          setIsSubmitted(true);
+        } else {
+          alert(result.error);
+        }
+      } catch (error) {
+        console.error('Submit error:', error);
+        alert('送信中にエラーが発生しました。時間を置いて再度お試しください。');
+      } finally {
+        setIsSubmitting(false);
       }
-      setIsSubmitting(false);
     }
   };
 

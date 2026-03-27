@@ -11,7 +11,7 @@ import { ForeignerList } from '@/components/ForeignerList';
 import { ForeignerDetail } from '@/components/ForeignerDetail';
 import { CsvDownloadButton } from '@/components/CsvDownloadButton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles, Shield } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles, Shield, AlertTriangle } from 'lucide-react';
 
 // ─── Toast Message Component ─────────────────────────────────────────────────
 function ToastNotification({ message, onClose }: { message: string; onClose: () => void }) {
@@ -66,6 +66,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [mounted, setMounted] = useState<boolean>(false);
   const [selectedForeigner, setSelectedForeigner] = useState<Foreigner | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // hq_admin専用: タブ選択状態 ('all' | 'hq_direct' | branchId)
+  const [activeTab, setActiveTab] = useState<string>('all');
+  // データ整合性チェックパネル（scrivener専用）
+  const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
   
   // Welcome banner
   const [showWelcome, setShowWelcome] = useState(true);
@@ -128,14 +132,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     router.push('/login');
   }, [logout, router]);
 
-  // Calculate summaries (use 0/empty if loading)
-  const total = data.length;
-  const expiringSoon = data.filter((p) => {
-    const days = Math.ceil((new Date(p.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-    return days < 90 && days > 0;
-  }).length;
-  const pending = data.filter((p) => p.status === 'チェック中' || p.status === '準備中').length;
-  const completed = data.filter(p => p.status === '申請済').length;
+
 
   if (!mounted || authLoading) return null;
   if (!currentUser) return null;
@@ -143,6 +140,53 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const userRole = currentUser.role;
   const roleLabel = USER_ROLE_LABELS[userRole] || userRole;
   const roleBadgeStyle = ROLE_BADGE_STYLES[userRole] || 'bg-slate-50 text-slate-600 border-slate-100';
+
+  // hq_admin のみ有効なフィルター適用
+  const isHqAdmin = userRole === 'hq_admin';
+  const displayedData = (() => {
+    if (!isHqAdmin) return data;
+    if (activeTab === 'hq_direct') return data.filter(f => f.branchId === 'hq_direct');
+    if (activeTab !== 'all') return data.filter(f => f.branchId === activeTab);
+    return data;
+  })();
+
+  // 支部タブリスト: hq_direct 以外のユニーク branchIdを動的に取得
+  const branchTabs = isHqAdmin
+    ? [...new Set(data.filter(f => f.branchId && f.branchId !== 'hq_direct').map(f => f.branchId))]
+    : [];
+
+  /** branchId → 表示名のマッピング（新しい支部はここに追加） */
+  const BRANCH_LABEL: Record<string, string> = {
+    osaka: '大阪支部',
+    osaka_branch: '大阪支部',
+    branch_osaka: '大阪支部',
+    tokyo: '東京支部',
+    tokyo_branch: '東京支部',
+    branch_tokyo: '東京支部',
+    nagoya: '名古屋支部',
+    nagoya_branch: '名古屋支部',
+    branch_nagoya: '名古屋支部',
+    fukuoka: '福岡支部',
+    fukuoka_branch: '福岡支部',
+    branch_fukuoka: '福岡支部',
+    sapporo: '札幌支部',
+    branch_sapporo: '札幌支部',
+    sendai: '仙台支部',
+    branch_sendai: '仙台支部',
+    hiroshima: '広島支部',
+    branch_hiroshima: '広島支部',
+  };
+
+
+  // サマリー計算
+  const total = displayedData.length;
+  const expiringSoon = displayedData.filter((p) => {
+    const days = Math.ceil((new Date(p.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    return days < 90 && days > 0;
+  }).length;
+  const pending = displayedData.filter((p) => p.status === 'チェック中' || p.status === '準備中').length;
+  const completed = displayedData.filter(p => p.status === '申請済').length;
+
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans">
@@ -183,6 +227,27 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               onClick={() => showComingSoon(item.toastMessage)}
             />
           ))}
+          {/* scrivener専用: データ整合性チェック */}
+          {userRole === 'scrivener' && (() => {
+            const mismatchCount = data.filter(f =>
+              (f.approvalStatus === 'returned' && f.status !== '準備中') ||
+              (f.approvalStatus === 'approved' && f.status !== '申請済')
+            ).length;
+            return (
+              <button
+                onClick={() => setShowIntegrityPanel(true)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-rose-600 hover:bg-rose-50 group"
+              >
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">データ整合性チェック</span>
+                {mismatchCount > 0 && (
+                  <span className="px-2 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-full">
+                    {mismatchCount}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
         </nav>
 
         {/* Support & Logout - Fixed at bottom */}
@@ -226,7 +291,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">管理概要</h1>
-            <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{loading ? '-' : total}名</span>の外国人を管理しています。</p>
+            <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{loading ? '-' : data.length}名</span>の外国人を管理しています。</p>
           </div>
           <div className="flex items-center gap-5">
             {!loading && canExportCsv(userRole) && (
@@ -342,8 +407,67 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
             >
+              {/* hq_admin: タブバー */}
+              {isHqAdmin && (
+                <div className="flex mb-6 overflow-x-auto no-scrollbar">
+                  <div className="inline-flex bg-slate-100 rounded-2xl p-1 gap-1 shrink-0">
+                    {/* 全支部 */}
+                    <button
+                      onClick={() => setActiveTab('all')}
+                      className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${
+                        activeTab === 'all'
+                          ? 'bg-white text-violet-700 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      全支部
+                      <span className="ml-1.5 text-[10px] font-black px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded-full">
+                        {data.length}
+                      </span>
+                    </button>
+
+                    {/* 本部直轄 */}
+                    <button
+                      onClick={() => setActiveTab('hq_direct')}
+                      className={`px-5 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+                        activeTab === 'hq_direct'
+                          ? 'bg-white text-violet-700 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                      本部直轄
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                        activeTab === 'hq_direct' ? 'bg-violet-100 text-violet-600' : 'bg-slate-200 text-slate-500'
+                      }`}>
+                        {data.filter(f => f.branchId === 'hq_direct').length}
+                      </span>
+                    </button>
+
+                    {/* 動的支部タブ */}
+                    {branchTabs.map(branchId => (
+                      <button
+                        key={branchId}
+                        onClick={() => setActiveTab(branchId)}
+                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${
+                          activeTab === branchId
+                            ? 'bg-white text-violet-700 shadow-sm'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                      >
+                        {BRANCH_LABEL[branchId] ?? branchId}
+                        <span className={`ml-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                          activeTab === branchId ? 'bg-violet-100 text-violet-600' : 'bg-slate-200 text-slate-500'
+                        }`}>
+                          {data.filter(f => f.branchId === branchId).length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <ForeignerList 
-                data={data} 
+                data={displayedData} 
                 onSelect={(f) => setSelectedForeigner(f)}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
@@ -366,6 +490,103 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             userRole={userRole}
           />
         )}
+
+        {/* データ整合性チェックパネル（scrivener専用） */}
+        <AnimatePresence>
+          {showIntegrityPanel && userRole === 'scrivener' && (() => {
+            const mismatches = data.filter(f =>
+              (f.approvalStatus === 'returned' && f.status !== '準備中') ||
+              (f.approvalStatus === 'approved' && f.status !== '申請済')
+            );
+            return (
+              <motion.div
+                key="integrity-panel"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6"
+                onClick={() => setShowIntegrityPanel(false)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  onClick={e => e.stopPropagation()}
+                  className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-rose-50 rounded-xl">
+                        <AlertTriangle className="h-5 w-5 text-rose-500" />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-black text-slate-900">データ整合性チェック</h2>
+                        <p className="text-xs text-slate-400 mt-0.5">ステータスの不整合を検出します</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setShowIntegrityPanel(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+                    {mismatches.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                          <Shield className="h-7 w-7 text-emerald-500" />
+                        </div>
+                        <p className="font-bold text-slate-700">不整合なし</p>
+                        <p className="text-sm text-slate-400 mt-1">すべてのデータは整合しています</p>
+                      </div>
+                    ) : (
+                      mismatches.map(f => {
+                        const isApprovedMismatch = f.approvalStatus === 'approved' && f.status !== '申請済';
+                        const expectedStatus = isApprovedMismatch ? '申請済' : '準備中';
+                        return (
+                          <div key={f.id} className="flex items-center justify-between gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl">
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-slate-900 truncate">{f.name}</p>
+                              <p className="text-[11px] text-rose-600 font-bold mt-0.5">
+                                {f.status} → {expectedStatus} に修復必要
+                              </p>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const { foreignerService } = await import('@/services/foreignerService');
+                                  await foreignerService.updateForeignerDataAdmin(f.id, { status: expectedStatus });
+                                  setData(prev => prev.map(d => d.id === f.id ? { ...d, status: expectedStatus } : d));
+                                } catch {
+                                  alert('修復に失敗しました');
+                                }
+                              }}
+                              className="shrink-0 px-3 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 active:scale-95 transition-all"
+                            >
+                              修復
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                    <p className="text-xs text-slate-400">
+                      {mismatches.length > 0 ? `${mismatches.length}件の不整合を検出` : '問題なし'}
+                    </p>
+                    <button onClick={() => setShowIntegrityPanel(false)} className="text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
+                      閉じる
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            );
+          })()}
+        </AnimatePresence>
 
         {/* 共有モーダル */}
         <AnimatePresence>

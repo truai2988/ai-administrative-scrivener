@@ -132,13 +132,13 @@ export const foreignerService = {
     const currentDoc = await getDoc(docRef);
 
     if (!currentDoc.exists()) {
-      throw new Error("Document not found");
+      throw new Error("対象のデータが見つかりませんでした");
     }
 
     // 支部IDが一致するかチェック
     const docBranchId = currentDoc.data().branchId;
     if (docBranchId !== userBranchId) {
-      throw new Error("Permission denied: Cannot edit data from another branch");
+      throw new Error("権限エラー: 他の支部のデータは編集できません");
     }
 
     await updateDoc(docRef, {
@@ -267,5 +267,50 @@ export const foreignerService = {
       console.error('[DEBUG_SERVICE] seedDemoData Error:', error);
       return { success: false, error: String(error) };
     }
-  }
+  },
+
+  /**
+   * 行政書士用: 確認待ち(pending_review)の外国人一覧を取得
+   */
+  async getPendingReviewForeigners(): Promise<Foreigner[]> {
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where("approvalStatus", "==", "pending_review"),
+      orderBy("updatedAt", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Foreigner[];
+  },
+
+  /**
+   * 承認ステータスのみ更新（status フィールドとは独立）
+   */
+  async updateApprovalStatus(
+    id: string,
+    approvalStatus: string,
+    returnReason?: string
+  ): Promise<void> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const updateData: Record<string, string> = {
+      approvalStatus,
+      updatedAt: new Date().toISOString(),
+    };
+    if (returnReason !== undefined) {
+      updateData.returnReason = returnReason;
+    }
+
+    // 進捗ステータス（status）の自動連動
+    if (approvalStatus === 'pending_review') {
+      updateData.status = 'チェック中';
+    } else if (approvalStatus === 'returned') {
+      updateData.status = '準備中';
+    } else if (approvalStatus === 'approved') {
+      updateData.status = '申請済';
+    }
+
+    await updateDoc(docRef, updateData);
+  },
 };
