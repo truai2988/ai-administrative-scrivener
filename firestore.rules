@@ -136,11 +136,11 @@ service cloud.firestore {
         request.resource.data.approvalStatus in ['approved', 'returned'] &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'status', 'returnReason', 'updatedAt']);
 
-      // 緊急修復用：バグで不正なステータスになったデータを「準備中」に戻す処理は、認証ユーザーなら誰でも許可する
+      // 緊急修復用：バグで不正なステータスになったデータを「差し戻し」に戻す処理は、認証ユーザーなら誰でも許可する
       allow update: if
         isAuthenticated() &&
         resource.data.get('approvalStatus', 'draft') == 'returned' &&
-        request.resource.data.status == '準備中';
+        request.resource.data.status == '差し戻し';
 
       // ===== 削除 =====（物理削除は全ロール禁止）
       allow delete: if false;

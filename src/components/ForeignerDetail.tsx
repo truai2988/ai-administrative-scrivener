@@ -110,7 +110,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   const [editForm, setEditForm] = useState<Partial<Foreigner>>(() => buildEditForm(foreigner));
 
   // ── 表示用判定フラグ（可読性・保守性向上のためJSXから抽出） ───────────────
-  const isStatusDraft = foreigner.status === '準備中' || foreigner.status === '編集中';
+  const isStatusDraft = foreigner.status === '準備中' || foreigner.status === '編集中' || foreigner.status === '差し戻し';
   const isStatusPendingReview = foreigner.approvalStatus === 'pending_review' || foreigner.status === 'チェック中';
   const isStatusReturned = foreigner.approvalStatus === 'returned';
   
@@ -131,9 +131,6 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   }, [foreigner]);
 
   // ── データ不整合チェック（バグ修復用）──────────────────────────────────────
-  /** 差し戻し状態なのに「準備中」以外になっているデータを示すフラグ */
-  const hasStatusMismatch =
-    foreigner.approvalStatus === 'returned' && foreigner.status !== '準備中';
 
   // ── ハンドラ ────────────────────────────────────────────────────────────────
 
@@ -155,16 +152,6 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
       setIsSaving(false);
     }
   }, [foreigner, editForm, onUpdate]);
-
-  const handleHealStatus = useCallback(async () => {
-    try {
-      await foreignerService.updateForeignerDataAdmin(foreigner.id, { status: '準備中' });
-      onUpdate({ ...foreigner, status: '準備中' });
-    } catch (e) {
-      console.error('Status heal failed:', e);
-      alert('修復に失敗しました');
-    }
-  }, [foreigner, onUpdate]);
 
   const handleHealApproved = useCallback(async () => {
     try {
@@ -205,7 +192,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
     setIsWorkflowLoading(true);
     try {
       await foreignerService.updateApprovalStatus(foreigner.id, 'returned', returnReasonInput);
-      onUpdate({ ...foreigner, approvalStatus: 'returned', returnReason: returnReasonInput, status: '準備中' });
+      onUpdate({ ...foreigner, approvalStatus: 'returned', returnReason: returnReasonInput, status: '差し戻し' });
       setShowReturnForm(false);
       setReturnReasonInput('');
     } catch (err) {
@@ -344,21 +331,6 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
               </div>
             ) : (
               <>
-            {/* データ不整合アラート（バグ修復用。正常時は非表示） */}
-            {hasStatusMismatch && (
-              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                <p className="text-sm text-rose-700 font-bold flex items-center gap-2">
-                  <ShieldAlert className="h-5 w-5" />
-                  データ不整合: 差し戻し状態ですが「{foreigner.status}」になっています。
-                </p>
-                <button
-                  onClick={handleHealStatus}
-                  className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 active:scale-95 transition-all"
-                >
-                  修復して「準備中」に戻す
-                </button>
-              </div>
-            )}
             {/* 承認済みなのに申請済になっていない場合の修復バナー */}
             {hasApprovedMismatch && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">

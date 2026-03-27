@@ -374,7 +374,7 @@ export const foreignerService = {
     if (approvalStatus === 'pending_review') {
       updateData.status = 'チェック中';
     } else if (approvalStatus === 'returned') {
-      updateData.status = '準備中';
+      updateData.status = '差し戻し';
     } else if (approvalStatus === 'approved') {
       updateData.status = '申請済';
     }

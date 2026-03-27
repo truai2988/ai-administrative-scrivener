@@ -24,6 +24,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return 'bg-slate-100 text-slate-600 border-slate-200';
       case '編集中':
         return 'bg-amber-50 text-amber-600 border-amber-200 font-bold';
+      case '差し戻し':
+        return 'bg-rose-50 text-rose-600 border-rose-200 outline outline-1 outline-rose-400 font-bold';
       case 'チェック中':
         return 'bg-indigo-100 text-indigo-700 border-indigo-200 font-bold';
       case '期限切れ警告':

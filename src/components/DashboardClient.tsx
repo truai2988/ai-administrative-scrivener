@@ -181,7 +181,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     const days = Math.ceil((new Date(p.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     return days < 90 && days > 0;
   }).length;
-  const pending = displayedData.filter((p) => p.status === 'チェック中' || p.status === '準備中' || p.status === '編集中').length;
+  const pending = displayedData.filter((p) => p.status === 'チェック中' || p.status === '準備中' || p.status === '編集中' || p.status === '差し戻し').length;
   const completed = displayedData.filter(p => p.status === '申請済').length;
 
 

@@ -31,7 +31,7 @@ export interface Branch {
 export const DEFAULT_BRANCH_ID = 'hq_direct';
 
 // ─── Foreigner (外国人データ) ─────────────────────────────────────────────────
-export type ForeignerStatus = '準備中' | '編集中' | 'チェック中' | '申請済' | '追加資料待機' | '入管審査中' | '完了' | '期限切れ警告';
+export type ForeignerStatus = '準備中' | '編集中' | 'チェック中' | '申請済' | '追加資料待機' | '入管審査中' | '完了' | '期限切れ警告' | '差し戻し';
 
 /** 承認ワークフロー専用ステータス（status フィールドとは独立して管理）*/
 export type ApprovalStatus = 'draft' | 'pending_review' | 'approved' | 'returned' | null;
