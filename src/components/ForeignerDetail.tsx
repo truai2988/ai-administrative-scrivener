@@ -91,6 +91,8 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
 
   const allowApproveOrReturn = canApproveOrReturn(userRole);
 
+
+
   // ── ローカルステート ────────────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -98,6 +100,19 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   const [returnReasonInput, setReturnReasonInput] = useState('');
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Foreigner>>(() => buildEditForm(foreigner));
+
+  // ── 表示用判定フラグ（可読性・保守性向上のためJSXから抽出） ───────────────
+  const isStatusDraft = foreigner.status === '準備中';
+  const isStatusPendingReview = foreigner.approvalStatus === 'pending_review' || foreigner.status === 'チェック中';
+  const isStatusReturned = foreigner.approvalStatus === 'returned';
+  
+  // (旧データ等でapprovalStatusがない場合へのフォールバックを考慮)
+  const isWorkflowDraftOrReturned = !foreigner.approvalStatus || foreigner.approvalStatus === 'draft' || isStatusReturned;
+
+  // 各セクションの表示条件
+  const showRequestReviewSection = allowRequestReview && !isEditing && isStatusDraft && isWorkflowDraftOrReturned;
+  const showPendingReviewBanner = allowRequestReview && isStatusPendingReview;
+  const showApproveReturnSection = allowApproveOrReturn && isStatusPendingReview;
 
   // foreigner が外から差し替えられたらフォームも同期
   useEffect(() => {
@@ -330,8 +345,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
             </section>
 
             {/* branch_staff: 確認依頼ボタン（編集中は非表示） */}
-            {allowRequestReview && !isEditing && foreigner.status === '準備中' &&
-              (!foreigner.approvalStatus || foreigner.approvalStatus === 'draft' || foreigner.approvalStatus === 'returned') && (
+            {showRequestReviewSection && (
                 <section className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 space-y-4">
                   {foreigner.approvalStatus === 'returned' && foreigner.returnReason && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
@@ -351,7 +365,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
               )}
 
             {/* branch_staff: 確認依頼送信済みバナー */}
-            {allowRequestReview && (foreigner.approvalStatus === 'pending_review' || foreigner.status === 'チェック中') && (
+            {showPendingReviewBanner && (
               <section className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col gap-2 shadow-sm">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-emerald-500" />
@@ -365,7 +379,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
             )}
 
             {/* scrivener: 承認・差し戻しボタン */}
-            {allowApproveOrReturn && (foreigner.approvalStatus === 'pending_review' || foreigner.status === 'チェック中') && (
+            {showApproveReturnSection && (
               <section className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-6 space-y-4">
                 <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
