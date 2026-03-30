@@ -11,7 +11,8 @@ import { ForeignerList } from '@/components/ForeignerList';
 import { ForeignerDetail } from '@/components/ForeignerDetail';
 import { CsvDownloadButton } from '@/components/CsvDownloadButton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles, Shield, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
+import Link from 'next/link';
 
 // ─── Toast Message Component ─────────────────────────────────────────────────
 function ToastNotification({ message, onClose }: { message: string; onClose: () => void }) {
@@ -224,6 +225,19 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               onClick={() => showComingSoon(item.toastMessage)}
             />
           ))}
+
+          {/* 在留期間更新申請フォームへのリンク */}
+          <div className="pt-2 pb-1">
+            <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase px-4 mb-2">申請書類</p>
+          </div>
+          <Link
+            href="/forms/renewal"
+            className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 text-slate-400 hover:bg-indigo-50 hover:text-indigo-700 font-medium group"
+          >
+            <FilePen className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
+            <span className="text-sm">在留期間更新許可申請書</span>
+            <span className="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-500 group-hover:bg-indigo-100">新規</span>
+          </Link>
           {/* scrivener専用: データ整合性チェック */}
           {userRole === 'scrivener' && (() => {
             const mismatchCount = data.filter(f =>

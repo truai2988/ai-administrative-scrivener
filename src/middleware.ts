@@ -19,6 +19,7 @@ export function middleware(request: NextRequest) {
   const publicPaths = [
     "/login",
     "/foreigner/entry",  // 外国人本人が入力するフォーム
+    "/forms/renewal",    // 在留期間更新許可申請書フォーム
     "/api",
     "/_next",
     "/favicon.ico",
