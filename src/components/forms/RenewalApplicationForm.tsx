@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -14,18 +14,19 @@ import {
   type TabId,
   type TabAssignments,
 } from '@/lib/schemas/renewalApplicationSchema';
-import { ForeignerInfoSection }          from './sections/ForeignerInfoSection';
-import { EmployerInfoSection }           from './sections/EmployerInfoSection';
+import { ForeignerInfoSection }           from './sections/ForeignerInfoSection';
+import { EmployerInfoSection }            from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
-import { downloadImmigrationCSV }        from '@/lib/utils/csvMapper';
-import { renewalApplicationService }     from '@/services/renewalApplicationService';
-import { useToast, ToastContainer }      from '@/components/ui/Toast';
+import { ToastContainer }                 from '@/components/ui/Toast';
+import { useToast }                       from '@/components/ui/Toast';
 import {
   SectionPermissionProvider,
   useSectionPermission,
 } from '@/contexts/SectionPermissionContext';
-import { DevUserSwitcher }     from './DevUserSwitcher';
-import { TabAssignmentPanel }  from './TabAssignmentPanel';
+import { DevUserSwitcher }    from './DevUserSwitcher';
+import { TabAssignmentPanel } from './TabAssignmentPanel';
+import { mergeWithDefaults }  from '@/lib/utils/formUtils';
+import { useRenewalFormSubmit } from '@/hooks/useRenewalFormSubmit';
 
 // ─── タブ定義 ─────────────────────────────────────────────────────────────────
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
@@ -173,34 +174,15 @@ function RenewalApplicationFormInner({
   foreignerId,
   initialValues,
 }: Omit<RenewalApplicationFormProps, 'initialAssignments'>) {
-  const [activeTab, setActiveTab]         = useState<TabId>('foreigner');
-  const [isSaving, setIsSaving]           = useState(false);
-  const [isExporting, setIsExporting]     = useState(false);
-  const [savedRecordId, setSavedRecordId] = useState<string | undefined>(recordId);
-  const { toasts, show: showToast, dismiss } = useToast();
+  const [activeTab, setActiveTab] = useState<TabId>('foreigner');
+  const { toasts, dismiss, show: showToast } = useToast();
   const { isEditable, assignments } = useSectionPermission();
 
-  // initialValues と DEFAULT_VALUES をマージして初期値を生成
-  const mergedDefaultValues = useMemo(() => {
-    if (!initialValues) return DEFAULT_VALUES;
-    return {
-      ...DEFAULT_VALUES,
-      ...initialValues,
-      // 各セクションもマージして欠損フィールドを防ぐ
-      foreignerInfo: {
-        ...DEFAULT_VALUES.foreignerInfo,
-        ...(initialValues.foreignerInfo || {}),
-      },
-      employerInfo: {
-        ...DEFAULT_VALUES.employerInfo,
-        ...(initialValues.employerInfo || {}),
-      },
-      simultaneousApplication: {
-        ...DEFAULT_VALUES.simultaneousApplication,
-        ...(initialValues.simultaneousApplication || {}),
-      },
-    };
-  }, [initialValues]);
+  // DEFAULT_VALUES と initialValues を mergeWithDefaults でディープマージ
+  const mergedDefaultValues = useMemo(
+    () => mergeWithDefaults(initialValues, DEFAULT_VALUES),
+    [initialValues]
+  );
 
   const methods = useForm<RenewalApplicationFormData>({
     resolver: zodResolver(renewalApplicationSchema),
@@ -210,62 +192,22 @@ function RenewalApplicationFormInner({
 
   const { handleSubmit, formState: { errors }, reset } = methods;
 
-  // 動的な値の同期: initialValuesが変更された際（またはマウント直後）に確実に値をセットする
+  // 動的な値の同期: initialValues が変更された際（またはマウント直後）に確実に値をセットする
   useEffect(() => {
     reset(mergedDefaultValues);
   }, [mergedDefaultValues, reset]);
 
+  // 保存・エクスポートロジックはカスタムフックに委譲
+  const { isSaving, isExporting, isBusy, handleSaveOnly, handleSaveAndExport, savedRecordId } =
+    useRenewalFormSubmit({ recordId, foreignerId, assignments, onSubmit });
+
   const hasForeignerErrors    = !!errors.foreignerInfo;
   const hasEmployerErrors     = !!errors.employerInfo;
   const hasSimultaneousErrors = !!errors.simultaneousApplication;
-  const isBusy = isSaving || isExporting;
 
-  // ─── Firebase 保存 ────────────────────────────────────────────────────────
-  const saveToFirebase = useCallback(
-    async (data: RenewalApplicationFormData): Promise<string> => {
-      const dataWithAssignments = { ...data, assignments };
-      const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId);
-      setSavedRecordId(id);
-      if (onSubmit) await onSubmit(dataWithAssignments);
-      return id;
-    },
-    [savedRecordId, onSubmit, assignments, foreignerId]
-  );
-
-  // ① 保存のみ
-  const handleSaveOnly = useCallback(
-    async (data: RenewalApplicationFormData) => {
-      setIsSaving(true);
-      try {
-        await saveToFirebase(data);
-        showToast('success', '保存しました（ステータス: 編集中）');
-      } catch (err) {
-        console.error('[保存エラー]', err);
-        showToast('error', '保存に失敗しました。再度お試しください。');
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [saveToFirebase, showToast]
-  );
-
-  // ② 保存してCSV出力
-  const handleSaveAndExport = useCallback(
-    async (data: RenewalApplicationFormData) => {
-      setIsExporting(true);
-      try {
-        await saveToFirebase(data);
-        await downloadImmigrationCSV(data);
-        showToast('success', '保存してCSVを出力しました（3ファイル）');
-      } catch (err) {
-        console.error('[保存&CSV出力エラー]', err);
-        showToast('error', '処理に失敗しました。コンソールを確認してください。');
-      } finally {
-        setIsExporting(false);
-      }
-    },
-    [saveToFirebase, showToast]
-  );
+  const onValidationFailed = () => {
+    showToast('error', '入力内容にエラーがあります。赤く表示されたタブ・項目を確認してください。');
+  };
 
   return (
     <>
@@ -377,10 +319,10 @@ function RenewalApplicationFormInner({
                   <button
                     type="button"
                     className="btn-outline btn-save"
-                    onClick={handleSubmit(handleSaveOnly)}
+                    onClick={() => handleSaveOnly(methods.getValues())}
                     disabled={isBusy}
                     id="btn-save-only"
-                    title="入力内容をデータベースに保存します"
+                    title="入力途中の内容を下書き保存します"
                   >
                     {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
                     {isSaving ? '保存中...' : '保存'}
@@ -390,7 +332,7 @@ function RenewalApplicationFormInner({
                   <button
                     type="button"
                     className="btn-primary"
-                    onClick={handleSubmit(handleSaveAndExport)}
+                    onClick={handleSubmit(handleSaveAndExport, onValidationFailed)}
                     disabled={isBusy}
                     id="btn-save-and-export"
                     title="保存後、入管申請用CSVを3ファイルダウンロードします"

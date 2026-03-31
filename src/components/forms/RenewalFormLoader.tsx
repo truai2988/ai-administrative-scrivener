@@ -1,23 +1,28 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+/**
+ * RenewalFormLoader.tsx
+ * 更新申請フォームの「ローダー」コンポーネント
+ *
+ * 責務: データ取得フックの結果に基づき UI を描き分けるのみ。
+ *   - loading → スケルトン表示
+ *   - error   → エラー表示
+ *   - ready   → RenewalApplicationForm に初期値を渡して表示
+ *
+ * ビジネスロジックは useRenewalFormData フックに委譲している。
+ */
+
+import React from 'react';
+import Link from 'next/link';
 import { Loader2, AlertCircle, FileText } from 'lucide-react';
 import { RenewalApplicationForm } from './RenewalApplicationForm';
-import { renewalApplicationService, type RenewalApplicationRecord } from '@/services/renewalApplicationService';
-import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
-import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRenewalFormData } from '@/hooks/useRenewalFormData';
+import type { RenewalApplicationFormData, TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 
 interface RenewalFormLoaderProps {
   /** 外国人一覧の Foreigner.id（Firestore foreigners コレクションのキー） */
   foreignerId: string;
 }
-
-type LoadState =
-  | { phase: 'loading' }
-  | { phase: 'ready'; record: RenewalApplicationRecord | null }
-  | { phase: 'error'; message: string };
 
 // ─── スケルトンUI ──────────────────────────────────────────────────────────────
 function FormSkeleton() {
@@ -79,7 +84,7 @@ function FormError({ message, foreignerId }: { message: string; foreignerId: str
         <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>{message}</p>
         <p style={{ color: '#475569', fontSize: '0.75rem', margin: 0 }}>ID: {foreignerId}</p>
       </div>
-      <a
+      <Link
         href="/forms/renewal/new"
         style={{
           display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
@@ -90,46 +95,15 @@ function FormError({ message, foreignerId }: { message: string; foreignerId: str
       >
         <FileText size={14} />
         新規フォームを開く
-      </a>
+      </Link>
     </div>
   );
 }
 
 // ─── メインローダーコンポーネント ─────────────────────────────────────────────
 export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
-  const [state, setState] = useState<LoadState>({ phase: 'loading' });
-  const { currentUser, loading: authLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    // 認証ロード中は待機
-    if (authLoading) return;
-
-    // 未ログイン → ログインページへ
-    if (!currentUser) {
-      router.push('/login');
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchData = async () => {
-      try {
-        const record = await renewalApplicationService.getByForeignerId(foreignerId);
-        if (!cancelled) {
-          setState({ phase: 'ready', record });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const msg = err instanceof Error ? err.message : '不明なエラーが発生しました';
-          setState({ phase: 'error', message: msg });
-        }
-      }
-    };
-
-    fetchData();
-    return () => { cancelled = true; };
-  }, [foreignerId, currentUser, authLoading, router]);
+  // データ取得・認証ガードはすべてカスタムフックに委譲
+  const state = useRenewalFormData(foreignerId);
 
   if (state.phase === 'loading') {
     return <FormSkeleton />;
@@ -140,9 +114,9 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
   }
 
   // データあり → 既存値を渡して編集モード
-  // データなし → 空フォームで新規作成（foreignerId は保存時に紐付け）
-  const record = state.record;
-  const initialValues = record?.formData as RenewalApplicationFormData | undefined;
+  // データなし（fallbackも空） → 空フォームで新規作成（foreignerId は保存時に紐付け）
+  const { record } = state;
+  const initialValues    = record?.formData as RenewalApplicationFormData | undefined;
   const initialAssignments = record?.formData?.assignments as TabAssignments | undefined;
 
   return (

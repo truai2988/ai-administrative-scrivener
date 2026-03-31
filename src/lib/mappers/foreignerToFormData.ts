@@ -1,0 +1,139 @@
+/**
+ * foreignerToFormData.ts
+ * foreigners コレクションのプロフィールデータを
+ * RenewalApplicationFormData の形にマッピングする純粋関数
+ *
+ * ここが唯一の「Foreigner → 申請書フォーム」変換レイヤー。
+ * 仕様変更時はここだけを修正する。
+ */
+import type { Foreigner } from '@/types/database';
+import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
+
+/**
+ * Foreigner プロフィールから申請フォームの初期値（部分）を生成する
+ *
+ * フォールバック用途のため、必須フィールドは空文字/デフォルト値で埋める。
+ * 実際の保存はフォームバリデーション通過後に行われるので問題ない。
+ */
+export function mapForeignerProfileToFormData(
+  profile: Foreigner
+): Partial<RenewalApplicationFormData> {
+  return {
+    foreignerInfo: {
+      // ── 名簿から引き継ぐ項目 ──
+      nationality:            profile.nationality          || '',
+      birthDate:              profile.birthDate            || '',
+      nameEn:                 profile.name                 || '',
+      residenceCardNumber:    profile.residenceCardNumber  || '',
+      currentResidenceStatus: profile.visaType             || '',
+      stayExpiryDate:         profile.expiryDate           || '',
+      occupation:             profile.jobTitle             || '',
+
+      // ── 必須フィールドをデフォルト値で補完 ──
+      nameKanji:              '',
+      gender:                 'male',
+      maritalStatus:          'unmarried',
+      homeCountryAddress:     '',
+      japanZipCode:           '',
+      japanPrefecture:        '',
+      japanCity:              '',
+      japanAddressLines:      '',
+      japanAddress:           '',
+      phoneNumber:            '',
+      mobileNumber:           '',
+      email:                  '',
+      passportNumber:         '',
+      passportExpiryDate:     '',
+      edNumberAlpha:          '',
+      edNumberNumeric:        '',
+      currentStayPeriod:      '',
+      hasResidenceCard:       true,
+      desiredStayPeriod:      '1year',
+      desiredStayPeriodOther: '',
+      renewalReason:          '',
+      criminalRecord:         false,
+      criminalRecordDetail:   '',
+      specificSkillCategory:  '1',
+      skillCertifications:    [],
+      languageCertifications: [],
+      otherSkillCert:         '',
+      otherLanguageCert:      '',
+      totalSpecificSkillStayYears:  0,
+      totalSpecificSkillStayMonths: 0,
+      depositCharged:              false,
+      depositOrganizationName:     '',
+      depositAmount:               0,
+      feeCharged:                  false,
+      foreignOrganizationName:     '',
+      feeAmount:                   0,
+      hasRelatives:                false,
+      relatives:                   [],
+      residenceCardReceiptMethod:  'window',
+      applicantResidencePlace:     '',
+      receivingOffice:             '',
+      notificationEmail:           '',
+      checkIntent:                 false,
+      freeFormat:                  '',
+    } as RenewalApplicationFormData['foreignerInfo'],
+
+    employerInfo: {
+      // ── 名簿から引き継ぐ項目 ──
+      companyNameJa: profile.company || '',
+
+      // ── 必須フィールドをデフォルト値で補完 ──
+      contractStartDate:          '',
+      contractEndDate:            '',
+      industryFields:             [],
+      jobCategories:              [],
+      mainJobType:                '',
+      otherJobTypes:              [],
+      weeklyWorkHours:            40,
+      monthlyWorkHours:           173,
+      equivalentWorkHours:        true,
+      monthlySalary:              180000,
+      hourlyRate:                 1039,
+      japaneseMonthlySalary:      180000,
+      equivalentSalary:           true,
+      paymentMethod:              'bank_transfer',
+      hasDifferentTreatment:      false,
+      differentTreatmentDetail:   '',
+      hasCorporateNumber:         true,
+      corporateNumber:            '',
+      employmentInsuranceNumber:  '',
+      companyZipCode:             '',
+      companyPref:                '',
+      companyCity:                '',
+      companyAddressLines:        '',
+      companyAddress:             '',
+      representativeName:         '',
+      companyPhone:               '',
+      capital:                    undefined,
+      annualRevenue:              undefined,
+      employeeCount:              1,
+      workplaceName:              '',
+      workplaceZipCode:           '',
+      workplacePref:              '',
+      workplaceCity:              '',
+      workplaceAddressLines:      '',
+      isSocialInsuranceApplicable: true,
+      isLaborInsuranceApplicable:  true,
+      laborInsuranceNumber:        '',
+      hasJobHistory:               false,
+      jobHistory:                  [],
+      complianceOaths: {
+        hadLaborLawPenalty:  false,
+        hadIllegalDismissal: false,
+        hadMissingPersons:   false,
+      },
+      delegateSupportEntirely:        false,
+      supportAgencyName:              '',
+      supportAgencyRegistrationNumber: '',
+      supportPersonnel: {
+        supervisorName:  '',
+        supervisorTitle: '',
+        officerName:     '',
+        officerTitle:    '',
+      },
+    },
+  };
+}

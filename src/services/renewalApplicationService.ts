@@ -19,10 +19,11 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
+import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 
-const COLLECTION_NAME = 'renewal_applications';
+const COLLECTION_NAME = COLLECTIONS.RENEWAL_APPLICATIONS;
 
-export type RenewalApplicationStatus = 'editing' | 'pending_review' | 'approved';
+export type RenewalApplicationStatus = typeof APPLICATION_STATUS[keyof typeof APPLICATION_STATUS];
 
 export interface RenewalApplicationRecord {
   id: string;
@@ -31,6 +32,16 @@ export interface RenewalApplicationRecord {
   formData: RenewalApplicationFormData;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Firestoreは undefined 値を受け付けないため、保存前に除去する。
+ * JSON.stringify は undefined を自動的に取り除くため、
+ * ネストの深さに関わらず確実に動作する。
+ * （フォームデータはDate/Symbolを含まないため安全）
+ */
+function sanitizeForFirestore<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj)) as T;
 }
 
 export const renewalApplicationService = {
@@ -44,6 +55,7 @@ export const renewalApplicationService = {
     foreignerId?: string
   ): Promise<string> {
     const now = new Date().toISOString();
+    const safeFormData = sanitizeForFirestore(formData);
 
     if (existingId) {
       // 既存レコードの更新
@@ -55,8 +67,8 @@ export const renewalApplicationService = {
       }
 
       await updateDoc(docRef, {
-        formData,
-        status: 'editing',
+        formData: safeFormData,
+        status: APPLICATION_STATUS.EDITING,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
       });
@@ -72,8 +84,8 @@ export const renewalApplicationService = {
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: RenewalApplicationRecord = {
         id: newId,
-        status: 'editing',
-        formData,
+        status: APPLICATION_STATUS.EDITING,
+        formData: safeFormData,
         createdAt: now,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
