@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2, ChevronRight, ChevronLeft, User, Building2, FileStack, AlertCircle } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, User, Building2, FileStack, AlertCircle, Download, Loader2 } from 'lucide-react';
 import {
   renewalApplicationSchema,
   type RenewalApplicationFormData,
@@ -11,6 +11,7 @@ import {
 import { ForeignerInfoSection } from './sections/ForeignerInfoSection';
 import { EmployerInfoSection } from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
+import { downloadImmigrationCSV } from '@/lib/utils/csvMapper';
 
 const TABS = [
   { id: 'foreigner', label: '外国人本人情報', icon: User },
@@ -145,6 +146,7 @@ interface RenewalApplicationFormProps {
 export function RenewalApplicationForm({ onSubmit }: RenewalApplicationFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const [submitted, setSubmitted] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const methods = useForm<RenewalApplicationFormData>({
     resolver: zodResolver(renewalApplicationSchema),
@@ -154,8 +156,22 @@ export function RenewalApplicationForm({ onSubmit }: RenewalApplicationFormProps
 
   const {
     handleSubmit,
+    getValues,
     formState: { errors, isSubmitting },
   } = methods;
+
+  const handleDownloadCSV = useCallback(async () => {
+    setIsDownloading(true);
+    try {
+      const data = getValues();
+      await downloadImmigrationCSV(data);
+    } catch (err) {
+      console.error('[CSV出力エラー]', err);
+      alert('CSV出力中にエラーが発生しました。コンソールを確認してください。');
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [getValues]);
 
   const hasForeignerErrors = !!errors.foreignerInfo;
   const hasEmployerErrors = !!errors.employerInfo;
@@ -286,15 +302,32 @@ export function RenewalApplicationForm({ onSubmit }: RenewalApplicationFormProps
                 <ChevronLeft size={18} />
                 所属機関情報へ戻る
               </button>
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={isSubmitting}
-                id="submit-renewal-form"
-              >
-                {isSubmitting ? '送信中...' : '申請内容を確定する'}
-                {!isSubmitting && <CheckCircle2 size={18} />}
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={handleDownloadCSV}
+                  disabled={isDownloading}
+                  id="btn-download-csv"
+                  title="現在の入力内容をShift-JIS形式のCSVとして出力します"
+                >
+                  {isDownloading ? (
+                    <Loader2 size={16} className="spin" />
+                  ) : (
+                    <Download size={16} />
+                  )}
+                  {isDownloading ? 'CSV生成中...' : 'CSV出力（テスト）'}
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isSubmitting}
+                  id="submit-renewal-form"
+                >
+                  {isSubmitting ? '送信中...' : '申請内容を確定する'}
+                  {!isSubmitting && <CheckCircle2 size={18} />}
+                </button>
+              </div>
             </div>
           )}
         </div>
