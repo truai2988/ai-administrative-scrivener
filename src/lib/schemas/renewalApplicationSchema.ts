@@ -207,10 +207,20 @@ export const simultaneousApplicationSchema = z.object({
 }).optional();
 
 // ─── 申請書全体スキーマ ───────────────────────────────────────────────────────
+/**
+ * タブIDをキー、担当者ユーザーIDを値とする割り当てマップ
+ * キー例: 'foreigner' | 'employer' | 'simultaneous'
+ */
+export const tabAssignmentsSchema = z.record(z.string(), z.string());
+
 export const renewalApplicationSchema = z.object({
   foreignerInfo: foreignerInfoSchema,
   employerInfo: employerInfoSchema,
   simultaneousApplication: simultaneousApplicationSchema,
+  /** タブごとの担当者割り当て（tabId → userId） */
+  assignments: tabAssignmentsSchema.optional(),
 });
 
+export type TabId = 'foreigner' | 'employer' | 'simultaneous';
+export type TabAssignments = Partial<Record<TabId, string>>;
 export type RenewalApplicationFormData = z.infer<typeof renewalApplicationSchema>;

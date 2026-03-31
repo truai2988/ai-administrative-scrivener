@@ -36,7 +36,7 @@ function CheckboxRow({
   );
 }
 
-export function EmployerInfoSection() {
+export function EmployerInfoSection({ isEditable = true }: { isEditable?: boolean }) {
   const {
     register,
     control,
@@ -59,7 +59,13 @@ export function EmployerInfoSection() {
   const hasJobHistory = watch('employerInfo.hasJobHistory');
 
   return (
-    <div className="section-container">
+    <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
+      {!isEditable && (
+        <div className="section-readonly-banner">
+          🔒 このセクションは閲覧のみです。自分の担当のタブのみ編集できます。
+        </div>
+      )}
+      <fieldset disabled={!isEditable} style={{ border: 'none', padding: 0, margin: 0 }}>
       <div className="section-header">
         <Building2 size={20} className="section-icon" />
         <h2 className="section-title">所属機関（企業）情報</h2>
@@ -825,6 +831,7 @@ export function EmployerInfoSection() {
           </div>
         )}
       </div>
+      </fieldset>
     </div>
   );
 }

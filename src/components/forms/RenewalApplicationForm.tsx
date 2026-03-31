@@ -3,26 +3,38 @@
 import React, { useState, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronRight, ChevronLeft, User, Building2, FileStack, AlertCircle, Download, Save, Loader2 } from 'lucide-react';
+import {
+  ChevronRight, ChevronLeft,
+  User, Building2, FileStack,
+  AlertCircle, Download, Save, Loader2, Lock,
+} from 'lucide-react';
 import {
   renewalApplicationSchema,
   type RenewalApplicationFormData,
+  type TabId,
+  type TabAssignments,
 } from '@/lib/schemas/renewalApplicationSchema';
-import { ForeignerInfoSection } from './sections/ForeignerInfoSection';
-import { EmployerInfoSection } from './sections/EmployerInfoSection';
+import { ForeignerInfoSection }          from './sections/ForeignerInfoSection';
+import { EmployerInfoSection }           from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
-import { downloadImmigrationCSV } from '@/lib/utils/csvMapper';
-import { renewalApplicationService } from '@/services/renewalApplicationService';
-import { useToast, ToastContainer } from '@/components/ui/Toast';
+import { downloadImmigrationCSV }        from '@/lib/utils/csvMapper';
+import { renewalApplicationService }     from '@/services/renewalApplicationService';
+import { useToast, ToastContainer }      from '@/components/ui/Toast';
+import {
+  SectionPermissionProvider,
+  useSectionPermission,
+} from '@/contexts/SectionPermissionContext';
+import { DevUserSwitcher }     from './DevUserSwitcher';
+import { TabAssignmentPanel }  from './TabAssignmentPanel';
 
-const TABS = [
-  { id: 'foreigner', label: '外国人本人情報', icon: User },
-  { id: 'employer', label: '所属機関（企業）情報', icon: Building2 },
-  { id: 'simultaneous', label: '同時申請', icon: FileStack },
-] as const;
+// ─── タブ定義 ─────────────────────────────────────────────────────────────────
+const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
+  { id: 'foreigner',    label: '外国人本人情報',     icon: User },
+  { id: 'employer',     label: '所属機関（企業）情報', icon: Building2 },
+  { id: 'simultaneous', label: '同時申請',           icon: FileStack },
+];
 
-type TabId = (typeof TABS)[number]['id'];
-
+// ─── デフォルト値 ─────────────────────────────────────────────────────────────
 const DEFAULT_VALUES: RenewalApplicationFormData = {
   foreignerInfo: {
     nationality: '',
@@ -140,19 +152,27 @@ const DEFAULT_VALUES: RenewalApplicationFormData = {
   },
 };
 
+// ─── Props ────────────────────────────────────────────────────────────────────
 interface RenewalApplicationFormProps {
   /** 外部からの onSubmit コールバック（省略可） */
   onSubmit?: (data: RenewalApplicationFormData) => void | Promise<void>;
   /** 既存レコードのID（編集時） */
   recordId?: string;
+  /** 初期担当者割り当て（既存レコードから読み込んだ値） */
+  initialAssignments?: TabAssignments;
 }
 
-export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicationFormProps) {
+// ─── 内部コンポーネント（SectionPermissionContext の中で動く） ────────────────
+function RenewalApplicationFormInner({
+  onSubmit,
+  recordId,
+}: Omit<RenewalApplicationFormProps, 'initialAssignments'>) {
   const [activeTab, setActiveTab]         = useState<TabId>('foreigner');
   const [isSaving, setIsSaving]           = useState(false);
   const [isExporting, setIsExporting]     = useState(false);
   const [savedRecordId, setSavedRecordId] = useState<string | undefined>(recordId);
   const { toasts, show: showToast, dismiss } = useToast();
+  const { isEditable, assignments } = useSectionPermission();
 
   const methods = useForm<RenewalApplicationFormData>({
     resolver: zodResolver(renewalApplicationSchema),
@@ -160,29 +180,26 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
     mode: 'onBlur',
   });
 
-  const {
-    handleSubmit,
-    formState: { errors },
-  } = methods;
+  const { handleSubmit, formState: { errors } } = methods;
 
-  const hasForeignerErrors   = !!errors.foreignerInfo;
-  const hasEmployerErrors    = !!errors.employerInfo;
+  const hasForeignerErrors    = !!errors.foreignerInfo;
+  const hasEmployerErrors     = !!errors.employerInfo;
   const hasSimultaneousErrors = !!errors.simultaneousApplication;
-
   const isBusy = isSaving || isExporting;
 
-  // ─── 共通: Firebase保存処理 ────────────────────────────────────────────────
+  // ─── Firebase 保存 ────────────────────────────────────────────────────────
   const saveToFirebase = useCallback(
     async (data: RenewalApplicationFormData): Promise<string> => {
-      const id = await renewalApplicationService.save(data, savedRecordId);
+      const dataWithAssignments = { ...data, assignments };
+      const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId);
       setSavedRecordId(id);
-      if (onSubmit) await onSubmit(data);
+      if (onSubmit) await onSubmit(dataWithAssignments);
       return id;
     },
-    [savedRecordId, onSubmit]
+    [savedRecordId, onSubmit, assignments]
   );
 
-  // ─── ① 保存のみ ──────────────────────────────────────────────────────────
+  // ① 保存のみ
   const handleSaveOnly = useCallback(
     async (data: RenewalApplicationFormData) => {
       setIsSaving(true);
@@ -199,7 +216,7 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
     [saveToFirebase, showToast]
   );
 
-  // ─── ② 保存してCSV出力 ────────────────────────────────────────────────────
+  // ② 保存してCSV出力
   const handleSaveAndExport = useCallback(
     async (data: RenewalApplicationFormData) => {
       setIsExporting(true);
@@ -222,7 +239,8 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
       <FormProvider {...methods}>
         <form noValidate className="renewal-form">
-          {/* ─── ヘッダー ─────────────────────────────────────────────────── */}
+
+          {/* ─── ヘッダー ─────────────────────────────────────────────── */}
           <div className="form-header">
             <div className="form-header-badge">出入国在留管理庁 様式</div>
             <h1 className="form-header-title">在留期間更新許可申請書</h1>
@@ -234,17 +252,16 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
             </p>
           </div>
 
-          {/* ─── タブナビゲーション ────────────────────────────────────────── */}
+          {/* ─── タブナビゲーション ────────────────────────────────────── */}
           <div className="tab-nav" role="tablist">
             {TABS.map((tab) => {
-              const Icon = tab.icon;
+              const Icon     = tab.icon;
               const isActive = activeTab === tab.id;
+              const canEdit  = isEditable(tab.id);
               const hasError =
-                tab.id === 'foreigner'
-                  ? hasForeignerErrors
-                  : tab.id === 'employer'
-                  ? hasEmployerErrors
-                  : hasSimultaneousErrors;
+                tab.id === 'foreigner'  ? hasForeignerErrors
+                : tab.id === 'employer' ? hasEmployerErrors
+                : hasSimultaneousErrors;
 
               return (
                 <button
@@ -253,58 +270,62 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
                   role="tab"
                   aria-selected={isActive}
                   id={`tab-${tab.id}`}
-                  className={`tab-btn ${isActive ? 'tab-btn--active' : ''} ${hasError ? 'tab-btn--error' : ''}`}
+                  className={[
+                    'tab-btn',
+                    isActive ? 'tab-btn--active'   : '',
+                    hasError ? 'tab-btn--error'    : '',
+                    !canEdit ? 'tab-btn--readonly' : '',
+                  ].filter(Boolean).join(' ')}
                   onClick={() => setActiveTab(tab.id)}
                 >
                   <Icon size={18} />
                   <span>{tab.label}</span>
-                  {hasError && <AlertCircle size={14} className="tab-error-icon" />}
+                  {!canEdit && (
+                    <Lock size={12} className="tab-lock-icon" aria-label="閲覧のみ" />
+                  )}
+                  {hasError && canEdit && (
+                    <AlertCircle size={14} className="tab-error-icon" />
+                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* ─── セクション ───────────────────────────────────────────────── */}
+          {/* ─── 担当者割り当てパネル ──────────────────────────────────── */}
+          <TabAssignmentPanel />
+
+          {/* ─── セクション ───────────────────────────────────────────── */}
           <div
             role="tabpanel"
             aria-labelledby={`tab-${activeTab}`}
             className="tab-panel"
           >
-            {activeTab === 'foreigner' && <ForeignerInfoSection />}
-            {activeTab === 'employer' && <EmployerInfoSection />}
-            {activeTab === 'simultaneous' && <SimultaneousApplicationSection />}
+            {activeTab === 'foreigner' && (
+              <ForeignerInfoSection isEditable={isEditable('foreigner')} />
+            )}
+            {activeTab === 'employer' && (
+              <EmployerInfoSection isEditable={isEditable('employer')} />
+            )}
+            {activeTab === 'simultaneous' && (
+              <SimultaneousApplicationSection isEditable={isEditable('simultaneous')} />
+            )}
           </div>
 
-          {/* ─── ナビゲーションボタン ─────────────────────────────────────── */}
+          {/* ─── ナビゲーション & アクションバー ──────────────────────── */}
           <div className="form-nav">
             {activeTab === 'foreigner' ? (
               <div className="form-nav-right">
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setActiveTab('employer')}
-                >
-                  所属機関情報へ
-                  <ChevronRight size={18} />
+                <button type="button" className="btn-secondary" onClick={() => setActiveTab('employer')}>
+                  所属機関情報へ <ChevronRight size={18} />
                 </button>
               </div>
             ) : activeTab === 'employer' ? (
               <div className="form-nav-both">
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={() => setActiveTab('foreigner')}
-                >
-                  <ChevronLeft size={18} />
-                  外国人本人情報へ戻る
+                <button type="button" className="btn-outline" onClick={() => setActiveTab('foreigner')}>
+                  <ChevronLeft size={18} /> 外国人本人情報へ戻る
                 </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setActiveTab('simultaneous')}
-                >
-                  同時申請へ
-                  <ChevronRight size={18} />
+                <button type="button" className="btn-secondary" onClick={() => setActiveTab('simultaneous')}>
+                  同時申請へ <ChevronRight size={18} />
                 </button>
               </div>
             ) : (
@@ -315,13 +336,11 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
                   onClick={() => setActiveTab('employer')}
                   disabled={isBusy}
                 >
-                  <ChevronLeft size={18} />
-                  所属機関情報へ戻る
+                  <ChevronLeft size={18} /> 所属機関情報へ戻る
                 </button>
 
-                {/* ─── アクションバー ──────────────────────────────────── */}
                 <div className="form-action-bar">
-                  {/* ① 保存のみ */}
+                  {/* ① 保存 */}
                   <button
                     type="button"
                     className="btn-outline btn-save"
@@ -330,10 +349,7 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
                     id="btn-save-only"
                     title="入力内容をデータベースに保存します"
                   >
-                    {isSaving
-                      ? <Loader2 size={16} className="spin" />
-                      : <Save size={16} />
-                    }
+                    {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
                     {isSaving ? '保存中...' : '保存'}
                   </button>
 
@@ -346,19 +362,35 @@ export function RenewalApplicationForm({ onSubmit, recordId }: RenewalApplicatio
                     id="btn-save-and-export"
                     title="保存後、入管申請用CSVを3ファイルダウンロードします"
                   >
-                    {isExporting
-                      ? <Loader2 size={16} className="spin" />
-                      : <Download size={16} />
-                    }
+                    {isExporting ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
                     {isExporting ? 'CSV生成中...' : '保存してCSVを出力する'}
                   </button>
                 </div>
               </div>
             )}
           </div>
+
         </form>
       </FormProvider>
     </>
   );
 }
 
+// ─── 公開エクスポート: Provider でラップ ──────────────────────────────────────
+export function RenewalApplicationForm({
+  onSubmit,
+  recordId,
+  initialAssignments,
+}: RenewalApplicationFormProps) {
+  return (
+    <SectionPermissionProvider
+      initialAssignments={initialAssignments}
+      onAssignmentsChange={(a) => {
+        console.debug('[assignments変更]', a);
+      }}
+    >
+      <DevUserSwitcher />
+      <RenewalApplicationFormInner onSubmit={onSubmit} recordId={recordId} />
+    </SectionPermissionProvider>
+  );
+}

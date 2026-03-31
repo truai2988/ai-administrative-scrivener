@@ -15,7 +15,7 @@ import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
 
-export function ForeignerInfoSection() {
+export function ForeignerInfoSection({ isEditable = true }: { isEditable?: boolean }) {
   const {
     register,
     control,
@@ -39,7 +39,13 @@ export function ForeignerInfoSection() {
   const langMethod = watch('foreignerInfo.languageCertifications.0.method');
 
   return (
-    <div className="section-container">
+    <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
+      {!isEditable && (
+        <div className="section-readonly-banner">
+          🔒 このセクションは閲覧のみです。自分の担当のタブのみ編集できます。
+        </div>
+      )}
+      <fieldset disabled={!isEditable} style={{ border: 'none', padding: 0, margin: 0 }}>
       <div className="section-header">
         <User size={20} className="section-icon" />
         <h2 className="section-title">外国人本人情報</h2>
@@ -765,6 +771,7 @@ export function ForeignerInfoSection() {
           </div>
         )}
       </div>
+     </fieldset>
     </div>
   );
 }
