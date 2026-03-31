@@ -7,10 +7,15 @@
  * (更新申請のフォームデータは申請書固有フィールドが多いため)
  */
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
+  where,
   setDoc,
   updateDoc,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
@@ -35,7 +40,8 @@ export const renewalApplicationService = {
    */
   async save(
     formData: RenewalApplicationFormData,
-    existingId?: string
+    existingId?: string,
+    foreignerId?: string
   ): Promise<string> {
     const now = new Date().toISOString();
 
@@ -52,6 +58,7 @@ export const renewalApplicationService = {
         formData,
         status: 'editing',
         updatedAt: now,
+        ...(foreignerId ? { foreignerId } : {}),
       });
 
       return existingId;
@@ -69,6 +76,7 @@ export const renewalApplicationService = {
         formData,
         createdAt: now,
         updatedAt: now,
+        ...(foreignerId ? { foreignerId } : {}),
       };
 
       await setDoc(docRef, record);
@@ -77,12 +85,25 @@ export const renewalApplicationService = {
   },
 
   /**
-   * 既存レコードの取得
+   * 既存レコードの取得（IDで直接）
    */
   async getById(id: string): Promise<RenewalApplicationRecord | null> {
     const docRef = doc(db, COLLECTION_NAME, id);
     const snap   = await getDoc(docRef);
     if (!snap.exists()) return null;
     return { id: snap.id, ...snap.data() } as RenewalApplicationRecord;
+  },
+
+  /**
+   * 外国人IDに紐付く申請レコードを取得（最新1件）
+   * 存在しない場合は null を返す
+   */
+  async getByForeignerId(foreignerId: string): Promise<RenewalApplicationRecord | null> {
+    const col = collection(db, COLLECTION_NAME);
+    const q   = query(col, where('foreignerId', '==', foreignerId), limit(1));
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    const docSnap = snap.docs[0];
+    return { id: docSnap.id, ...docSnap.data() } as RenewalApplicationRecord;
   },
 };

@@ -164,5 +164,26 @@ service cloud.firestore {
                     
       allow update, delete: if false;
     }
+
+    // -------------------------------------------------------------------------
+    // /renewal_applications コレクション
+    // 在留期間更新許可申請書フォームのデータを管理するコレクション
+    // -------------------------------------------------------------------------
+    match /renewal_applications/{applicationId} {
+      // ===== 読み取り =====
+      // 認証済みユーザーなら全件読み取り可（一覧・単件・クエリ）
+      allow read: if isAuthenticated();
+
+      // ===== 作成 =====
+      // 認証済みユーザー（行政書士・管理者・支部事務員）による作成を許可
+      allow create: if isAuthenticated();
+
+      // ===== 更新 =====
+      // 認証済みユーザーによる更新を許可（編集ステータスへの遷移）
+      allow update: if isAuthenticated();
+
+      // ===== 削除 =====（物理削除は全ロール禁止）
+      allow delete: if false;
+    }
   }
 }

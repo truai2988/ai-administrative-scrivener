@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -158,14 +158,20 @@ interface RenewalApplicationFormProps {
   onSubmit?: (data: RenewalApplicationFormData) => void | Promise<void>;
   /** 既存レコードのID（編集時） */
   recordId?: string;
+  /** Firestoreの外国人ドキュメントID（一覧画面から遷移時に渡す） */
+  foreignerId?: string;
   /** 初期担当者割り当て（既存レコードから読み込んだ値） */
   initialAssignments?: TabAssignments;
+  /** 外部から渡す初期値（Firestoreデータから読み込み） */
+  initialValues?: Partial<RenewalApplicationFormData>;
 }
 
 // ─── 内部コンポーネント（SectionPermissionContext の中で動く） ────────────────
 function RenewalApplicationFormInner({
   onSubmit,
   recordId,
+  foreignerId,
+  initialValues,
 }: Omit<RenewalApplicationFormProps, 'initialAssignments'>) {
   const [activeTab, setActiveTab]         = useState<TabId>('foreigner');
   const [isSaving, setIsSaving]           = useState(false);
@@ -174,13 +180,40 @@ function RenewalApplicationFormInner({
   const { toasts, show: showToast, dismiss } = useToast();
   const { isEditable, assignments } = useSectionPermission();
 
+  // initialValues と DEFAULT_VALUES をマージして初期値を生成
+  const mergedDefaultValues = useMemo(() => {
+    if (!initialValues) return DEFAULT_VALUES;
+    return {
+      ...DEFAULT_VALUES,
+      ...initialValues,
+      // 各セクションもマージして欠損フィールドを防ぐ
+      foreignerInfo: {
+        ...DEFAULT_VALUES.foreignerInfo,
+        ...(initialValues.foreignerInfo || {}),
+      },
+      employerInfo: {
+        ...DEFAULT_VALUES.employerInfo,
+        ...(initialValues.employerInfo || {}),
+      },
+      simultaneousApplication: {
+        ...DEFAULT_VALUES.simultaneousApplication,
+        ...(initialValues.simultaneousApplication || {}),
+      },
+    };
+  }, [initialValues]);
+
   const methods = useForm<RenewalApplicationFormData>({
     resolver: zodResolver(renewalApplicationSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: mergedDefaultValues,
     mode: 'onBlur',
   });
 
-  const { handleSubmit, formState: { errors } } = methods;
+  const { handleSubmit, formState: { errors }, reset } = methods;
+
+  // 動的な値の同期: initialValuesが変更された際（またはマウント直後）に確実に値をセットする
+  useEffect(() => {
+    reset(mergedDefaultValues);
+  }, [mergedDefaultValues, reset]);
 
   const hasForeignerErrors    = !!errors.foreignerInfo;
   const hasEmployerErrors     = !!errors.employerInfo;
@@ -191,12 +224,12 @@ function RenewalApplicationFormInner({
   const saveToFirebase = useCallback(
     async (data: RenewalApplicationFormData): Promise<string> => {
       const dataWithAssignments = { ...data, assignments };
-      const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId);
+      const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId);
       setSavedRecordId(id);
       if (onSubmit) await onSubmit(dataWithAssignments);
       return id;
     },
-    [savedRecordId, onSubmit, assignments]
+    [savedRecordId, onSubmit, assignments, foreignerId]
   );
 
   // ① 保存のみ
@@ -380,7 +413,9 @@ function RenewalApplicationFormInner({
 export function RenewalApplicationForm({
   onSubmit,
   recordId,
+  foreignerId,
   initialAssignments,
+  initialValues,
 }: RenewalApplicationFormProps) {
   return (
     <SectionPermissionProvider
@@ -390,7 +425,12 @@ export function RenewalApplicationForm({
       }}
     >
       <DevUserSwitcher />
-      <RenewalApplicationFormInner onSubmit={onSubmit} recordId={recordId} />
+      <RenewalApplicationFormInner
+        onSubmit={onSubmit}
+        recordId={recordId}
+        foreignerId={foreignerId}
+        initialValues={initialValues}
+      />
     </SectionPermissionProvider>
   );
 }

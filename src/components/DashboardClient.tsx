@@ -231,7 +231,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase px-4 mb-2">申請書類</p>
           </div>
           <Link
-            href="/forms/renewal"
+            href="/forms/renewal/new"
             className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 text-slate-400 hover:bg-indigo-50 hover:text-indigo-700 font-medium group"
           >
             <FilePen className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
