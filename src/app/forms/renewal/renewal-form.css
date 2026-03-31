@@ -1025,3 +1025,326 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   z-index: 50;
 }
+
+/* ============================================================
+   書類アップロードエリア（DocumentUploadArea）
+   Noctiluca ダークテーマ準拠
+   ============================================================ */
+
+/* ─── ラッパー */
+.doc-upload-area {
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem 1rem 0 0;
+  border-bottom: 2px dashed rgba(56, 189, 248, 0.25);
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ─── ヘッダー */
+.doc-upload-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.doc-upload-header-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2));
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 0.625rem;
+  color: #38bdf8;
+}
+
+.doc-upload-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.01em;
+}
+
+.doc-upload-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  line-height: 1.5;
+}
+
+.doc-upload-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.55rem;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #38bdf8;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ─── 成功バナー */
+.doc-upload-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  border-radius: 0.625rem;
+  font-size: 0.82rem;
+  color: #34d399;
+}
+
+.doc-upload-success-banner strong {
+  font-weight: 700;
+}
+
+/* ─── 解析中オーバーレイ */
+.doc-upload-analyzing-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.doc-upload-analyzing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 999px;
+  color: #38bdf8;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── スロットグリッド */
+.doc-upload-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .doc-upload-slots {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── 個別スロット */
+.doc-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 172px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
+  overflow: hidden;
+  outline: none;
+}
+
+.doc-slot:hover,
+.doc-slot:focus-visible {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.03);
+}
+
+.doc-slot:focus-visible {
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+/* ドラッグオーバー状態 */
+.doc-slot--dragover {
+  border-color: rgba(56, 189, 248, 0.7);
+  background: rgba(56, 189, 248, 0.07);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15), inset 0 0 20px rgba(56, 189, 248, 0.05);
+  transform: scale(1.01);
+}
+
+/* 成功状態 */
+.doc-slot--done {
+  border-style: solid;
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.04);
+}
+
+/* エラー状態 */
+.doc-slot--error {
+  border-style: solid;
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.04);
+}
+
+/* 解析中状態 */
+.doc-slot--analyzing {
+  border-style: solid;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.04);
+  pointer-events: none;
+}
+
+/* ─── スロット内コンテンツ */
+.doc-slot-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+}
+
+/* ─── スロットアイコン */
+.doc-slot-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 0.25rem;
+}
+
+.doc-slot-icon {
+  color: #475569;
+  transition: color 0.2s;
+}
+
+.doc-slot:hover .doc-slot-icon,
+.doc-slot--dragover .doc-slot-icon {
+  color: #38bdf8;
+}
+
+.doc-slot-icon--done {
+  color: #34d399 !important;
+}
+
+.doc-slot-icon--error {
+  color: #f87171 !important;
+}
+
+/* ─── スロットラベル */
+.doc-slot-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  line-height: 1.3;
+}
+
+/* ─── スロット説明 */
+.doc-slot-note {
+  font-size: 0.72rem;
+  color: #475569;
+  line-height: 1.5;
+  max-width: 200px;
+}
+
+.doc-slot-result-done {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.doc-slot-result-error {
+  color: #f87171;
+  font-weight: 500;
+}
+
+/* ─── ファイル名 */
+.doc-slot-filename {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  color: #64748b;
+  max-width: 180px;
+  overflow: hidden;
+}
+
+.doc-slot-filename span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── ドロップヒント */
+.doc-slot-drop-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: #475569;
+  margin-top: 0.25rem;
+}
+
+.doc-slot-accept {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  font-size: 0.66rem;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+/* ─── リセットボタン */
+.doc-slot-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.doc-slot-reset-btn:hover {
+  color: #94a3b8;
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ─── スキップリンク */
+.doc-upload-skip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #334155;
+  padding-top: 0.25rem;
+}
