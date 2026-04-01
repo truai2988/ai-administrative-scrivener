@@ -4,6 +4,49 @@ import { foreignerService } from "@/services/foreignerService";
 import { Foreigner } from "@/types/database";
 import { headers } from "next/headers";
 
+// ─── 職員による外国人の新規登録 ──────────────────────────────────────────────
+/**
+ * 職員がPCで書類をスキャンし、外国人プロフィールを新規登録するアクション。
+ * （QRコードを使わない職員代理登録フロー専用）
+ */
+export async function registerForeignerByStaffAction(
+  data: Partial<Foreigner>
+): Promise<{ success: boolean; foreignerId?: string; error?: string }> {
+  try {
+    const now = new Date().toISOString();
+    const newId = `staff-${Date.now()}`;
+
+    const payload: Partial<Foreigner> = {
+      name: data.name || '',
+      nationality: data.nationality || '',
+      birthDate: data.birthDate || '',
+      residenceCardNumber: data.residenceCardNumber || '',
+      expiryDate: data.expiryDate || '',
+      branchId: data.branchId || 'hq_direct',
+      status: '準備中',
+      isEditedByAdmin: true,
+      ...(data.email                 && { email: data.email }),
+      ...(data.visaType              && { visaType: data.visaType }),
+      ...(data.photoUrl              && { photoUrl: data.photoUrl }),
+      ...(data.residenceCardFrontUrl && { residenceCardFrontUrl: data.residenceCardFrontUrl }),
+      ...(data.residenceCardBackUrl  && { residenceCardBackUrl: data.residenceCardBackUrl }),
+      ...(data.passportImageUrl      && { passportImageUrl: data.passportImageUrl }),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // foreignerService.submitForeignerEntry は ID 指定で新規作成にも対応している
+    await foreignerService.submitForeignerEntry(newId, payload);
+
+    return { success: true, foreignerId: newId };
+  } catch (error) {
+    console.error("Error registering foreigner by staff:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, error: `登録に失敗しました: ${errorMessage}` };
+  }
+}
+
+// ─── 外国人本人フォームからの新規申請 ────────────────────────────────────────
 export async function submitForeignerEntryAction(id: string, formData: Partial<Foreigner>) {
   try {
     const headersList = await headers();

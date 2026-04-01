@@ -18,9 +18,21 @@ import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicatio
 export function mapForeignerProfileToFormData(
   profile: Foreigner
 ): Partial<RenewalApplicationFormData> {
+
+  // 性別変換: '男'→'male', '女'→'female', それ以外は'male'をデフォルトに
+  const genderMapped = profile.gender === '女' ? 'female' : 'male';
+
+  // 住所: japanAddress をそのまま保持しつつ、分割フィールドは空欄（手動確認を促す）
+  const japanAddress = profile.address || '';
+
+  // 給与: 数値として保持（文字列の場合はparseFloat）
+  const monthlySalary = profile.salary
+    ? (typeof profile.salary === 'number' ? profile.salary : parseFloat(profile.salary) || 180000)
+    : 180000;
+
   return {
     foreignerInfo: {
-      // ── 名簿から引き継ぐ項目 ──
+      // ── 台帳から引き継ぐ項目 ──
       nationality:            profile.nationality          || '',
       birthDate:              profile.birthDate            || '',
       nameEn:                 profile.name                 || '',
@@ -28,25 +40,25 @@ export function mapForeignerProfileToFormData(
       currentResidenceStatus: profile.visaType             || '',
       stayExpiryDate:         profile.expiryDate           || '',
       occupation:             profile.jobTitle             || '',
+      email:                  profile.email                || '',
+      passportNumber:         profile.passportNumber       || '',
+      currentStayPeriod:      profile.periodOfStay         || '',
+      gender:                 genderMapped,
+      japanAddress:           japanAddress,
 
       // ── 必須フィールドをデフォルト値で補完 ──
       nameKanji:              '',
-      gender:                 'male',
       maritalStatus:          'unmarried',
       homeCountryAddress:     '',
       japanZipCode:           '',
       japanPrefecture:        '',
       japanCity:              '',
       japanAddressLines:      '',
-      japanAddress:           '',
       phoneNumber:            '',
       mobileNumber:           '',
-      email:                  '',
-      passportNumber:         '',
       passportExpiryDate:     '',
       edNumberAlpha:          '',
       edNumberNumeric:        '',
-      currentStayPeriod:      '',
       hasResidenceCard:       true,
       desiredStayPeriod:      '1year',
       desiredStayPeriodOther: '',
@@ -77,8 +89,11 @@ export function mapForeignerProfileToFormData(
     } as RenewalApplicationFormData['foreignerInfo'],
 
     employerInfo: {
-      // ── 名簿から引き継ぐ項目 ──
-      companyNameJa: profile.company || '',
+      // ── 台帳から引き継ぐ項目 ──
+      companyNameJa:              profile.company              || '',
+      monthlySalary:              monthlySalary,
+      isSocialInsuranceApplicable: profile.socialInsurance     ?? true,
+      isLaborInsuranceApplicable:  true,
 
       // ── 必須フィールドをデフォルト値で補完 ──
       contractStartDate:          '',
@@ -90,9 +105,8 @@ export function mapForeignerProfileToFormData(
       weeklyWorkHours:            40,
       monthlyWorkHours:           173,
       equivalentWorkHours:        true,
-      monthlySalary:              180000,
       hourlyRate:                 1039,
-      japaneseMonthlySalary:      180000,
+      japaneseMonthlySalary:      monthlySalary,
       equivalentSalary:           true,
       paymentMethod:              'bank_transfer',
       hasDifferentTreatment:      false,
@@ -115,11 +129,9 @@ export function mapForeignerProfileToFormData(
       workplacePref:              '',
       workplaceCity:              '',
       workplaceAddressLines:      '',
-      isSocialInsuranceApplicable: true,
-      isLaborInsuranceApplicable:  true,
-      laborInsuranceNumber:        '',
-      hasJobHistory:               false,
-      jobHistory:                  [],
+      laborInsuranceNumber:       '',
+      hasJobHistory:              false,
+      jobHistory:                 [],
       complianceOaths: {
         hadLaborLawPenalty:  false,
         hadIllegalDismissal: false,

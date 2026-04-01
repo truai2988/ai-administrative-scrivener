@@ -25,18 +25,25 @@ export async function POST(req: NextRequest) {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `
-この画像から、行政手続（ビザ申請など）における書類作成に必要な情報（氏名、生年月日、国籍、在留資格、有効期限など）がすべて鮮明に読み取れますか？
+この画像から、行政手続（ビザ申請など）における書類作成に必要な情報がすべて鮮明に読み取れますか？
 光の反射（ハレーション）やピンボケで文字が潰れている場合、または全く関係のない画像（風景やイラストなど）である場合は isValid: false とし、再撮影を促す理由を reason に記載して、extractedData は null にしてください。
 
 正しく読み取れる場合のみ isValid: true とし、reason は空文字または「問題ありません」とし、さらに画像から読み取った文字列をすべて抽出して extractedData に整理して格納してください。
 
 抽出項目（存在しない場合はnullまたは空文字にしてください）:
 - name: 氏名（アルファベット等すべてそのまま）
-- nationality: 国籍（例：Philippines, 中国 などわかる範囲で）
-- birthDate: 生年月日（YYYY-MM-DD形式に変換できれば変換。無理ならそのまま）
-- residenceCardNumber: 在留カード番号（12桁の英数字）
-- expiryDate: 有効期限（YYYY-MM-DD形式に変換できれば変換）
-- visaType: 在留資格（例：特定技能1号, 技能実習など）
+- nationality: 国籍・地域（例：Philippines, 中国 などわかる範囲で）
+- birthDate: 生年月日（YYYY-MM-DD形式に変換。例: 1983年11月15日 → 1983-11-15）
+- residenceCardNumber: 在留カード番号（例: DX12345678CD）
+- expiryDate: 在留期限・有効期限（YYYY-MM-DD形式。例: 2026年09月01日 → 2026-09-01）
+- visaType: 在留資格（例：特定技能1号, 企業内転勤, 技能実習など）
+- gender: 性別（「男」または「女」。Male/M → 男、Female/F → 女）
+- address: 住居地・住所（記載がある場合そのまま）
+- workRestriction: 就労制限の有無（「就労活動のみ可」「在留資格に基づく就労活動のみ可」「制限なし」など記載通り）
+- periodOfStay: 在留期間の年数表記（例: 「5年」「3年」「1年」）
+- dateOfPermission: 許可年月日（YYYY-MM-DD形式）
+- dateOfDelivery: 交付年月日（YYYY-MM-DD形式）
+- passportNumber: 旅券番号（パスポートに記載の場合のみ。例: TK1234567）
 
 結果は必ず以下のJSON形式でのみ返してください。他のテキストやマークダウン指定は含めないでください。
 
@@ -49,10 +56,18 @@ export async function POST(req: NextRequest) {
     "birthDate": "...",
     "residenceCardNumber": "...",
     "expiryDate": "...",
-    "visaType": "..."
+    "visaType": "...",
+    "gender": "...",
+    "address": "...",
+    "workRestriction": "...",
+    "periodOfStay": "...",
+    "dateOfPermission": "...",
+    "dateOfDelivery": "...",
+    "passportNumber": "..."
   }
 }
 `;
+
 
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 

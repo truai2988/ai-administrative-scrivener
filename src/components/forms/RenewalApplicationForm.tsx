@@ -165,6 +165,8 @@ interface RenewalApplicationFormProps {
   initialAssignments?: TabAssignments;
   /** 外部から渡す初期値（Firestoreデータから読み込み） */
   initialValues?: Partial<RenewalApplicationFormData>;
+  /** フォーム上部のタイトルヘッダーを非表示にするかどうか */
+  hideHeader?: boolean;
 }
 
 // ─── 内部コンポーネント（SectionPermissionContext の中で動く） ────────────────
@@ -173,6 +175,7 @@ function RenewalApplicationFormInner({
   recordId,
   foreignerId,
   initialValues,
+  hideHeader,
 }: Omit<RenewalApplicationFormProps, 'initialAssignments'>) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const { toasts, dismiss, show: showToast } = useToast();
@@ -216,16 +219,18 @@ function RenewalApplicationFormInner({
         <form noValidate className="renewal-form">
 
           {/* ─── ヘッダー ─────────────────────────────────────────────── */}
-          <div className="form-header">
-            <div className="form-header-badge">出入国在留管理庁 様式</div>
-            <h1 className="form-header-title">在留期間更新許可申請書</h1>
-            <p className="form-header-subtitle">
-              別記第29号の15様式（特定技能）
-              {savedRecordId && (
-                <span className="form-saved-badge">✓ 保存済み</span>
-              )}
-            </p>
-          </div>
+          {!hideHeader && (
+            <div className="form-header">
+              <div className="form-header-badge">出入国在留管理庁 様式</div>
+              <h1 className="form-header-title">在留期間更新許可申請書</h1>
+              <p className="form-header-subtitle">
+                別記第29号の15様式（特定技能）
+                {savedRecordId && (
+                  <span className="form-saved-badge">✓ 保存済み</span>
+                )}
+              </p>
+            </div>
+          )}
 
           {/* ─── タブナビゲーション ────────────────────────────────────── */}
           <div className="tab-nav" role="tablist">
@@ -358,6 +363,7 @@ export function RenewalApplicationForm({
   foreignerId,
   initialAssignments,
   initialValues,
+  hideHeader,
 }: RenewalApplicationFormProps) {
   return (
     <SectionPermissionProvider
@@ -372,6 +378,7 @@ export function RenewalApplicationForm({
         recordId={recordId}
         foreignerId={foreignerId}
         initialValues={initialValues}
+        hideHeader={hideHeader}
       />
     </SectionPermissionProvider>
   );

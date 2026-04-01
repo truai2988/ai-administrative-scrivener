@@ -11,7 +11,7 @@ import { ForeignerList } from '@/components/ForeignerList';
 import { ForeignerDetail } from '@/components/ForeignerDetail';
 import { CsvDownloadButton } from '@/components/CsvDownloadButton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, ExternalLink, X, FileText, PenTool, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, FileText, PenTool, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
 import Link from 'next/link';
 
 // ─── Toast Message Component ─────────────────────────────────────────────────
@@ -620,12 +620,17 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                       </button>
                     </div>
 
+                    {/* ─── 職員代理入力 ─── */}
+                    <div className="mt-4"></div>
                     <button
-                      onClick={() => window.open(entryUrl, '_blank')}
-                      className="w-full flex items-center justify-center gap-2 py-3 mt-4 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-colors"
+                      onClick={() => {
+                        setShowShareModal(false);
+                        router.push('/foreigners/new');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 rounded-xl transition-colors mt-2"
                     >
-                      <ExternalLink className="h-4 w-4" />
-                      テスト用画面をブラウザで開く
+                      <FilePen className="h-4 w-4" />
+                      職員が代わりに入力する
                     </button>
                   </div>
                 </div>

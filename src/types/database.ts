@@ -61,6 +61,15 @@ export interface Foreigner {
   visaType?: string; // 在留資格種別
   jobTitle?: string; // 職務の名称 (受入情報)
   experience?: string; // 経験・スキル要約 (受入情報)
+
+  // 在留カード・パスポートから読み取る追加情報
+  gender?: string; // 性別（男 / 女）
+  address?: string; // 住居地住所
+  workRestriction?: string; // 就労制限の有無（就労活動のみ可・制限なし など）
+  periodOfStay?: string; // 在留期間（5年・3年 など）
+  dateOfPermission?: string; // 許可年月日 (ISO 8601)
+  dateOfDelivery?: string; // 交付年月日 (ISO 8601)
+  passportNumber?: string; // 旅案番号
   
   // 雇用・待遇情報
   salary?: string; // 基本給 (月額)
