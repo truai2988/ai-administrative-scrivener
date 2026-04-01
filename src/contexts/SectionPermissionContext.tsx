@@ -17,39 +17,10 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
+import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 import type { TabId, TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
-import type { UserRole } from '@/types/database';
-
-// ─── テスト用ダミーユーザー定義 ──────────────────────────────────────────────
-
-export interface TestUser {
-  id: string;
-  displayName: string;
-  role: UserRole | 'enterprise_staff'; // enterprise_staffは企業担当者（system外の想定）
-  /** 行政書士・本部管理者であれば全タブ書き込み可 */
-  isAdmin: boolean;
-}
-
-export const TEST_USERS: TestUser[] = [
-  {
-    id: 'scrivener_01',
-    displayName: '行政書士（管理者）',
-    role: 'scrivener',
-    isAdmin: true,
-  },
-  {
-    id: 'branch_staff_01',
-    displayName: 'A支部 事務員',
-    role: 'branch_staff',
-    isAdmin: false,
-  },
-  {
-    id: 'enterprise_01',
-    displayName: 'B企業 担当者',
-    role: 'enterprise_staff',
-    isAdmin: false,
-  },
-];
+import { DEFAULT_ASSIGNMENT_TEMPLATES } from '@/lib/constants/assignmentTemplates';
+import { TEST_USERS, type TestUser } from '@/lib/constants/testUsers';
 
 // ─── コンテキスト型定義 ──────────────────────────────────────────────────────
 
@@ -66,6 +37,8 @@ interface SectionPermissionContextType {
   assignUser: (tabId: TabId, userId: string) => void;
   /** 行政書士か（担当者割り当てUI表示制御用） */
   isScrivener: boolean;
+  /** DBから取得した最新のテンプレート設定 */
+  templatesRecord: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
 const SectionPermissionContext = createContext<SectionPermissionContextType>({
@@ -75,6 +48,7 @@ const SectionPermissionContext = createContext<SectionPermissionContextType>({
   assignments: {},
   assignUser: () => {},
   isScrivener: true,
+  templatesRecord: DEFAULT_ASSIGNMENT_TEMPLATES,
 });
 
 // ─── プロバイダー ─────────────────────────────────────────────────────────────
@@ -83,6 +57,8 @@ interface SectionPermissionProviderProps {
   children: React.ReactNode;
   /** 初期割り当てマップ（既存レコードから読み込んだ値） */
   initialAssignments?: TabAssignments;
+  /** DBから取得したテンプレート（無い場合はデフォルトが使われる） */
+  templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
   /** 割り当て変更時のコールバック（Firestoreへの保存などに利用） */
   onAssignmentsChange?: (assignments: TabAssignments) => void;
 }
@@ -90,6 +66,7 @@ interface SectionPermissionProviderProps {
 export function SectionPermissionProvider({
   children,
   initialAssignments = {},
+  templatesRecord = DEFAULT_ASSIGNMENT_TEMPLATES,
   onAssignmentsChange,
 }: SectionPermissionProviderProps) {
   const [currentTestUser, setCurrentTestUserState] = useState<TestUser>(TEST_USERS[0]);
@@ -132,8 +109,8 @@ export function SectionPermissionProvider({
   );
 
   const value = useMemo(
-    () => ({ currentTestUser, setCurrentTestUser, isEditable, assignments, assignUser, isScrivener }),
-    [currentTestUser, setCurrentTestUser, isEditable, assignments, assignUser, isScrivener]
+    () => ({ currentTestUser, setCurrentTestUser, isEditable, assignments, assignUser, isScrivener, templatesRecord }),
+    [currentTestUser, setCurrentTestUser, isEditable, assignments, assignUser, isScrivener, templatesRecord]
   );
 
   return (

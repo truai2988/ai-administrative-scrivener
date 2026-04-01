@@ -3,13 +3,19 @@
 /**
  * TabAssignmentPanel
  * 各タブに担当者を割り当てるUI。
- * 行政書士のみが操作でき、タブナビゲーションの下に折りたたみで表示する。
+ *
+ * - 行政書士のみが操作できる（それ以外は非表示）
+ * - 新規申請書作成時はテンプレートから自動セットされた状態で開く
+ * - 手動変更した場合は「手動変更」バッジに切り替わる
+ * - 「テンプレートに戻す」ボタンで自動セット状態に戻せる
  */
 
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, UserCog } from 'lucide-react';
-import { useSectionPermission, TEST_USERS } from '@/contexts/SectionPermissionContext';
+import React, { useState, useCallback } from 'react';
+import { ChevronDown, ChevronUp, UserCog, RotateCcw, Sparkles, PenSquare } from 'lucide-react';
+import { useSectionPermission } from '@/contexts/SectionPermissionContext';
+import { TEST_USERS } from '@/lib/constants/testUsers';
 import type { TabId } from '@/lib/schemas/renewalApplicationSchema';
+import { resolveTemplate, isTemplateDefault } from '@/lib/constants/assignmentTemplates';
 
 const TAB_LABELS: Record<TabId, string> = {
   foreigner:    '外国人本人情報',
@@ -20,8 +26,20 @@ const TAB_LABELS: Record<TabId, string> = {
 const TAB_IDS: TabId[] = ['foreigner', 'employer', 'simultaneous'];
 
 export function TabAssignmentPanel() {
-  const { isScrivener, assignments, assignUser } = useSectionPermission();
+  const { isScrivener, assignments, assignUser, templatesRecord } = useSectionPermission();
   const [isOpen, setIsOpen] = useState(false);
+
+  // 現在のassignmentsがテンプレートのデフォルト値と一致しているか
+  const isDefault = isTemplateDefault('renewal', assignments, undefined, templatesRecord);
+
+  // テンプレートに戻す処理
+  const handleResetToTemplate = useCallback(() => {
+    const templateAssignments = resolveTemplate('renewal', undefined, templatesRecord);
+    // 全タブをテンプレートの値に戻す
+    TAB_IDS.forEach((tabId) => {
+      assignUser(tabId, templateAssignments[tabId] ?? '');
+    });
+  }, [assignUser, templatesRecord]);
 
   // 行政書士以外には表示しない
   if (!isScrivener) return null;
@@ -36,48 +54,87 @@ export function TabAssignmentPanel() {
       >
         <UserCog size={15} />
         <span>担当者割り当て設定</span>
+
+        {/* 自動設定 / 手動変更 バッジ */}
+        {isDefault ? (
+          <span className="tab-assignment-mode-badge tab-assignment-mode-badge--auto">
+            <Sparkles size={10} />
+            自動設定
+          </span>
+        ) : (
+          <span className="tab-assignment-mode-badge tab-assignment-mode-badge--manual">
+            <PenSquare size={10} />
+            手動変更
+          </span>
+        )}
+
         {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
 
       {isOpen && (
         <div className="tab-assignment-body">
-          <p className="tab-assignment-desc">
-            各タブの担当者を指定します。担当者はそのタブのみ編集できます（行政書士は常に全タブ編集可）。
-          </p>
+          <div className="tab-assignment-header-row">
+            <p className="tab-assignment-desc">
+              各タブの担当者を指定します。担当者はそのタブのみ編集できます（行政書士は常に全タブ編集可）。
+            </p>
+            {/* テンプレートに戻すボタン（手動変更された場合のみ表示） */}
+            {!isDefault && (
+              <button
+                type="button"
+                className="tab-assignment-reset-btn"
+                onClick={handleResetToTemplate}
+                title="申請種別のデフォルト担当者に戻す"
+              >
+                <RotateCcw size={12} />
+                テンプレートに戻す
+              </button>
+            )}
+          </div>
+
           <div className="tab-assignment-rows">
-            {TAB_IDS.map((tabId) => (
-              <div key={tabId} className="tab-assignment-row">
-                <label
-                  htmlFor={`assign-${tabId}`}
-                  className="tab-assignment-tab-label"
-                >
-                  {TAB_LABELS[tabId]}
-                </label>
-                <select
-                  id={`assign-${tabId}`}
-                  className="tab-assignment-select"
-                  value={assignments[tabId] ?? ''}
-                  onChange={(e) => assignUser(tabId, e.target.value)}
-                >
-                  <option value="">担当者なし（行政書士のみ）</option>
-                  {/* ダミーの担当者リスト。後でFirestoreのusersコレクションから動的に取得可能な設計 */}
-                  {TEST_USERS.filter((u) => !u.isAdmin).map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.displayName}
-                    </option>
-                  ))}
-                </select>
-                <div className="tab-assignment-status">
-                  {assignments[tabId] ? (
-                    <span className="badge badge--assigned">
-                      {TEST_USERS.find((u) => u.id === assignments[tabId])?.displayName ?? assignments[tabId]}
-                    </span>
-                  ) : (
-                    <span className="badge badge--unassigned">未割り当て</span>
-                  )}
+            {TAB_IDS.map((tabId) => {
+              const templateValue = resolveTemplate('renewal', undefined, templatesRecord)[tabId];
+              const currentValue = assignments[tabId];
+              const isTabModified = currentValue !== templateValue;
+
+              return (
+                <div key={tabId} className="tab-assignment-row">
+                  <label
+                    htmlFor={`assign-${tabId}`}
+                    className="tab-assignment-tab-label"
+                  >
+                    {TAB_LABELS[tabId]}
+                    {/* タブ単位の変更インジケーター */}
+                    {isTabModified && (
+                      <span className="tab-assignment-tab-modified">変更済</span>
+                    )}
+                  </label>
+                  <select
+                    id={`assign-${tabId}`}
+                    className="tab-assignment-select"
+                    value={assignments[tabId] ?? ''}
+                    onChange={(e) => assignUser(tabId, e.target.value)}
+                  >
+                    <option value="">担当者なし（行政書士のみ）</option>
+                    {/* ダミーの担当者リスト。将来はFirestoreのusersコレクションから動的に取得 */}
+                    {TEST_USERS.filter((u) => !u.isAdmin).map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.displayName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="tab-assignment-status">
+                    {assignments[tabId] ? (
+                      <span className="badge badge--assigned">
+                        {TEST_USERS.find((u) => u.id === assignments[tabId])?.displayName ?? assignments[tabId]}
+                      </span>
+                    ) : (
+                      <span className="badge badge--unassigned">未割り当て</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

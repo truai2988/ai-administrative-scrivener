@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Download, Save, Loader2, Lock,
+  AlertCircle, Download, Save, Loader2,
 } from 'lucide-react';
 import {
   renewalApplicationSchema,
@@ -14,6 +14,7 @@ import {
   type TabId,
   type TabAssignments,
 } from '@/lib/schemas/renewalApplicationSchema';
+import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 import { ForeignerInfoSection }           from './sections/ForeignerInfoSection';
 import { EmployerInfoSection }            from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
@@ -167,6 +168,8 @@ interface RenewalApplicationFormProps {
   initialValues?: Partial<RenewalApplicationFormData>;
   /** フォーム上部のタイトルヘッダーを非表示にするかどうか */
   hideHeader?: boolean;
+  /** DBから取得した最新のテンプレート設定 */
+  templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
 // ─── 内部コンポーネント（SectionPermissionContext の中で動く） ────────────────
@@ -176,10 +179,19 @@ function RenewalApplicationFormInner({
   foreignerId,
   initialValues,
   hideHeader,
-}: Omit<RenewalApplicationFormProps, 'initialAssignments'>) {
+}: Omit<RenewalApplicationFormProps, 'initialAssignments' | 'templatesRecord'>) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const { toasts, dismiss, show: showToast } = useToast();
   const { isEditable, assignments } = useSectionPermission();
+
+  const visibleTabs = useMemo(() => TABS.filter(tab => isEditable(tab.id)), [isEditable]);
+
+  useEffect(() => {
+    // 現在のタブが見えない場合は最初の表示可能タブへフォールバック
+    if (visibleTabs.length > 0 && !visibleTabs.some(t => t.id === activeTab)) {
+      setActiveTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, activeTab]);
 
   // DEFAULT_VALUES と initialValues を mergeWithDefaults でディープマージ
   const mergedDefaultValues = useMemo(
@@ -232,9 +244,30 @@ function RenewalApplicationFormInner({
             </div>
           )}
 
+          {/* ─── 対象者コンテキストヘッダー ────────────────────────────── */}
+          {(() => {
+            const nameEn = methods.watch('foreignerInfo.nameEn');
+            const nameKanji = methods.watch('foreignerInfo.nameKanji');
+            const applicantName = nameKanji || nameEn || '名称未入力';
+
+            return (
+              <div className="applicant-context-header">
+                <div className="applicant-avatar">
+                  {applicantName.charAt(0)}
+                </div>
+                <div className="applicant-info">
+                  <div className="applicant-name">
+                    {applicantName} <span className="applicant-suffix">様の申請データ</span>
+                  </div>
+                  <div className="applicant-type">在留期間更新許可申請（特定技能）</div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ─── タブナビゲーション ────────────────────────────────────── */}
           <div className="tab-nav" role="tablist">
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const Icon     = tab.icon;
               const isActive = activeTab === tab.id;
               const canEdit  = isEditable(tab.id);
@@ -260,10 +293,7 @@ function RenewalApplicationFormInner({
                 >
                   <Icon size={18} />
                   <span>{tab.label}</span>
-                  {!canEdit && (
-                    <Lock size={12} className="tab-lock-icon" aria-label="閲覧のみ" />
-                  )}
-                  {hasError && canEdit && (
+                  {hasError && (
                     <AlertCircle size={14} className="tab-error-icon" />
                   )}
                 </button>
@@ -293,61 +323,55 @@ function RenewalApplicationFormInner({
 
           {/* ─── ナビゲーション & アクションバー ──────────────────────── */}
           <div className="form-nav">
-            {activeTab === 'foreigner' ? (
-              <div className="form-nav-right">
-                <button type="button" className="btn-secondary" onClick={() => setActiveTab('employer')}>
-                  所属機関情報へ <ChevronRight size={18} />
-                </button>
-              </div>
-            ) : activeTab === 'employer' ? (
-              <div className="form-nav-both">
-                <button type="button" className="btn-outline" onClick={() => setActiveTab('foreigner')}>
-                  <ChevronLeft size={18} /> 外国人本人情報へ戻る
-                </button>
-                <button type="button" className="btn-secondary" onClick={() => setActiveTab('simultaneous')}>
-                  同時申請へ <ChevronRight size={18} />
-                </button>
-              </div>
-            ) : (
-              <div className="form-nav-both">
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={() => setActiveTab('employer')}
-                  disabled={isBusy}
-                >
-                  <ChevronLeft size={18} /> 所属機関情報へ戻る
-                </button>
+            {(() => {
+              const activeIndex = visibleTabs.findIndex(t => t.id === activeTab);
+              const prevTab = activeIndex > 0 ? visibleTabs[activeIndex - 1] : null;
+              const nextTab = activeIndex < visibleTabs.length - 1 ? visibleTabs[activeIndex + 1] : null;
 
-                <div className="form-action-bar">
-                  {/* ① 保存 */}
-                  <button
-                    type="button"
-                    className="btn-outline btn-save"
-                    onClick={() => handleSaveOnly(methods.getValues())}
-                    disabled={isBusy}
-                    id="btn-save-only"
-                    title="入力途中の内容を下書き保存します"
-                  >
-                    {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-                    {isSaving ? '保存中...' : '保存'}
-                  </button>
+              return (
+                <div className={prevTab ? 'form-nav-both' : 'form-nav-right'}>
+                  {prevTab && (
+                    <button type="button" className="btn-outline" onClick={() => setActiveTab(prevTab.id)} disabled={isBusy}>
+                      <ChevronLeft size={18} /> {prevTab.label}へ戻る
+                    </button>
+                  )}
 
-                  {/* ② 保存してCSV出力 */}
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={handleSubmit(handleSaveAndExport, onValidationFailed)}
-                    disabled={isBusy}
-                    id="btn-save-and-export"
-                    title="保存後、入管申請用CSVを3ファイルダウンロードします"
-                  >
-                    {isExporting ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
-                    {isExporting ? 'CSV生成中...' : '保存してCSVを出力する'}
-                  </button>
+                  {nextTab ? (
+                    <button type="button" className="btn-secondary" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
+                      {nextTab.label}へ <ChevronRight size={18} />
+                    </button>
+                  ) : (
+                    <div className="form-action-bar">
+                      {/* ① 保存 */}
+                      <button
+                        type="button"
+                        className="btn-outline btn-save"
+                        onClick={() => handleSaveOnly(methods.getValues())}
+                        disabled={isBusy}
+                        id="btn-save-only"
+                        title="入力途中の内容を下書き保存します"
+                      >
+                        {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
+                        {isSaving ? '保存中...' : '保存'}
+                      </button>
+
+                      {/* ② 保存してCSV出力 */}
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={handleSubmit(handleSaveAndExport, onValidationFailed)}
+                        disabled={isBusy}
+                        id="btn-save-and-export"
+                        title="保存後、入管申請用CSVを3ファイルダウンロードします"
+                      >
+                        {isExporting ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
+                        {isExporting ? 'CSV生成中...' : '保存してCSVを出力する'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
         </form>
@@ -364,10 +388,12 @@ export function RenewalApplicationForm({
   initialAssignments,
   initialValues,
   hideHeader,
+  templatesRecord,
 }: RenewalApplicationFormProps) {
   return (
     <SectionPermissionProvider
       initialAssignments={initialAssignments}
+      templatesRecord={templatesRecord}
       onAssignmentsChange={(a) => {
         console.debug('[assignments変更]', a);
       }}

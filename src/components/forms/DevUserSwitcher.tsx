@@ -7,7 +7,8 @@
  */
 
 import React from 'react';
-import { useSectionPermission, TEST_USERS } from '@/contexts/SectionPermissionContext';
+import { useSectionPermission } from '@/contexts/SectionPermissionContext';
+import { TEST_USERS } from '@/lib/constants/testUsers';
 
 const ROLE_ICONS: Record<string, string> = {
   scrivener: '⚖️',

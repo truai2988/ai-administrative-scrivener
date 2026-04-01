@@ -21,6 +21,57 @@
   gap: 0;
 }
 
+/* ─── 対象者コンテキストヘッダー ─────────────────────────── */
+.applicant-context-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.04);
+}
+
+.applicant-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.applicant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.applicant-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.applicant-suffix {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #94a3b8;
+  margin-left: 0.25rem;
+}
+
+.applicant-type {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
 /* ─── フォームヘッダー ───────────────────────────────────── */
 .form-header {
   text-align: center;
@@ -61,8 +112,7 @@
 
 /* ─── タブナビゲーション ────────────────────────────────── */
 .tab-nav {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-top: none;
@@ -70,6 +120,7 @@
 }
 
 .tab-btn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -694,88 +745,7 @@
   min-width: 6rem;
 }
 
-/* ─── トースト通知 ────────────────────────────────────────────────────────── */
-.toast-container {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  pointer-events: none;
-}
 
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  font-size: 0.875rem;
-  font-weight: 500;
-  pointer-events: all;
-  opacity: 0;
-  transform: translateY(1rem);
-  transition: opacity 0.25s ease, transform 0.25s ease;
-  min-width: 240px;
-  max-width: 380px;
-}
-
-.toast--visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.toast--success {
-  background: rgba(16, 24, 40, 0.9);
-  border: 1px solid rgba(52, 211, 153, 0.4);
-  color: #f0fdf4;
-}
-
-.toast--success .toast-icon {
-  color: #34d399;
-}
-
-.toast--error {
-  background: rgba(16, 24, 40, 0.9);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fef2f2;
-}
-
-.toast--error .toast-icon {
-  color: #f87171;
-}
-
-.toast-icon {
-  flex-shrink: 0;
-  display: flex;
-}
-
-.toast-message {
-  flex: 1;
-}
-
-.toast-close {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: inherit;
-  opacity: 0.6;
-  transition: opacity 0.15s;
-  padding: 0.1rem;
-  border-radius: 0.25rem;
-}
-
-.toast-close:hover {
-  opacity: 1;
-}
 
 /* ─── テスト用ユーザー切り替えバー ─────────────────────────────────────────── */
 .dev-switcher {
@@ -968,6 +938,83 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
   color: #64748b;
 }
+
+/* ─── 自動設定 / 手動変更 モードバッジ ──────────────────────────────────── */
+.tab-assignment-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-left: 0.25rem;
+}
+
+.tab-assignment-mode-badge--auto {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+}
+
+.tab-assignment-mode-badge--manual {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+/* ─── ヘッダー行（説明文 + テンプレートに戻すボタン） ──────────────────── */
+.tab-assignment-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.tab-assignment-header-row .tab-assignment-desc {
+  margin-bottom: 0;
+}
+
+/* ─── テンプレートに戻すボタン ─────────────────────────────────────────── */
+.tab-assignment-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.tab-assignment-reset-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+/* ─── タブ単位の「変更済」マーカー ─────────────────────────────────────── */
+.tab-assignment-tab-modified {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  vertical-align: middle;
+}
+
 
 /* ─── レスポンシブ ─────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {

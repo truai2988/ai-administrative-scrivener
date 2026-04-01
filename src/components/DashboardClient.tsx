@@ -49,7 +49,6 @@ const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage:
   { icon: Bell, label: '通知・期限アラート', toastMessage: '自動期限監視アラート', badge: 12 },
   { icon: FileText, label: '附属書類PDFの自動生成', toastMessage: '附属書類PDFの自動生成' },
   { icon: PenTool, label: '完全電子署名', toastMessage: '完全電子署名' },
-  { icon: Settings, label: 'システム設定', toastMessage: 'エンタープライズ設定パネル' },
 ];
 
 // ─── Role Badge Colors ───────────────────────────────────────────────────────
@@ -226,18 +225,16 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           ))}
 
-          {/* 在留期間更新申請フォームへのリンク */}
-          <div className="pt-2 pb-1">
-            <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase px-4 mb-2">申請書類</p>
-          </div>
-          <Link
-            href="/forms/renewal/new"
-            className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 text-slate-400 hover:bg-indigo-50 hover:text-indigo-700 font-medium group"
-          >
-            <FilePen className="h-5 w-5 text-slate-300 group-hover:text-indigo-500" />
-            <span className="text-sm">在留期間更新許可申請書</span>
-            <span className="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-500 group-hover:bg-indigo-100">新規</span>
-          </Link>
+          {/* システム管理（scrivener/hq_admin用） */}
+          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
+            <SidebarItem
+              icon={Settings}
+              label="システム設定"
+              href="/settings"
+            />
+          )}
+
+
           {/* scrivener専用: データ整合性チェック */}
           {userRole === 'scrivener' && (() => {
             const mismatchCount = data.filter(f =>
@@ -658,23 +655,18 @@ function SidebarItem({
   label, 
   active = false, 
   badge,
-  onClick
+  onClick,
+  href
 }: { 
   icon: React.ElementType; 
   label: string; 
   active?: boolean;
   badge?: number;
   onClick?: () => void;
+  href?: string;
 }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
-        active 
-          ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-100' 
-          : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900 font-medium'
-      }`}
-    >
+  const content = (
+    <>
       <Icon className={`h-5 w-5 ${active ? 'text-white' : 'text-slate-300'}`} />
       <span className="text-sm">{label}</span>
       {badge && (
@@ -684,6 +676,25 @@ function SidebarItem({
           {badge}
         </span>
       )}
+    </>
+  );
+
+  const className = `w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+    active 
+      ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-100' 
+      : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900 font-medium'
+  }`;
+
+  if (href) {
+    return (
+      <Link href={href} className={className} onClick={onClick}>
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <button onClick={onClick} className={className}>
+      {content}
     </button>
   );
 }

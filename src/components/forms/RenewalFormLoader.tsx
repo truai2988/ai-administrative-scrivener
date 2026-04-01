@@ -18,6 +18,7 @@ import { Loader2, AlertCircle, FileText } from 'lucide-react';
 import { RenewalApplicationForm } from './RenewalApplicationForm';
 import { useRenewalFormData } from '@/hooks/useRenewalFormData';
 import type { RenewalApplicationFormData, TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
+import { resolveTemplate } from '@/lib/constants/assignmentTemplates';
 
 interface RenewalFormLoaderProps {
   /** 外国人一覧の Foreigner.id（Firestore foreigners コレクションのキー） */
@@ -113,11 +114,15 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
     return <FormError message={state.message} foreignerId={foreignerId} />;
   }
 
-  // データあり → 既存値を渡して編集モード
-  // データなし（fallbackも空） → 空フォームで新規作成（foreignerId は保存時に紐付け）
-  const { record } = state;
-  const initialValues    = record?.formData as RenewalApplicationFormData | undefined;
-  const initialAssignments = record?.formData?.assignments as TabAssignments | undefined;
+  const { record, templatesRecord } = state;
+  const initialValues = record?.formData as RenewalApplicationFormData | undefined;
+
+  // ─── 担当者割り当ての初期値を決定 ────────────────────────────────────────
+  // 既存レコードがある場合 → Firestoreに保存済みの値を使用（手動上書きを尊重）
+  // 新規作成の場合（record === null） → 申請種別テンプレートを解決して自動セット
+  const initialAssignments: TabAssignments = record?.formData?.assignments
+    ? (record.formData.assignments as TabAssignments)
+    : resolveTemplate('renewal', undefined, templatesRecord);
 
   return (
     <RenewalApplicationForm
@@ -125,6 +130,7 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
       foreignerId={foreignerId}
       initialValues={initialValues}
       initialAssignments={initialAssignments}
+      templatesRecord={templatesRecord}
     />
   );
 }

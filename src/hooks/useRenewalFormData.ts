@@ -19,10 +19,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { renewalApplicationService, type RenewalApplicationRecord } from '@/services/renewalApplicationService';
 import { foreignerService } from '@/services/foreignerService';
 import { mapForeignerProfileToFormData } from '@/lib/mappers/foreignerToFormData';
+import { getAssignmentTemplates } from '@/lib/constants/assignmentTemplates';
+import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 
 export type FormLoadPhase =
   | { phase: 'loading' }
-  | { phase: 'ready'; record: RenewalApplicationRecord | null }
+  | { phase: 'ready'; record: RenewalApplicationRecord | null; templatesRecord: Record<ApplicationKind, TabAssignmentTemplate> }
   | { phase: 'error'; message: string };
 
 export function useRenewalFormData(foreignerId: string): FormLoadPhase {
@@ -44,12 +46,15 @@ export function useRenewalFormData(foreignerId: string): FormLoadPhase {
 
     const fetchData = async () => {
       try {
-        // Step 1: renewal_applications から既存申請書データを取得
-        const record = await renewalApplicationService.getByForeignerId(foreignerId);
+        // 並列取得: 申請書データとシステム設定のテンプレート
+        const [record, templatesRecord] = await Promise.all([
+          renewalApplicationService.getByForeignerId(foreignerId),
+          getAssignmentTemplates()
+        ]);
 
         if (record) {
           // 既存の申請書データが見つかった場合はそのまま使用
-          if (!cancelled) setState({ phase: 'ready', record });
+          if (!cancelled) setState({ phase: 'ready', record, templatesRecord });
           return;
         }
 
@@ -67,7 +72,7 @@ export function useRenewalFormData(foreignerId: string): FormLoadPhase {
           console.warn('[useRenewalFormData] プロフィールフォールバック取得失敗:', profileErr);
         }
 
-        if (!cancelled) setState({ phase: 'ready', record: fallbackRecord });
+        if (!cancelled) setState({ phase: 'ready', record: fallbackRecord, templatesRecord });
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : '不明なエラーが発生しました';

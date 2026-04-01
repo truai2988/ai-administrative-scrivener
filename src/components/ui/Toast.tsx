@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { CheckCircle2, XCircle, X } from 'lucide-react';
+import './Toast.css';
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
