@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
-  serverExternalPackages: ['jspdf', 'fflate'],
+  serverExternalPackages: ['jspdf', 'fflate', 'firebase-admin'],
 };
 
 export default nextConfig;

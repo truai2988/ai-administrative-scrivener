@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
@@ -24,10 +24,10 @@ import {
   SectionPermissionProvider,
   useSectionPermission,
 } from '@/contexts/SectionPermissionContext';
-import { DevUserSwitcher }    from './DevUserSwitcher';
 import { TabAssignmentPanel } from './TabAssignmentPanel';
 import { mergeWithDefaults }  from '@/lib/utils/formUtils';
 import { useRenewalFormSubmit } from '@/hooks/useRenewalFormSubmit';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ─── タブ定義 ─────────────────────────────────────────────────────────────────
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
@@ -186,11 +186,15 @@ function RenewalApplicationFormInner({
 
   const visibleTabs = useMemo(() => TABS.filter(tab => isEditable(tab.id)), [isEditable]);
 
-  useEffect(() => {
-    // 現在のタブが見えない場合は最初の表示可能タブへフォールバック
-    if (visibleTabs.length > 0 && !visibleTabs.some(t => t.id === activeTab)) {
-      setActiveTab(visibleTabs[0].id);
-    }
+  /**
+   * 現在選択中のタブが表示可能タブリストから外れた場合、最初のタブにフォールバック。
+   * useEffect + setState の組み合わせは cascading renders を招くため
+   * useMemo で直接解決する（effectiveTab を実際のレンダリングに使用）。
+   */
+  const effectiveTab = useMemo<TabId>(() => {
+    if (visibleTabs.length === 0) return 'foreigner';
+    if (visibleTabs.some(t => t.id === activeTab)) return activeTab;
+    return visibleTabs[0].id;
   }, [visibleTabs, activeTab]);
 
   // DEFAULT_VALUES と initialValues を mergeWithDefaults でディープマージ
@@ -206,6 +210,11 @@ function RenewalApplicationFormInner({
   });
 
   const { handleSubmit, formState: { errors }, reset } = methods;
+
+  // useWatch: React Compiler に安全な方法でフォーム値をサブスクライブ
+  const nameEn = useWatch({ control: methods.control, name: 'foreignerInfo.nameEn' });
+  const nameKanji = useWatch({ control: methods.control, name: 'foreignerInfo.nameKanji' });
+  const applicantName = nameKanji || nameEn || '名称未入力';
 
   // 動的な値の同期: initialValues が変更された際（またはマウント直後）に確実に値をセットする
   useEffect(() => {
@@ -245,31 +254,23 @@ function RenewalApplicationFormInner({
           )}
 
           {/* ─── 対象者コンテキストヘッダー ────────────────────────────── */}
-          {(() => {
-            const nameEn = methods.watch('foreignerInfo.nameEn');
-            const nameKanji = methods.watch('foreignerInfo.nameKanji');
-            const applicantName = nameKanji || nameEn || '名称未入力';
-
-            return (
-              <div className="applicant-context-header">
-                <div className="applicant-avatar">
-                  {applicantName.charAt(0)}
-                </div>
-                <div className="applicant-info">
-                  <div className="applicant-name">
-                    {applicantName} <span className="applicant-suffix">様の申請データ</span>
-                  </div>
-                  <div className="applicant-type">在留期間更新許可申請（特定技能）</div>
-                </div>
+          <div className="applicant-context-header">
+            <div className="applicant-avatar">
+              {applicantName.charAt(0)}
+            </div>
+            <div className="applicant-info">
+              <div className="applicant-name">
+                {applicantName} <span className="applicant-suffix">様の申請データ</span>
               </div>
-            );
-          })()}
+              <div className="applicant-type">在留期間更新許可申請（特定技能）</div>
+            </div>
+          </div>
 
           {/* ─── タブナビゲーション ────────────────────────────────────── */}
           <div className="tab-nav" role="tablist">
             {visibleTabs.map((tab) => {
               const Icon     = tab.icon;
-              const isActive = activeTab === tab.id;
+              const isActive = effectiveTab === tab.id;
               const canEdit  = isEditable(tab.id);
               const hasError =
                 tab.id === 'foreigner'  ? hasForeignerErrors
@@ -307,16 +308,16 @@ function RenewalApplicationFormInner({
           {/* ─── セクション ───────────────────────────────────────────── */}
           <div
             role="tabpanel"
-            aria-labelledby={`tab-${activeTab}`}
+            aria-labelledby={`tab-${effectiveTab}`}
             className="tab-panel"
           >
-            {activeTab === 'foreigner' && (
+            {effectiveTab === 'foreigner' && (
               <ForeignerInfoSection isEditable={isEditable('foreigner')} />
             )}
-            {activeTab === 'employer' && (
+            {effectiveTab === 'employer' && (
               <EmployerInfoSection isEditable={isEditable('employer')} />
             )}
-            {activeTab === 'simultaneous' && (
+            {effectiveTab === 'simultaneous' && (
               <SimultaneousApplicationSection isEditable={isEditable('simultaneous')} />
             )}
           </div>
@@ -324,7 +325,7 @@ function RenewalApplicationFormInner({
           {/* ─── ナビゲーション & アクションバー ──────────────────────── */}
           <div className="form-nav">
             {(() => {
-              const activeIndex = visibleTabs.findIndex(t => t.id === activeTab);
+              const activeIndex = visibleTabs.findIndex(t => t.id === effectiveTab);
               const prevTab = activeIndex > 0 ? visibleTabs[activeIndex - 1] : null;
               const nextTab = activeIndex < visibleTabs.length - 1 ? visibleTabs[activeIndex + 1] : null;
 
@@ -380,7 +381,7 @@ function RenewalApplicationFormInner({
   );
 }
 
-// ─── 公開エクスポート: Provider でラップ ──────────────────────────────────────
+// ─── 公開エクスポート: Provider でラップ ─────────────────────────────────────────────
 export function RenewalApplicationForm({
   onSubmit,
   recordId,
@@ -390,15 +391,24 @@ export function RenewalApplicationForm({
   hideHeader,
   templatesRecord,
 }: RenewalApplicationFormProps) {
+  const { currentUser } = useAuth();
+
+  // 認証情報を SectionPermissionProvider に渡す
+  // currentUser が null の場合はフォーム自体が認証ガードで場外される想定だが、
+  // 安全のため null でも動くようデフォルト値を設定する
+  const userId = currentUser?.id ?? '';
+  const userRole = currentUser?.role ?? 'branch_staff';
+
   return (
     <SectionPermissionProvider
+      currentUserId={userId}
+      currentUserRole={userRole}
       initialAssignments={initialAssignments}
       templatesRecord={templatesRecord}
       onAssignmentsChange={(a) => {
         console.debug('[assignments変更]', a);
       }}
     >
-      <DevUserSwitcher />
       <RenewalApplicationFormInner
         onSubmit={onSubmit}
         recordId={recordId}

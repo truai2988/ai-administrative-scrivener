@@ -1,0 +1,43 @@
+
+> visa-manager@0.1.0 build
+> next build
+
+笆ｲ Next.js 16.2.0 (Turbopack)
+- Environments: .env.local
+
+笞 The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+笨・Compiled successfully in 17.5s
+  Running TypeScript ...
+  Finished TypeScript in 9.7s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/15) ...
+  Generating static pages using 7 workers (3/15) 
+  Generating static pages using 7 workers (7/15) 
+  Generating static pages using 7 workers (11/15) 
+笨・Generating static pages using 7 workers (15/15) in 839ms
+  Finalizing page optimization ...
+
+Route (app)
+笏・笳・/
+笏・笳・/_not-found
+笏・笳・/admin/organizations
+笏・ﾆ・/api/admin/create-user
+笏・ﾆ・/api/admin/organizations
+笏・ﾆ・/api/ai-review
+笏・ﾆ・/api/validate-image
+笏・ﾆ・/foreigner/entry/[token]
+笏・笳・/foreigners/new
+笏・笳・/forms/renewal
+笏・ﾆ・/forms/renewal/[foreignerId]
+笏・笳・/forms/renewal/new
+笏・笳・/login
+笏・笳・/pending-review
+笏・笳・/settings
+
+
+ﾆ・Proxy (Middleware)
+
+笳・ (Static)   prerendered as static content
+ﾆ・ (Dynamic)  server-rendered on demand
+

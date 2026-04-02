@@ -13,8 +13,14 @@ import {
 } from '@/lib/constants/assignmentTemplates';
 import type { TabId } from '@/lib/schemas/renewalApplicationSchema';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
-import { TEST_USERS } from '@/lib/constants/testUsers';
+import { USER_ROLE_LABELS } from '@/types/database';
 import Link from 'next/link';
+
+/** 担当者アサインに使用するロール（行政書士・本部管理者は除外） */
+const ASSIGNABLE_ROLES: { role: string; label: string }[] = [
+  { role: 'branch_staff', label: USER_ROLE_LABELS.branch_staff },
+  { role: 'enterprise_staff', label: USER_ROLE_LABELS.enterprise_staff },
+];
 
 const TAB_LABELS: Record<TabId, string> = {
   foreigner: '外国人本人情報',
@@ -165,13 +171,11 @@ export default function SettingsPage() {
                           className="flex-1 max-w-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                         >
                           <option value="">担当者なし（行政書士のみ）</option>
-                          {/* 重複を省いたロール一覧をダミーユーザーから生成 */}
-                          {[...new Set(TEST_USERS.filter(u => !u.isAdmin).map(u => u.role))].map((roleVal) => {
-                            const label = roleVal === 'branch_staff' ? '支部事務員' : roleVal === 'enterprise_staff' ? '企業担当者' : roleVal;
-                            return (
-                              <option key={roleVal} value={roleVal}>{label} ({roleVal})</option>
-                            );
-                          })}
+                          {ASSIGNABLE_ROLES.map(({ role, label }) => (
+                            <option key={role} value={role}>
+                              {label} ({role})
+                            </option>
+                          ))}
                         </select>
                       </div>
                     ))}

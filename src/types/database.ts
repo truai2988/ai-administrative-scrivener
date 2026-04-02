@@ -3,31 +3,82 @@
  */
 
 // ─── RBAC (Role-Based Access Control) ─────────────────────────────────────────
-export type UserRole = 'branch_staff' | 'hq_admin' | 'scrivener';
+
+/**
+ * システム全体で使用するロール定義
+ *
+ * - scrivener     : 行政書士 / システム全体管理者（最上位権限）
+ * - hq_admin      : 東京本部 / 全支部横断管理できる特権管理者
+ * - branch_staff  : 支部事務員（自支部データのみアクセス可）
+ * - enterprise_staff: 企業担当者（担当タブのみ編集可）
+ */
+export type UserRole = 'scrivener' | 'hq_admin' | 'branch_staff' | 'enterprise_staff';
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  branch_staff: '支部事務員',
-  hq_admin: '本部管理者',
   scrivener: '行政書士',
+  hq_admin: '本部管理者',
+  branch_staff: '支部事務員',
+  enterprise_staff: '企業担当者',
 };
 
-export interface User {
-  id: string;           // Firebase Auth UID
-  email: string;
-  displayName: string;
-  role: UserRole;
-  branchId?: string;    // branch_staff のみ必須
+/**
+ * 組織種別
+ * - hq        : 東京本部（hq_admin が所属）
+ * - branch    : 支部（branch_staff が所属）
+ * - enterprise: 企業（enterprise_staff が所属）
+ */
+export type OrganizationType = 'hq' | 'branch' | 'enterprise';
+
+export const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
+  hq: '本部',
+  branch: '支部',
+  enterprise: '企業',
+};
+
+/**
+ * Firestore: organizations コレクション
+ * 支部・企業・本部をすべて一元管理するシングルテナント構造
+ */
+export interface Organization {
+  id: string;             // Firestore Document ID
+  name: string;           // 例: 「東京支部」「株式会社〇〇」
+  type: OrganizationType;
+  address?: string;
+  phone?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface Branch {
-  id: string;
-  name: string;         // 例: 「東京支部」「大阪支部」
+/**
+ * Firestore: users コレクション
+ * Firebase Auth UID をドキュメントIDとして使用
+ */
+export interface User {
+  id: string;             // Firebase Auth UID（= Firestoreドキュメントid）
+  email: string;
+  displayName: string;
+  role: UserRole;
+  /**
+   * 所属組織ID（organizations コレクションのドキュメントID）
+   * - scrivener は null（組織に縛られない）
+   * - hq_admin は hq組織のID
+   * - branch_staff は branch組織のID
+   * - enterprise_staff は enterprise組織のID
+   */
+  organizationId: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
-/** 既存データ・本部直轄用のデフォルト branchId */
+/**
+ * ロールがグローバル管理者か（全組織横断アクセス可能）
+ * hq_admin は全支部・全企業のデータを閲覧・編集できる
+ */
+export function isGlobalAdmin(role: UserRole): boolean {
+  return role === 'scrivener' || role === 'hq_admin';
+}
+
+/** 既存データ・本部直轄用のデフォルト organizationId */
 export const DEFAULT_BRANCH_ID = 'hq_direct';
 
 // ─── Foreigner (外国人データ) ─────────────────────────────────────────────────

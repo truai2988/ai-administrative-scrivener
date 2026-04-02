@@ -192,8 +192,8 @@ export default function ForeignersNewPage() {
 
       const payload: Partial<Foreigner> = {
         ...profile,
-        // ログイン中のユーザーのbranchIdを使用（安全ルールを满たすため必須）
-        branchId: currentUser?.branchId || profile.branchId || 'hq_direct',
+        // ログイン中のユーザーの organizationId を外国人の branchId に使用（セキュリティルール要件）
+        branchId: currentUser?.organizationId || profile.branchId || 'hq_direct',
         status: '準備中',
         isEditedByAdmin: true,
         ...(rcFrontUrl  && { residenceCardFrontUrl: rcFrontUrl }),

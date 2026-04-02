@@ -56,6 +56,7 @@ const ROLE_BADGE_STYLES: Record<string, string> = {
   branch_staff: 'bg-sky-50 text-sky-600 border-sky-100',
   hq_admin: 'bg-violet-50 text-violet-600 border-violet-100',
   scrivener: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  enterprise_staff: 'bg-amber-50 text-amber-600 border-amber-100',
 };
 
 export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[] }) {
@@ -87,7 +88,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   }, [showShareModal]);
 
   const entryUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/foreigner/entry/${shareToken}${currentUser?.branchId ? `?b=${currentUser.branchId}` : ''}` 
+    ? `${window.location.origin}/foreigner/entry/${shareToken}${currentUser?.organizationId ? `?b=${currentUser.organizationId}` : ''}` 
     : '';
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
       try {
         const fetched = await foreignerService.getForeignersByRole(
           currentUser.role,
-          currentUser.branchId
+          currentUser.organizationId ?? undefined
         );
         setData(fetched);
       } catch (err) {
@@ -234,6 +235,15 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
+          {/* 組織・ユーザー管理（scrivener専用） */}
+          {userRole === 'scrivener' && (
+            <SidebarItem
+              icon={Shield}
+              label="組織・ユーザー管理"
+              href="/admin/organizations"
+            />
+          )}
+
 
           {/* scrivener専用: データ整合性チェック */}
           {userRole === 'scrivener' && (() => {
@@ -273,9 +283,9 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 onClick={async () => {
                   if (confirm('デモデータを3件投入します。よろしいですか？')) {
                     setLoading(true);
-                    const res = await foreignerService.seedDemoData(currentUser.branchId);
+                    const res = await foreignerService.seedDemoData(currentUser.organizationId ?? undefined);
                     if (res.success) {
-                      const fetched = await foreignerService.getForeignersByRole(currentUser.role, currentUser.branchId);
+                      const fetched = await foreignerService.getForeignersByRole(currentUser.role, currentUser.organizationId ?? undefined);
                       setData(fetched);
                     } else {
                       alert('エラーが発生しました: ' + res.error);

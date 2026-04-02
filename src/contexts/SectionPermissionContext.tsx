@@ -5,9 +5,11 @@
  *
  * タブ（セクション）ごとの編集権限を管理するコンテキスト。
  *
- * - 行政書士（scrivener）・本部管理者（hq_admin）は常に全タブ編集可能
- * - それ以外のロールは assignments で担当になっているタブのみ編集可能
- * - テスト用として devUser（仮ユーザー）を切り替える機能も内包
+ * - scrivener（行政書士）・hq_admin（本部管理者）は常に全タブ編集可能
+ * - branch_staff / enterprise_staff は assignments で担当になっているタブのみ編集可能
+ *
+ * ダミーユーザー（TEST_USERS）は完全撤廃し、useAuth から取得した
+ * 実際のユーザー情報（role / id）で権限を管理する。
  */
 
 import React, {
@@ -20,30 +22,25 @@ import React, {
 import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 import type { TabId, TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import { DEFAULT_ASSIGNMENT_TEMPLATES } from '@/lib/constants/assignmentTemplates';
-import { TEST_USERS, type TestUser } from '@/lib/constants/testUsers';
+import { isGlobalAdmin } from '@/types/database';
+import type { UserRole } from '@/types/database';
 
 // ─── コンテキスト型定義 ──────────────────────────────────────────────────────
 
 interface SectionPermissionContextType {
-  /** 現在のテスト用ユーザー */
-  currentTestUser: TestUser;
-  /** テスト用ユーザーを変更 */
-  setCurrentTestUser: (user: TestUser) => void;
   /** タブIDを渡すと、現在のユーザーが編集可能かどうかを返す */
   isEditable: (tabId: TabId) => boolean;
   /** 現在の担当者割り当てマップ */
   assignments: TabAssignments;
   /** 担当者を割り当てる（行政書士専用） */
   assignUser: (tabId: TabId, userId: string) => void;
-  /** 行政書士か（担当者割り当てUI表示制御用） */
+  /** 担当者割り当てUI（TabAssignmentPanel）を表示・操作できるか（scrivener専用） */
   isScrivener: boolean;
   /** DBから取得した最新のテンプレート設定 */
   templatesRecord: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
 const SectionPermissionContext = createContext<SectionPermissionContextType>({
-  currentTestUser: TEST_USERS[0],
-  setCurrentTestUser: () => {},
   isEditable: () => true,
   assignments: {},
   assignUser: () => {},
@@ -55,6 +52,10 @@ const SectionPermissionContext = createContext<SectionPermissionContextType>({
 
 interface SectionPermissionProviderProps {
   children: React.ReactNode;
+  /** 現在ログイン中のユーザーID（Firebase Auth UID） */
+  currentUserId: string;
+  /** 現在ログイン中のユーザーのロール */
+  currentUserRole: UserRole;
   /** 初期割り当てマップ（既存レコードから読み込んだ値） */
   initialAssignments?: TabAssignments;
   /** DBから取得したテンプレート（無い場合はデフォルトが使われる） */
@@ -65,30 +66,37 @@ interface SectionPermissionProviderProps {
 
 export function SectionPermissionProvider({
   children,
+  currentUserId,
+  currentUserRole,
   initialAssignments = {},
   templatesRecord = DEFAULT_ASSIGNMENT_TEMPLATES,
   onAssignmentsChange,
 }: SectionPermissionProviderProps) {
-  const [currentTestUser, setCurrentTestUserState] = useState<TestUser>(TEST_USERS[0]);
   const [assignments, setAssignments] = useState<TabAssignments>(initialAssignments);
 
-  const setCurrentTestUser = useCallback((user: TestUser) => {
-    setCurrentTestUserState(user);
-  }, []);
+  /**
+   * isScrivener: 担当者割り当てパネル（TabAssignmentPanel）の表示・操作権限
+   * → scrivener（行政書士）のみが担当者割り当てを変更できる専権。
+   * hq_admin は全タブ編集可能だが、割り当て設定の変更は行政書士のみ。
+   *
+   * ※ タブ編集可否（isEditable）は別途 isGlobalAdmin で scrivener+hq_admin 両方に付与。
+   */
+  const isScrivener = currentUserRole === 'scrivener';
 
-  const isScrivener = currentTestUser.isAdmin;
+  /** 編集権限判定: scrivener / hq_admin は全タブ常時編集可 */
+  const canEditAll = isGlobalAdmin(currentUserRole);
 
   /**
    * 現在のユーザーがタブを編集できるか判断
-   * - 管理者（行政書士・本部管理者）: 常にtrue
-   * - それ以外: assignments[tabId] === currentTestUser.id のときのみtrue
+   * - グローバル管理者（scrivener / hq_admin）: 常にtrue
+   * - それ以外: assignments[tabId] === currentUserId のときのみtrue
    */
   const isEditable = useCallback(
     (tabId: TabId): boolean => {
-      if (currentTestUser.isAdmin) return true;
-      return assignments[tabId] === currentTestUser.id;
+      if (canEditAll) return true;
+      return assignments[tabId] === currentUserId;
     },
-    [currentTestUser, assignments]
+    [canEditAll, currentUserId, assignments]
   );
 
   /**
@@ -98,7 +106,6 @@ export function SectionPermissionProvider({
   const assignUser = useCallback(
     (tabId: TabId, userId: string) => {
       const next = { ...assignments, [tabId]: userId || undefined } as TabAssignments;
-      // userId が空文字なら割り当てを解除
       if (!userId) {
         delete next[tabId];
       }
@@ -109,8 +116,8 @@ export function SectionPermissionProvider({
   );
 
   const value = useMemo(
-    () => ({ currentTestUser, setCurrentTestUser, isEditable, assignments, assignUser, isScrivener, templatesRecord }),
-    [currentTestUser, setCurrentTestUser, isEditable, assignments, assignUser, isScrivener, templatesRecord]
+    () => ({ isEditable, assignments, assignUser, isScrivener, templatesRecord }),
+    [isEditable, assignments, assignUser, isScrivener, templatesRecord]
   );
 
   return (

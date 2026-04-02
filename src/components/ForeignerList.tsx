@@ -190,6 +190,8 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                       {/* 申請書を編集ボタン */}
                       <Link
                         href={`/forms/renewal/${person.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all
                           bg-indigo-50 text-indigo-600 border border-indigo-100

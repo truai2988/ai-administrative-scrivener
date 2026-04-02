@@ -1,0 +1,23 @@
+
+> visa-manager@0.1.0 build
+> next build
+
+笆ｲ Next.js 16.2.0 (Turbopack)
+- Environments: .env.local
+
+笞 The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+笨・Compiled successfully in 14.5s
+  Running TypeScript ...
+  Finished TypeScript in 9.1s ...
+  Collecting page data using 7 workers ...
+Error: [Firebase Admin] 迺ｰ蠅・､画焚縺梧悴險ｭ螳壹〒縺吶・IREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY 繧・.env.local 縺ｫ險ｭ螳壹＠縺ｦ縺上□縺輔＞縲・    at u (C:\Users\truee\ai-administrative-scrivener\.next\server\chunks\[root-of-the-server]__030zd6s._.js:1:689)
+    at <unknown> (C:\Users\truee\ai-administrative-scrivener\.next\server\chunks\[root-of-the-server]__030zd6s._.js:1:975)
+Error: [Firebase Admin] 迺ｰ蠅・､画焚縺梧悴險ｭ螳壹〒縺吶・IREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY 繧・.env.local 縺ｫ險ｭ螳壹＠縺ｦ縺上□縺輔＞縲・    at u (C:\Users\truee\ai-administrative-scrivener\.next\server\chunks\[root-of-the-server]__030zd6s._.js:1:689)
+    at <unknown> (C:\Users\truee\ai-administrative-scrivener\.next\server\chunks\[root-of-the-server]__030zd6s._.js:1:975)
+
+> Build error occurred
+Error: Failed to collect page data for /api/admin/organizations
+    at ignore-listed frames {
+  type: 'Error'
+}

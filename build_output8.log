@@ -1,0 +1,24 @@
+
+> visa-manager@0.1.0 build
+> next build
+
+笆ｲ Next.js 16.2.0 (Turbopack)
+- Environments: .env.local
+
+笞 The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+笨・Compiled successfully in 15.4s
+  Running TypeScript ...
+Failed to type check.
+
+./src/scripts/seedRbacData.ts:3:16
+Type error: Module '"../types/database"' has no exported member 'Branch'.
+
+  1 | import { doc, setDoc } from "firebase/firestore";
+  2 | import { db } from "../lib/firebase/client";
+> 3 | import { User, Branch, DEFAULT_BRANCH_ID } from "../types/database";
+    |                ^
+  4 |
+  5 | /**
+  6 |  * RBAC讀懆ｨｼ逕ｨ縺ｮ蛻晄悄繝・・繧ｿ・医Θ繝ｼ繧ｶ繝ｼ縺ｨ謾ｯ驛ｨ・峨ｒFirestore縺ｫ謚募・縺吶ｋ繧ｹ繧ｯ繝ｪ繝励ヨ
+Next.js build worker exited with code: 1 and signal: null
