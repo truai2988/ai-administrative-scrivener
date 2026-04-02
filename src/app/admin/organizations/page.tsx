@@ -31,6 +31,8 @@ import {
   AlertCircle,
   X,
   Trash2,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -143,6 +145,7 @@ export default function AdminOrganizationsPage() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [confirmDeleteUser, setConfirmDeleteUser] = useState<DBUser | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
+  const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null);
 
   // ── 認証ガード
   useEffect(() => {
@@ -304,6 +307,20 @@ export default function AdminOrganizationsPage() {
     requiredOrgType === 'any'
       ? organizations
       : organizations.filter((o) => o.type === requiredOrgType);
+
+  // 組織をカテゴリー別に分ける
+  const orgCategories = [
+    {
+      title: '支援団体（本部・支部）',
+      orgs: organizations.filter((o) => o.type === 'hq' || o.type === 'branch'),
+      emptyMessage: 'まだ支援団体が登録されていません',
+    },
+    {
+      title: '所属団体（受入企業）',
+      orgs: organizations.filter((o) => o.type === 'enterprise'),
+      emptyMessage: 'まだ所属団体（受入企業）が登録されていません',
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
@@ -645,145 +662,204 @@ export default function AdminOrganizationsPage() {
         </AnimatePresence>
 
         {/* ─── 組織一覧 ─────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <h2 className="font-bold text-base flex items-center gap-2">
-              <Building2 size={17} className="text-slate-500" />
-              登録済み組織
-              <span className="ml-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
-                {organizations.length}
-              </span>
-            </h2>
-          </div>
+        <div className="space-y-8">
+          {orgCategories.map((cat, idx) => (
+            <div key={idx} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h2 className="font-bold text-base flex items-center gap-2">
+                  <Building2 size={17} className="text-slate-500" />
+                  {cat.title}
+                  <span className="ml-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
+                    {cat.orgs.length}
+                  </span>
+                </h2>
+              </div>
 
-          {loadingOrgs ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
-            </div>
-          ) : organizations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-              <Building2 size={36} className="text-slate-200" />
-              <p className="text-sm font-medium">まだ組織が登録されていません</p>
-              <button
-                onClick={() => setShowOrgForm(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors"
-              >
-                <Plus size={14} />
-                最初の組織を作成する
-              </button>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {organizations.map((org) => (
-                <div
-                  key={org.id}
-                  className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 bg-slate-100 rounded-xl flex items-center justify-center">
-                      <Building2 size={17} className="text-slate-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{org.name}</p>
-                      {org.address && (
-                        <p className="text-xs text-slate-400 mt-0.5">{org.address}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${orgTypeBadgeClass(org.type)}`}
-                    >
-                      {ORGANIZATION_TYPE_LABELS[org.type]}
-                    </span>
-                    <span className="text-xs text-slate-400 font-mono">{org.id.slice(0, 8)}…</span>
-                    {/* 削除ボタン */}
-                    <button
-                      onClick={() => setConfirmDeleteOrg(org)}
-                      className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                      title="組織を削除"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
+              {loadingOrgs ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ─── ユーザー一覧 ─────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-8">
-          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <h2 className="font-bold text-base flex items-center gap-2">
-              <User size={17} className="text-slate-500" />
-              登録済みアカウント
-              <span className="ml-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
-                {usersList.length}
-              </span>
-            </h2>
-          </div>
-
-          {loadingUsers ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
-            </div>
-          ) : usersList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-              <User size={36} className="text-slate-200" />
-              <p className="text-sm font-medium">まだアカウントが登録されていません</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {usersList.map((usr) => {
-                const isSelf = currentUser?.id === usr.id;
-                const org = organizations.find((o) => o.id === usr.organizationId);
-                return (
-                  <div
-                    key={usr.id}
-                    className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 bg-slate-100 rounded-xl flex items-center justify-center">
-                        <User size={17} className="text-slate-400" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-slate-800">{usr.displayName}</p>
-                          {isSelf && (
-                            <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded-full border border-sky-200">
-                              あなた
+              ) : cat.orgs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                  <Building2 size={36} className="text-slate-200" />
+                  <p className="text-sm font-medium">{cat.emptyMessage}</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {cat.orgs.map((org) => {
+                    const orgUsers = usersList.filter(u => u.organizationId === org.id);
+                    const isExpanded = expandedOrgId === org.id;
+                    return (
+                      <div key={org.id} className="flex flex-col">
+                        <div
+                          onClick={() => setExpandedOrgId(isExpanded ? null : org.id)}
+                          className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3">
+                            <button type="button" className="p-1 text-slate-400 hover:text-slate-600 rounded">
+                              {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                            </button>
+                            <div className="h-9 w-9 bg-slate-100 rounded-xl flex items-center justify-center">
+                              <Building2 size={17} className="text-slate-400" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-slate-800">{org.name}</p>
+                                {orgUsers.length > 0 && (
+                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full">
+                                    {orgUsers.length} アカウント
+                                  </span>
+                                )}
+                              </div>
+                              {org.address && (
+                                <p className="text-xs text-slate-400 mt-0.5">{org.address}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${orgTypeBadgeClass(org.type)}`}
+                            >
+                              {ORGANIZATION_TYPE_LABELS[org.type]}
                             </span>
-                          )}
+                            <span className="text-xs text-slate-400 font-mono hidden sm:inline">{org.id.slice(0, 8)}…</span>
+                            {/* 削除ボタン */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteOrg(org);
+                              }}
+                              className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                              title="組織を削除"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">{usr.email}</p>
+
+                        {/* アコーディオン: 組織に所属するアカウント一覧 */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden bg-slate-50/80 border-t border-slate-100"
+                            >
+                              {orgUsers.length === 0 ? (
+                                <div className="py-6 text-center text-sm text-slate-400 font-medium">
+                                  この組織にはまだアカウントが発行されていません
+                                </div>
+                              ) : (
+                                <div className="divide-y divide-slate-100 pl-14">
+                                  {orgUsers.map((usr) => {
+                                    const isSelf = currentUser?.id === usr.id;
+                                    return (
+                                      <div key={usr.id} className="flex items-center justify-between py-3 pr-5">
+                                        <div className="flex items-center gap-3">
+                                          <User size={15} className="text-slate-400" />
+                                          <div>
+                                            <div className="flex items-center gap-2">
+                                              <p className="text-sm font-bold text-slate-700">{usr.displayName}</p>
+                                              {isSelf && (
+                                                <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded-full border border-sky-200">
+                                                  あなた
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-0.5">{usr.email}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="px-2 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-500">
+                                            {USER_ROLE_LABELS[usr.role] || usr.role}
+                                          </span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setConfirmDeleteUser(usr);
+                                            }}
+                                            disabled={isSelf}
+                                            className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-30"
+                                            title={isSelf ? '自分自身は削除できません' : 'アカウントを削除'}
+                                          >
+                                            <Trash2 size={13} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* ─── システム管理者（組織未割当）アカウント一覧 ─────────────────────────────────────────────────────── */}
+        {(() => {
+          const sysAdmins = usersList.filter((u) => !u.organizationId);
+          if (sysAdmins.length === 0) return null;
+          return (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-8">
+              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h2 className="font-bold text-base flex items-center gap-2 text-slate-700">
+                  <ShieldCheck size={17} className="text-indigo-500" />
+                  特権管理者アカウント（組織未所属）
+                </h2>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {sysAdmins.map((usr) => {
+                  const isSelf = currentUser?.id === usr.id;
+                  return (
+                    <div
+                      key={usr.id}
+                      className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 bg-indigo-50 rounded-xl flex items-center justify-center">
+                          <User size={17} className="text-indigo-400" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-slate-800">{usr.displayName}</p>
+                            {isSelf && (
+                              <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded-full border border-sky-200">
+                                あなた
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">{usr.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-200 text-indigo-600 bg-indigo-50">
+                          {USER_ROLE_LABELS[usr.role] || usr.role}
+                        </span>
+                        {/* 削除ボタン */}
+                        <button
+                          onClick={() => setConfirmDeleteUser(usr)}
+                          disabled={isSelf}
+                          className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-300"
+                          title={isSelf ? 'ログイン中の自分自身は削除できません' : 'アカウントを削除'}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {org && (
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-600">
-                          {org.name}
-                        </span>
-                      )}
-                      <span className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 text-slate-500">
-                        {USER_ROLE_LABELS[usr.role] || usr.role}
-                      </span>
-                      {/* 削除ボタン */}
-                      <button
-                        onClick={() => setConfirmDeleteUser(usr)}
-                        disabled={isSelf}
-                        className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-300"
-                        title={isSelf ? 'ログイン中の自分自身は削除できません' : 'アカウントを削除'}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          )}
-        </div>
+          );
+        })()}
       </main>
 
       {/* ─── 組織削除確認ダイアログ ────────────────────────────── */}
