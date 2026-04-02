@@ -142,6 +142,7 @@ export default function AdminOrganizationsPage() {
 
   // ── ユーザー一覧状態
   const [usersList, setUsersList] = useState<DBUser[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [confirmDeleteUser, setConfirmDeleteUser] = useState<DBUser | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
