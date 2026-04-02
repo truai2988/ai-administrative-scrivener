@@ -108,3 +108,81 @@ export async function DELETE(
     return NextResponse.json({ error: 'ユーザーの削除中に予期せぬエラーが発生しました' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const result = await requireScrivener(req);
+  if (result.error) return result.error;
+
+  const { id: targetUid } = await params;
+  if (!targetUid) {
+    return NextResponse.json({ error: 'ユーザーIDが指定されていません' }, { status: 400 });
+  }
+
+  try {
+    const body = await req.json();
+    const { email, displayName, role } = body;
+
+    if (!email || !displayName || !role) {
+      return NextResponse.json({ error: '必要なデータ（email, displayName, role）が不足しています' }, { status: 400 });
+    }
+
+    // ── ガード: 自分が自身のロールを変更しようとしている場合、ブロック
+    if (targetUid === result.callerUid) {
+      const db = getAdminDb();
+      const userDoc = await db.collection('users').doc(targetUid).get();
+      const currentRole = userDoc.data()?.role;
+      if (role !== currentRole) {
+         return NextResponse.json(
+           { error: '自身の権限（ロール）は変更できません' },
+           { status: 403 }
+         );
+      }
+    }
+
+    // ── ステップ1: Firebase Auth の更新 ──
+    try {
+      await adminAuth.updateUser(targetUid, {
+        email,
+        displayName,
+      });
+    } catch (authError: unknown) {
+      const e = authError as { code?: string };
+      console.error('[users PATCH] Firebase Auth Error:', e);
+      if (e.code === 'auth/email-already-exists') {
+        return NextResponse.json({ error: '指定されたメールアドレスは既に他のアカウントで使用されています。' }, { status: 409 });
+      }
+      if (e.code === 'auth/invalid-email') {
+         return NextResponse.json({ error: '無効なメールアドレス形式です。' }, { status: 400 });
+      }
+      return NextResponse.json(
+        { error: '認証データ（Auth）の更新に失敗しました' },
+        { status: 500 }
+      );
+    }
+
+    // ── ステップ2: Firestore の更新 ──
+    const db = getAdminDb();
+    try {
+      await db.collection('users').doc(targetUid).update({
+        email,
+        displayName,
+        role,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (dbError) {
+      console.error('[users PATCH] Firestore Error:', dbError);
+      return NextResponse.json(
+        { error: 'Authデータは更新されましたが、Firestoreの更新に失敗しました。システム管理者に連絡してください。' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, message: 'アカウント情報が更新されました' });
+  } catch (error) {
+    console.error('[users PATCH] Unexpected error:', error);
+    return NextResponse.json({ error: '予期せぬエラーが発生しました' }, { status: 500 });
+  }
+}

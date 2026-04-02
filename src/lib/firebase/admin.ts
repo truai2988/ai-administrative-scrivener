@@ -63,6 +63,7 @@ export function getAdminDb(): Firestore {
 export const adminAuth = {
   verifyIdToken: (...args: Parameters<Auth['verifyIdToken']>) => getAdminAuth().verifyIdToken(...args),
   createUser: (...args: Parameters<Auth['createUser']>) => getAdminAuth().createUser(...args),
+  updateUser: (...args: Parameters<Auth['updateUser']>) => getAdminAuth().updateUser(...args),
   deleteUser: (...args: Parameters<Auth['deleteUser']>) => getAdminAuth().deleteUser(...args),
 };
 

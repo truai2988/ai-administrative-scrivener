@@ -81,6 +81,21 @@ export async function deleteUserAdmin(uid: string): Promise<{ message: string }>
   }
   return { message: json.message ?? 'ユーザーを削除しました' };
 }
+/** ユーザー情報を更新する（scrivener専用） */
+export async function updateUserAdmin(
+  uid: string,
+  data: { email: string; displayName: string; role: string }
+): Promise<{ message: string }> {
+  const res = await adminFetch(`/api/admin/users/${uid}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.error ?? 'ユーザー情報の更新に失敗しました');
+  }
+  return { message: json.message ?? 'ユーザー情報を更新しました' };
+}
 
 // ── 組織管理 ──────────────────────────────────────────────────────────────────
 

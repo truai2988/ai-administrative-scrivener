@@ -33,6 +33,7 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
+  Pencil,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -51,6 +52,7 @@ import {
   deleteOrganization,
   fetchUsers,
   deleteUserAdmin,
+  updateUserAdmin,
 } from '@/lib/api/adminClient';
 
 // ─── ユーティリティ ────────────────────────────────────────────────────────────
@@ -148,6 +150,15 @@ export default function AdminOrganizationsPage() {
   const [deletingUser, setDeletingUser] = useState(false);
   const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null);
 
+  // ── ユーザー編集状態
+  const [editUser, setEditUser] = useState<DBUser | null>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    displayName: '',
+    email: '',
+    role: 'branch_staff' as UserRole,
+  });
+  const [updatingUser, setUpdatingUser] = useState(false);
+
   // ── 認証ガード
   useEffect(() => {
     if (authLoading) return;
@@ -187,6 +198,27 @@ export default function AdminOrganizationsPage() {
       setLoadingUsers(false);
     }
   }, [showToast]);
+
+  // ─────────────────────────────────────────────────────────────────
+  // 3. アカウント更新（API通信）
+  // ─────────────────────────────────────────────────────────────────
+  const handleUpdateUser = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser) return;
+
+    setUpdatingUser(true);
+    try {
+      const res = await updateUserAdmin(editUser.id, editUserForm);
+      showToast('success', res.message);
+      setEditUser(null);
+      await loadUsersData(); // 一覧リロード
+    } catch (err: unknown) {
+      const error = err as Error;
+      showToast('error', error.message ?? '更新に失敗しました。');
+    } finally {
+      setUpdatingUser(false);
+    }
+  }, [editUser, editUserForm, loadUsersData, showToast]);
 
   useEffect(() => {
     if (!authLoading && currentUser?.role === 'scrivener') {
@@ -775,6 +807,23 @@ export default function AdminOrganizationsPage() {
                                           <span className="px-2 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-500">
                                             {USER_ROLE_LABELS[usr.role] || usr.role}
                                           </span>
+                                          {/* 編集ボタン */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditUserForm({
+                                                displayName: usr.displayName,
+                                                email: usr.email,
+                                                role: usr.role,
+                                              });
+                                              setEditUser(usr);
+                                            }}
+                                            className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                            title="アカウントを編集"
+                                          >
+                                            <Pencil size={13} />
+                                          </button>
+                                          {/* 削除ボタン */}
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -844,6 +893,21 @@ export default function AdminOrganizationsPage() {
                         <span className="px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-200 text-indigo-600 bg-indigo-50">
                           {USER_ROLE_LABELS[usr.role] || usr.role}
                         </span>
+                        {/* 編集ボタン */}
+                        <button
+                          onClick={() => {
+                            setEditUserForm({
+                              displayName: usr.displayName,
+                              email: usr.email,
+                              role: usr.role,
+                            });
+                            setEditUser(usr);
+                          }}
+                          className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                          title="アカウントを編集"
+                        >
+                          <Pencil size={15} />
+                        </button>
                         {/* 削除ボタン */}
                         <button
                           onClick={() => setConfirmDeleteUser(usr)}
@@ -970,6 +1034,108 @@ export default function AdminOrganizationsPage() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── ユーザー情報編集モーダル ────────────────────────────── */}
+      <AnimatePresence>
+        {editUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative"
+            >
+              <button
+                onClick={() => setEditUser(null)}
+                className="absolute top-6 right-6 p-2 bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+
+              <h3 className="text-xl font-black text-slate-800 mb-2">ユーザー情報の編集</h3>
+              <p className="text-sm text-slate-500 mb-6">名前、メールアドレス、アクセス権限を更新します。</p>
+
+              <form onSubmit={handleUpdateUser} className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">所属している組織（変更不可）</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={
+                       editUser.organizationId 
+                         ? organizations.find((o) => o.id === editUser.organizationId)?.name || '（不明な組織）'
+                         : '（システム管理者枠）未所属'
+                    }
+                    className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">氏名 (表示名) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editUserForm.displayName}
+                    onChange={(e) => setEditUserForm({ ...editUserForm, displayName: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">メールアドレス *</label>
+                  <input
+                    type="email"
+                    required
+                    value={editUserForm.email}
+                    onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">アクセス権限 (ロール) *</label>
+                  <select
+                    value={editUserForm.role}
+                    onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value as UserRole })}
+                    disabled={currentUser?.id === editUser.id}
+                    className={`w-full px-4 py-3 border border-slate-200 rounded-xl text-sm transition-all font-medium appearance-none ${
+                        currentUser?.id === editUser.id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer'
+                    }`}
+                  >
+                    <option value="" disabled>権限を選択してください</option>
+                    {Object.entries(USER_ROLE_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>
+                        {label} {val === 'scrivener' && '(フルアクセス)'}
+                      </option>
+                    ))}
+                  </select>
+                  {currentUser?.id === editUser.id && (
+                     <p className="text-[10px] text-rose-500 font-bold mt-1.5 ml-1">※自分自身の権限（ロール）は変更できません。</p>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditUser(null)}
+                    disabled={updatingUser}
+                    className="flex-1 py-3 text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatingUser || !editUserForm.email || !editUserForm.displayName || !editUserForm.role}
+                    className="flex-1 flex justify-center items-center py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {updatingUser ? <Loader2 size={18} className="animate-spin" /> : '更新を保存'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

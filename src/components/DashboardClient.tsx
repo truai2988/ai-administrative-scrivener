@@ -235,6 +235,13 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
+          {/* プロフィール設定（全ユーザー共通） */}
+          <SidebarItem
+            icon={UserCircle}
+            label="プロフィール設定"
+            href="/settings/profile"
+          />
+
           {/* 組織・ユーザー管理（scrivener専用） */}
           {userRole === 'scrivener' && (
             <SidebarItem
