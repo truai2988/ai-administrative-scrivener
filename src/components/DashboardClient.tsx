@@ -450,6 +450,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
                 readonly={activeTab === 'all'}
+                showBranch={activeTab === 'all'}
+                getBranchLabel={(branchId: string) => branchId === 'hq_direct' ? '本部直轄' : (BRANCH_LABEL[branchId] ?? branchId)}
               />
             </motion.div>
           </div>

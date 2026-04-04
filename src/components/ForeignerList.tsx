@@ -12,9 +12,11 @@ interface ForeignerListProps {
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
   readonly?: boolean;
+  showBranch?: boolean;
+  getBranchLabel?: (branchId: string) => string;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, selectedIds, onSelectionChange, readonly }) => {
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredData = data.filter(
@@ -103,6 +105,9 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                 </th>
               )}
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">氏名 / 国籍</th>
+              {showBranch && (
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">管轄支部</th>
+              )}
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">所属 / 在留資格</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">在留期限</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">進捗ステータス</th>
@@ -147,6 +152,13 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                       <span className="text-xs text-slate-400">{person.nationality}</span>
                     </div>
                   </td>
+                  {showBranch && (
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-medium text-slate-700">
+                        {getBranchLabel && person.branchId ? getBranchLabel(person.branchId) : person.branchId || '未所属'}
+                      </span>
+                    </td>
+                  )}
                    <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-slate-700">{person.company || '未所属'}</span>
