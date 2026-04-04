@@ -449,6 +449,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 onSelect={(f) => setSelectedForeigner(f)}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
+                readonly={activeTab === 'all'}
               />
             </motion.div>
           </div>

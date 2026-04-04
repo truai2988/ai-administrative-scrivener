@@ -11,9 +11,10 @@ interface ForeignerListProps {
   onSelect: (foreigner: Foreigner, editMode?: boolean) => void;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
+  readonly?: boolean;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, selectedIds, onSelectionChange }) => {
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, selectedIds, onSelectionChange, readonly }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredData = data.filter(
@@ -107,7 +108,9 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">進捗ステータス</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">法的同意</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">AIレビュー</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">操作</th>
+              {!readonly && (
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">操作</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -119,8 +122,8 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
               return (
                 <tr 
                   key={person.id} 
-                  className={`hover:bg-indigo-50/30 transition-colors group cursor-pointer ${isChecked ? 'bg-teal-50/30' : ''}`}
-                  onClick={() => onSelect(person)}
+                  className={`${!readonly ? 'hover:bg-indigo-50/30 cursor-pointer' : ''} transition-colors group ${isChecked ? 'bg-teal-50/30' : ''}`}
+                  onClick={() => !readonly && onSelect(person)}
                 >
                   {isSelectable && (
                     <td className="px-4 py-4">
@@ -184,15 +187,16 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                       <span className="text-[10px] text-slate-300">未入庫</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-
-                      {/* 詳細モーダルへ */}
-                      <div className="flex items-center text-slate-300 group-hover:text-indigo-600 transition-colors">
-                        <ChevronRight className="h-5 w-5" />
+                  {!readonly && (
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* 詳細モーダルへ */}
+                        <div className="flex items-center text-slate-300 group-hover:text-indigo-600 transition-colors">
+                          <ChevronRight className="h-5 w-5" />
+                        </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
+                  )}
                 </tr>
               );
             })}
