@@ -206,6 +206,43 @@ export const simultaneousApplicationSchema = z.object({
   // ...詳細項目は必要に応じて追加。一旦フラグのみで構成。
 }).optional();
 
+// ─── 添付ファイルメタデータスキーマ ──────────────────────────────────────────
+/**
+ * 1件の添付ファイルに関するメタデータ。
+ * 実ファイルは Firebase Storage に保存し、ここには参照情報のみ保持する。
+ */
+export const attachmentMetaSchema = z.object({
+  /** クライアント生成のユニークID (crypto.randomUUID) */
+  id: z.string(),
+  /** オリジナルのファイル表示名 */
+  name: z.string(),
+  /** Firebase Storage のダウンロードURL */
+  url: z.string().url(),
+  /** Firebase Storage 内のオブジェクトパス（削除時に使用） */
+  path: z.string(),
+  /** ファイルサイズ（バイト） */
+  size: z.number().min(0),
+  /** MIMEタイプ */
+  mimeType: z.string(),
+  /** アップロード日時（ISO 8601） */
+  uploadedAt: z.string(),
+});
+
+export type AttachmentMeta = z.infer<typeof attachmentMetaSchema>;
+
+/**
+ * タブ別添付ファイルマップ（ドキュメントルートに配置）。
+ * タブごとに AttachmentMeta の配列を持ち、横断的な合計容量計算を容易にする。
+ * optional なフィールドとし、画面側で ?? [] でフォールバックする。
+ */
+export const attachmentsMapSchema = z.object({
+  foreignerInfo: z.array(attachmentMetaSchema).optional(),
+  employerInfo:  z.array(attachmentMetaSchema).optional(),
+  simultaneous:  z.array(attachmentMetaSchema).optional(),
+});
+
+export type AttachmentsMap = z.infer<typeof attachmentsMapSchema>;
+
 // ─── 申請書全体スキーマ ───────────────────────────────────────────────────────
 /**
  * タブIDをキー、担当者ユーザーIDを値とする割り当てマップ
@@ -219,8 +256,15 @@ export const renewalApplicationSchema = z.object({
   simultaneousApplication: simultaneousApplicationSchema,
   /** タブごとの担当者割り当て（tabId → userId） */
   assignments: tabAssignmentsSchema.optional(),
+  /**
+   * タブごとの添付ファイルリスト（ドキュメントルートで一元管理）。
+   * 全タブを横断した合計サイズ・ファイル数のバリデーションを容易にするため、
+   * 各タブのformDataにではなく、ルートに配置する。
+   */
+  attachments: attachmentsMapSchema.optional(),
 });
 
 export type TabId = 'foreigner' | 'employer' | 'simultaneous';
 export type TabAssignments = Partial<Record<TabId, string>>;
 export type RenewalApplicationFormData = z.infer<typeof renewalApplicationSchema>;
+

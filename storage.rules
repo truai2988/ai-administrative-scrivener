@@ -1,0 +1,121 @@
+rules_version = '2';
+
+/**
+ * Firebase Storage セキュリティルール
+ *
+ * ファイル保存パス構造:
+ *   applications/{applicationId}/{tabId}/{fileName}
+ *
+ * タブID (tabId): 'foreignerInfo' | 'employerInfo' | 'simultaneous'
+ *
+ * 権限マトリクス:
+ *  | ロール         | 読み取り | 書き込み | 削除 |
+ *  |----------------|----------|----------|------|
+ *  | scrivener      | ○        | ○        | ○    |
+ *  | hq_admin       | ○        | ○        | ○    |
+ *  | branch_staff   | ○        | 担当タブのみ | 担当タブのみ |
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── ヘルパー関数 ────────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      ).data;
+    }
+
+    function getUserRole() {
+      return getUserData().role;
+    }
+
+    function isScrivener()   { return getUserRole() == 'scrivener'; }
+    function isHqAdmin()     { return getUserRole() == 'hq_admin'; }
+    function isBranchStaff() { return getUserRole() == 'branch_staff'; }
+
+    /** scrivener または hq_admin は全権限を持つグローバル管理者 */
+    function isGlobalAdmin() {
+      return isScrivener() || isHqAdmin();
+    }
+
+    /**
+     * branch_staff が特定の申請書の特定タブへの書き込み権限を持つか判定。
+     * Firestore の renewal_applications/{applicationId} ドキュメントの
+     * formData.assignments[tabId] に自身のUID が設定されている場合のみ許可。
+     */
+    function isBranchStaffAssignedToTab(applicationId, tabId) {
+      let appData = firestore.get(
+        /databases/(default)/documents/renewal_applications/$(applicationId)
+      ).data;
+      return isBranchStaff() &&
+             appData != null &&
+             appData.formData != null &&
+             appData.formData.assignments != null &&
+             appData.formData.assignments[tabId] == request.auth.uid;
+    }
+
+    // ─── ファイルバリデーション ───────────────────────────────────────────────
+
+    /** アップロード可能なMIMEタイプ */
+    function isAllowedMimeType() {
+      return request.resource.contentType in [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'application/pdf'
+      ];
+    }
+
+    /** 最大ファイルサイズ: 25MB */
+    function isWithinSizeLimit() {
+      return request.resource.size <= 25 * 1024 * 1024;
+    }
+
+    function isValidUpload() {
+      return isAllowedMimeType() && isWithinSizeLimit();
+    }
+
+    // ─── メインルール ─────────────────────────────────────────────────────────
+
+    /**
+     * applications/{applicationId}/{tabId}/{fileName}
+     *
+     * 例: applications/renewal_AB12345678CD_M2K4X/foreignerInfo/passport_20260404.pdf
+     */
+    match /applications/{applicationId}/{tabId}/{fileName} {
+
+      /** 読み取り: 認証済みユーザー全員 */
+      allow read: if isAuthenticated();
+
+      /**
+       * 書き込み（アップロード）:
+       * - グローバル管理者（scrivener / hq_admin）: 常時許可
+       * - branch_staff: 当該タブの担当者のみ、かつバリデーション通過
+       */
+      allow write: if isAuthenticated() && isValidUpload() && (
+        isGlobalAdmin() ||
+        isBranchStaffAssignedToTab(applicationId, tabId)
+      );
+
+      /**
+       * 削除:
+       * - グローバル管理者: 常時許可
+       * - branch_staff: 当該タブの担当者のみ
+       */
+      allow delete: if isAuthenticated() && (
+        isGlobalAdmin() ||
+        isBranchStaffAssignedToTab(applicationId, tabId)
+      );
+    }
+
+    // その他のパスはすべてのアクセスを拒否
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

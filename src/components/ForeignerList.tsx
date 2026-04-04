@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Search, ChevronRight, Clock, ShieldCheck, CheckSquare, Square, MinusSquare, Gavel, FilePen } from 'lucide-react';
-import Link from 'next/link';
+import { Search, ChevronRight, Clock, ShieldCheck, CheckSquare, Square, MinusSquare, Gavel } from 'lucide-react';
 
 interface ForeignerListProps {
   data: Foreigner[];
@@ -187,20 +186,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {/* 申請書を編集ボタン */}
-                      <Link
-                        href={`/forms/renewal/${person.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all
-                          bg-indigo-50 text-indigo-600 border border-indigo-100
-                          hover:bg-indigo-600 hover:text-white hover:border-indigo-600"
-                        title="在留期間更新許可申請書を編集"
-                      >
-                        <FilePen className="h-3.5 w-3.5" />
-                        申請書を編集
-                      </Link>
+
                       {/* 詳細モーダルへ */}
                       <div className="flex items-center text-slate-300 group-hover:text-indigo-600 transition-colors">
                         <ChevronRight className="h-5 w-5" />

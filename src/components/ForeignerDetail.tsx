@@ -2,15 +2,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Foreigner, UserRole } from '@/types/database';
 import { foreignerService } from '@/services/foreignerService';
-import { canRequestReview, canApproveOrReturn, canCorrectData } from '@/utils/permissions';
-import { useAuth } from '@/contexts/AuthContext';
-import { InlineEditForm } from './foreigner/InlineEditForm';
+import { canRequestReview, canApproveOrReturn } from '@/utils/permissions';
 import { CorrectionHistoryList } from './CorrectionHistoryList';
 import { StatusBadge } from './StatusBadge';
 import {
   X, ShieldAlert, Info, Calendar, ClipboardList, Lock, Globe, Monitor,
-  Edit3, Save, Loader2, UserCircle, CheckCircle2, ExternalLink,
-  Building2, CheckCircle, XCircle, Send, RotateCcw, FileText,
+  Edit3, Loader2, UserCircle, CheckCircle2, ExternalLink,
+  Building2, CheckCircle, XCircle, Send, RotateCcw, FileText, FilePen,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExcelDownloadButton } from './ExcelDownloadButton';
@@ -30,26 +28,7 @@ function formatAgreeDate(isoString: string): string {
 }
 
 /** 編集フォームの初期値を foreigner から生成するヘルパー */
-function buildEditForm(f: Foreigner): Partial<Foreigner> {
-  return {
-    name: f.name ?? '',
-    nationality: f.nationality ?? '',
-    residenceCardNumber: f.residenceCardNumber ?? '',
-    birthDate: f.birthDate ?? '',
-    expiryDate: f.expiryDate ?? '',
-    visaType: f.visaType ?? '',
-    company: f.company ?? '',
-    jobTitle: f.jobTitle ?? f.aiReview?.jobTitle ?? '',
-    experience: f.experience ?? f.aiReview?.pastExperience ?? '',
-    salary: f.salary ?? '',
-    allowances: f.allowances ?? '',
-    email: f.email ?? '',
-    socialInsurance: f.socialInsurance ?? false,
-    housingProvided: f.housingProvided ?? false,
-  };
-}
-
-// ─── 型定義 ───────────────────────────────────────────────────────────────────
+ // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
 interface ForeignerDetailProps {
   foreigner: Foreigner;
@@ -66,48 +45,19 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   onUpdate,
   userRole = 'scrivener',
 }) => {
-  useAuth(); // 現状はInlineEditForm内部でuseAuth()を直接呼ぶため、ここでは呼び出しのみ保持
   // ── 権限フラグ ──────────────────────────────────────────────────────────────
   const isHqAdmin = userRole === 'hq_admin';
 
-  // 申請済以降は全ロール共通で編集不可
-  const isSubmittedOrBeyond = (
-    ['申請済', '入管審査中', '完了', '期限切れ警告'].includes(foreigner.status) ||
-    foreigner.approvalStatus === 'approved'
-  );
+  const allowApproveOrReturn = canApproveOrReturn(userRole);
 
-  // 行政書士以外: 確認依頼中・チェック中は編集不可
-  const isReviewLocked =
-    foreigner.approvalStatus === 'pending_review' ||
-    foreigner.status === 'チェック中';
-
-  // 紫ボタン「登録内容を修正」は廃止。全ロール共通でInlineEditFormを使用。
-  const allowEdit = false;
-
-  // 修正モード（InlineEditForm）を開けるか:
-  // - scrivener: 「チェック中」のみ
-  // - branch_staff / hq_admin: 「準備中」「差し戻し」のみ（申請済以降は不可）
-  const allowCorrection = canCorrectData(userRole) && !isSubmittedOrBeyond && (
-    userRole === 'scrivener'
-      ? foreigner.status === 'チェック中'
-      : !isReviewLocked && !(isHqAdmin && foreigner.branchId !== 'hq_direct')
-  );
-
-  // 行政書士への確認依頼ができるか（修正モードとは独立）
   const allowRequestReview =
     canRequestReview(userRole) ||
     (isHqAdmin && foreigner.branchId === 'hq_direct');
 
-  const allowApproveOrReturn = canApproveOrReturn(userRole);
-
   // ── ローカルステート ────────────────────────────────────────────────────────
-  const [isEditing, setIsEditing] = useState(false);
-  const [isCorrectionMode, setIsCorrectionMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isWorkflowLoading, setIsWorkflowLoading] = useState(false);
   const [returnReasonInput, setReturnReasonInput] = useState('');
   const [showReturnForm, setShowReturnForm] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<Foreigner>>(() => buildEditForm(foreigner));
 
   // ── 表示用判定フラグ（可読性・保守性向上のためJSXから抽出） ───────────────
   const isStatusDraft = foreigner.status === '準備中' || foreigner.status === '編集中' || foreigner.status === '差し戻し';
@@ -118,15 +68,12 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   const isWorkflowDraftOrReturned = !foreigner.approvalStatus || foreigner.approvalStatus === 'draft' || isStatusReturned;
 
   // 各セクションの表示条件
-  const showRequestReviewSection = allowRequestReview && !isEditing && isStatusDraft && isWorkflowDraftOrReturned;
+  const showRequestReviewSection = allowRequestReview && isStatusDraft && isWorkflowDraftOrReturned;
   const showPendingReviewBanner = allowRequestReview && isStatusPendingReview;
   const showApproveReturnSection = allowApproveOrReturn && isStatusPendingReview;
 
-  // foreigner が外から差し替えられたらフォームも同期
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    setEditForm(buildEditForm(foreigner));
-    setIsEditing(false);
     return () => { document.body.style.overflow = 'unset'; };
   }, [foreigner]);
 
@@ -134,24 +81,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
 
   // ── ハンドラ ────────────────────────────────────────────────────────────────
 
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      await foreignerService.updateForeignerDataAdmin(foreigner.id, editForm);
-      onUpdate({
-        ...foreigner,
-        ...editForm,
-        originalSubmittedData: foreigner.originalSubmittedData,
-        isEditedByAdmin: true,
-      } as Foreigner);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Firestore save failed:', error);
-      alert('保存に失敗しました');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [foreigner, editForm, onUpdate]);
+
 
   const handleHealApproved = useCallback(async () => {
     try {
@@ -237,16 +167,7 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
             <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <button
-                  onClick={() => {
-                    if (isEditing) {
-                      if (window.confirm('編集中のデータがあります。変更を破棄して閉じますか？')) {
-                        setIsEditing(false);
-                        onClose();
-                      }
-                    } else {
-                      onClose();
-                    }
-                  }}
+                  onClick={onClose}
                   className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition-all"
                   title="一覧に戻る"
                 >
@@ -269,68 +190,18 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
               </div>
 
               <div className="flex items-center gap-3">
-                {!isEditing && (
-                  <div className="flex items-center gap-2">
-                    {userRole === 'scrivener' && (
-                      <ExcelDownloadButton foreigner={foreigner} variant="compact" />
-                    )}
-                    <ConsentPdfButton foreigner={foreigner} variant="compact" />
-                  </div>
-                )}
-                {allowEdit && (
-                  isEditing ? (
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-indigo-100 active:scale-95"
-                    >
-                      {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      修正内容を保存
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 text-sm active:scale-95"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      登録内容を修正
-                    </button>
-                  )
-                )}
-                {allowCorrection && !isEditing && !isCorrectionMode && (
-                  <button
-                    onClick={() => setIsCorrectionMode(true)}
-                    className="px-6 py-2.5 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-100 flex items-center gap-2 text-sm active:scale-95"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    修正モードで開く
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {userRole === 'scrivener' && (
+                    <ExcelDownloadButton foreigner={foreigner} variant="compact" />
+                  )}
+                  <ConsentPdfButton foreigner={foreigner} variant="compact" />
+                </div>
               </div>
             </div>
           </div>
 
           {/* ─── Main Content ──────────────────────────────────────────────── */}
           <div className="max-w-5xl mx-auto p-8 space-y-10">
-            {isCorrectionMode ? (
-              <div className="overflow-y-auto">
-                <InlineEditForm
-                  foreigner={foreigner}
-                  onSuccess={(updated) => {
-                    onUpdate({ 
-                      ...foreigner, 
-                      ...updated, 
-                      isEditedByAdmin: true,
-                      status: '編集中',
-                      approvalStatus: null 
-                    } as Foreigner);
-                    setIsCorrectionMode(false);
-                  }}
-                  onCancel={() => setIsCorrectionMode(false)}
-                />
-              </div>
-            ) : (
-              <>
             {/* 承認済みなのに申請済になっていない場合の修復バナー */}
             {hasApprovedMismatch && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
@@ -360,8 +231,8 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
               </div>
             </section>
 
-            {/* branch_staff: 確認依頼ボタン（編集中は非表示） */}
-            {showRequestReviewSection && (
+            {/* アクションボタン群（編集＆確認依頼） */}
+            {(foreigner.current_application_id || showRequestReviewSection) && (
                 <section className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 space-y-4">
                   {foreigner.approvalStatus === 'returned' && foreigner.returnReason && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
@@ -369,14 +240,26 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                       <p>{foreigner.returnReason}</p>
                     </div>
                   )}
-                  <button
-                    disabled={isWorkflowLoading}
-                    onClick={handleRequestReview}
-                    className="px-5 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-indigo-100 disabled:opacity-60"
-                  >
-                    {isWorkflowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    行政書士へ確認依頼
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={() => window.open(`/forms/renewal/${foreigner.id}`, '_blank')}
+                      className="px-5 py-3 bg-white text-indigo-600 border border-indigo-200 text-sm font-bold rounded-xl hover:bg-indigo-50 transition-all active:scale-95 flex items-center gap-2 shadow-sm"
+                    >
+                      <FilePen className="h-4 w-4" />
+                      {foreigner.current_application_id ? '申請書を編集する' : '申請書データを作成する'}
+                    </button>
+
+                    {showRequestReviewSection && (
+                      <button
+                        disabled={isWorkflowLoading}
+                        onClick={handleRequestReview}
+                        className="px-5 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-indigo-100 disabled:opacity-60"
+                      >
+                        {isWorkflowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        行政書士へ確認依頼
+                      </button>
+                    )}
+                  </div>
                 </section>
               )}
 
@@ -402,6 +285,13 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
                   承認ワークフロー（確認待ち）
                 </h3>
                 <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => window.open(`/forms/renewal/${foreigner.id}`, '_blank')}
+                    className="px-5 py-2.5 bg-white text-emerald-700 border border-emerald-200 text-sm font-bold rounded-xl hover:bg-emerald-50 transition-all active:scale-95 flex items-center gap-2 shadow-sm"
+                  >
+                    <FilePen className="h-4 w-4" />
+                    {foreigner.current_application_id ? '申請書を編集する' : '申請書データを作成する'}
+                  </button>
                   <button
                     disabled={isWorkflowLoading}
                     onClick={handleApprove}
@@ -478,21 +368,13 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
               )}
             </section>
 
-            {/* ─── 登録内容：編集モード / 表示モード ──────────────────────────── */}
+            {/* ─── 登録内容：表示 ──────────────────────────── */}
             <div className="space-y-10">
-              {isEditing ? (
-                <EditForm editForm={editForm} setEditForm={setEditForm} />
-              ) : (
-                <ViewMode foreigner={foreigner} hasAdminDiff={hasAdminDiff} diffKeys={DIFF_KEYS} />
-              )}
+              <ViewMode foreigner={foreigner} hasAdminDiff={hasAdminDiff} diffKeys={DIFF_KEYS} />
             </div>
             
             {/* データ修正履歴 */}
-            {!isEditing && (
-              <CorrectionHistoryList foreignerId={foreigner.id} userRole={userRole} />
-            )}
-              </>
-            )}
+            <CorrectionHistoryList foreignerId={foreigner.id} userRole={userRole} />
           </div>
         </motion.div>
       </div>
@@ -500,93 +382,6 @@ export const ForeignerDetail: React.FC<ForeignerDetailProps> = ({
   );
 };
 
-// ─── 編集フォーム ─────────────────────────────────────────────────────────────
-
-function EditForm({
-  editForm,
-  setEditForm,
-}: {
-  editForm: Partial<Foreigner>;
-  setEditForm: React.Dispatch<React.SetStateAction<Partial<Foreigner>>>;
-}) {
-  const field = (className = '') =>
-    `w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none ${className}`;
-
-  return (
-    <section className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm space-y-8">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-          <Edit3 className="w-4 h-4 text-indigo-500" />
-          登録内容の編集
-        </h3>
-      </div>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-5">
-        <Field label="氏名 (アルファベット)">
-          <input type="text" className={field()} value={editForm.name ?? ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value.toUpperCase() }))} />
-        </Field>
-        <Field label="国籍">
-          <input type="text" className={field()} value={editForm.nationality ?? ''} onChange={e => setEditForm(f => ({ ...f, nationality: e.target.value }))} />
-        </Field>
-        <Field label="在留カード番号">
-          <input type="text" className={field('uppercase')} value={editForm.residenceCardNumber ?? ''} onChange={e => setEditForm(f => ({ ...f, residenceCardNumber: e.target.value }))} maxLength={12} />
-        </Field>
-        <Field label="生年月日">
-          <input type="date" className={field()} value={editForm.birthDate ?? ''} onChange={e => setEditForm(f => ({ ...f, birthDate: e.target.value }))} />
-        </Field>
-        <Field label="在留期限">
-          <input type="date" className={field()} value={editForm.expiryDate ?? ''} onChange={e => setEditForm(f => ({ ...f, expiryDate: e.target.value }))} />
-        </Field>
-        <Field label="メールアドレス">
-          <input type="email" className={field()} value={editForm.email ?? ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="example@mail.com" />
-        </Field>
-        <Field label="所属機関">
-          <input type="text" className={field()} value={editForm.company ?? ''} onChange={e => setEditForm(f => ({ ...f, company: e.target.value }))} />
-        </Field>
-        <Field label="在留資格種別" fullWidth>
-          <input type="text" className={field()} value={editForm.visaType ?? ''} onChange={e => setEditForm(f => ({ ...f, visaType: e.target.value }))} />
-        </Field>
-        <Field label="職務内容 (予定)" fullWidth>
-          <textarea className={`${field()} min-h-[100px] resize-none`} value={editForm.jobTitle ?? ''} onChange={e => setEditForm(f => ({ ...f, jobTitle: e.target.value }))} placeholder="職務の名称や主たる業務内容を入力してください" />
-        </Field>
-        <Field label="過去の経験・専門性" fullWidth>
-          <textarea className={`${field()} min-h-[100px] resize-none`} value={editForm.experience ?? ''} onChange={e => setEditForm(f => ({ ...f, experience: e.target.value }))} placeholder="これまでの職歴や取得資格など" />
-        </Field>
-        <Field label="基本給 (月額)">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">¥</span>
-            <input type="number" className="w-full pl-7 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.salary ?? ''} onChange={e => setEditForm(f => ({ ...f, salary: e.target.value }))} />
-          </div>
-        </Field>
-        <Field label="諸手当 (月額)">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">¥</span>
-            <input type="number" className="w-full pl-7 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" value={editForm.allowances ?? ''} onChange={e => setEditForm(f => ({ ...f, allowances: e.target.value }))} />
-          </div>
-        </Field>
-        <div className="col-span-2 flex gap-6 pt-2">
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" checked={editForm.socialInsurance ?? false} onChange={e => setEditForm(f => ({ ...f, socialInsurance: e.target.checked }))} />
-            <span className="text-xs font-bold text-slate-600 group-hover:text-indigo-600 transition-colors">社会保険加入</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" checked={editForm.housingProvided ?? false} onChange={e => setEditForm(f => ({ ...f, housingProvided: e.target.checked }))} />
-            <span className="text-xs font-bold text-slate-600 group-hover:text-indigo-600 transition-colors">住宅の提供あり</span>
-          </label>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/** 入力欄ラッパー */
-function Field({ label, children, fullWidth }: { label: string; children: React.ReactNode; fullWidth?: boolean }) {
-  return (
-    <div className={fullWidth ? 'col-span-2' : 'col-span-2 md:col-span-1'}>
-      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">{label}</label>
-      {children}
-    </div>
-  );
-}
 
 // ─── 表示モード ───────────────────────────────────────────────────────────────
 

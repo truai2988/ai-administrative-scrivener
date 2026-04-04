@@ -1,14 +1,16 @@
 'use client';
 
-import React from 'react';
-import { useFormContext, Controller, useFieldArray } from 'react-hook-form';
+import React, { useState } from 'react';
+import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { Building2, Plus, Trash2 } from 'lucide-react';
-import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
+import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
+import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import { INDUSTRY_FIELD_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/types/renewalApplication';
 import { FormField } from '../ui/FormField';
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
+import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 
 /** チェックボックス行コンポーネント（欠格事由など） */
 function CheckboxRow({
@@ -36,7 +38,19 @@ function CheckboxRow({
   );
 }
 
-export function EmployerInfoSection({ isEditable = true }: { isEditable?: boolean }) {
+interface EmployerInfoSectionProps {
+  isEditable?: boolean;
+  applicationId?: string;
+  initialAttachments?: AttachmentMeta[];
+  globalLimitContext?: GlobalLimitContext;
+}
+
+export function EmployerInfoSection({
+  isEditable = true,
+  applicationId,
+  initialAttachments,
+  globalLimitContext,
+}: EmployerInfoSectionProps) {
   const {
     register,
     control,
@@ -58,6 +72,14 @@ export function EmployerInfoSection({ isEditable = true }: { isEditable?: boolea
   const hasDifferentTreatment = watch('employerInfo.hasDifferentTreatment');
   const hasJobHistory = watch('employerInfo.hasJobHistory');
 
+  // 書類ファーストワークフローの制御
+  const [isManualInputEnabled, setIsManualInputEnabled] = useState(false);
+  const attachments = useWatch({ control, name: 'attachments.employerInfo' }) || initialAttachments || [];
+  const hasAttachments = attachments.length > 0;
+  
+  // 編集モードかつ（書類が添付されている OR 手動入力がオン）の場合のみフィールドを有効化
+  const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled);
+
   return (
     <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
       {!isEditable && (
@@ -65,12 +87,47 @@ export function EmployerInfoSection({ isEditable = true }: { isEditable?: boolea
           🔒 このセクションは閲覧のみです。自分の担当のタブのみ編集できます。
         </div>
       )}
-      <fieldset disabled={!isEditable} style={{ border: 'none', padding: 0, margin: 0 }}>
+      
       <div className="section-header">
         <Building2 size={20} className="section-icon" />
         <h2 className="section-title">所属機関（企業）情報</h2>
         <p className="section-desc">所属機関等作成用（1〜8）に対応する項目です</p>
       </div>
+
+      {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
+      <div className="subsection subsection--attachments">
+        <SharedFileUploader
+          applicationId={applicationId}
+          attachmentKey="employerInfo"
+          tabLabel="所属機関"
+          initialAttachments={initialAttachments}
+          readonly={!isEditable}
+          globalLimitContext={globalLimitContext}
+          hints={[
+            '労働条件通知書',
+            '36協定',
+            '決算書（転職時）',
+            '雇用保険被保険肥料納付証明',
+            '社会保険料納付証明',
+          ]}
+        />
+        
+        {isEditable && !hasAttachments && (
+          <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
+            <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fbbf24', fontSize: '0.85rem' }}>
+              <input 
+                type="checkbox" 
+                className="checkbox-input"
+                checked={isManualInputEnabled} 
+                onChange={(e) => setIsManualInputEnabled(e.target.checked)} 
+              />
+              <span>※書類を後日提出し、手動で入力を開始する</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      <fieldset disabled={!isFieldsEnabled} style={{ border: 'none', padding: 0, margin: 0, opacity: isFieldsEnabled ? 1 : 0.5, transition: 'opacity 0.2s', pointerEvents: isFieldsEnabled ? 'auto' : 'none' }}>
 
       {/* ─── ① 雇用契約 ──────────────────────────────────────────────────── */}
       <div className="subsection">
@@ -831,6 +888,7 @@ export function EmployerInfoSection({ isEditable = true }: { isEditable?: boolea
           </div>
         )}
       </div>
+
       </fieldset>
     </div>
   );

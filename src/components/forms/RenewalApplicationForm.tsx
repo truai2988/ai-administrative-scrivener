@@ -28,6 +28,8 @@ import { TabAssignmentPanel } from './TabAssignmentPanel';
 import { mergeWithDefaults }  from '@/lib/utils/formUtils';
 import { useRenewalFormSubmit } from '@/hooks/useRenewalFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
+import { calculateTotalSize } from '@/lib/utils/fileUtils';
+import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 
 // ─── タブ定義 ─────────────────────────────────────────────────────────────────
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
@@ -306,21 +308,48 @@ function RenewalApplicationFormInner({
           <TabAssignmentPanel />
 
           {/* ─── セクション ───────────────────────────────────────────── */}
-          <div
-            role="tabpanel"
-            aria-labelledby={`tab-${effectiveTab}`}
-            className="tab-panel"
-          >
-            {effectiveTab === 'foreigner' && (
-              <ForeignerInfoSection isEditable={isEditable('foreigner')} />
-            )}
-            {effectiveTab === 'employer' && (
-              <EmployerInfoSection isEditable={isEditable('employer')} />
-            )}
-            {effectiveTab === 'simultaneous' && (
-              <SimultaneousApplicationSection isEditable={isEditable('simultaneous')} />
-            )}
-          </div>
+          {(() => {
+            const foreignerFiles    = methods.getValues('attachments.foreignerInfo') ?? [];
+            const employerFiles     = methods.getValues('attachments.employerInfo')  ?? [];
+            const simultaneousFiles = methods.getValues('attachments.simultaneous')  ?? [];
+            const allFiles = [...foreignerFiles, ...employerFiles, ...simultaneousFiles];
+            const globalCtx: GlobalLimitContext = {
+              totalFileCount: allFiles.length,
+              totalSizeBytes: calculateTotalSize(allFiles),
+            };
+            return (
+              <div
+                role="tabpanel"
+                aria-labelledby={`tab-${effectiveTab}`}
+                className="tab-panel"
+              >
+                {effectiveTab === 'foreigner' && (
+                  <ForeignerInfoSection
+                    isEditable={isEditable('foreigner')}
+                    applicationId={savedRecordId}
+                    initialAttachments={foreignerFiles}
+                    globalLimitContext={globalCtx}
+                  />
+                )}
+                {effectiveTab === 'employer' && (
+                  <EmployerInfoSection
+                    isEditable={isEditable('employer')}
+                    applicationId={savedRecordId}
+                    initialAttachments={employerFiles}
+                    globalLimitContext={globalCtx}
+                  />
+                )}
+                {effectiveTab === 'simultaneous' && (
+                  <SimultaneousApplicationSection
+                    isEditable={isEditable('simultaneous')}
+                    applicationId={savedRecordId}
+                    initialAttachments={simultaneousFiles}
+                    globalLimitContext={globalCtx}
+                  />
+                )}
+              </div>
+            );
+          })()}
 
           {/* ─── ナビゲーション & アクションバー ──────────────────────── */}
           <div className="form-nav">

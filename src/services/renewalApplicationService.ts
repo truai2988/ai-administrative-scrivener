@@ -20,6 +20,7 @@ import {
 import { db } from '@/lib/firebase/client';
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
+import { mapFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
 
 const COLLECTION_NAME = COLLECTIONS.RENEWAL_APPLICATIONS;
 
@@ -42,6 +43,65 @@ export interface RenewalApplicationRecord {
  */
 function sanitizeForFirestore<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj)) as T;
+}
+
+/**
+ * 内部ヘルパー：申請書保存時に対応する外国人マスタ（Foreigner）を自動検索・Upsertする
+ */
+async function _syncForeignerMaster(
+  formData: RenewalApplicationFormData,
+  applicationId: string,
+  appStatus: string,
+  providedForeignerId?: string
+): Promise<string> {
+  const foreignersCol = collection(db, COLLECTIONS.FOREIGNERS);
+  
+  let matchedDocId: string | null = providedForeignerId || null;
+  
+  if (!matchedDocId) {
+    const cardNum = formData.foreignerInfo.residenceCardNumber?.replace(/[^A-Za-z0-9]/g, '');
+    const name = formData.foreignerInfo.nameKanji || formData.foreignerInfo.nameEn || '';
+    const birthDate = formData.foreignerInfo.birthDate || '';
+
+    // ①在留カード番号で完全一致検索
+    if (cardNum && cardNum.length > 0) {
+      const qCard = query(foreignersCol, where('residenceCardNumber', '==', cardNum), limit(1));
+      const snapCard = await getDocs(qCard);
+      if (!snapCard.empty) {
+        matchedDocId = snapCard.docs[0].id;
+      }
+    }
+
+    // ②名前＋生年月日で完全一致検索
+    if (!matchedDocId && name.length > 0 && birthDate.length > 0) {
+      const qProfile = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), limit(1));
+      const snapProfile = await getDocs(qProfile);
+      if (!snapProfile.empty) {
+        matchedDocId = snapProfile.docs[0].id;
+      }
+    }
+  }
+
+  const syncData = mapFormDataToForeigner(formData, applicationId, appStatus);
+  const now = new Date().toISOString();
+
+  if (matchedDocId) {
+    const docRef = doc(db, COLLECTIONS.FOREIGNERS, matchedDocId);
+    await setDoc(docRef, { ...syncData, updatedAt: now }, { merge: true });
+    return matchedDocId;
+  } else {
+    // 新規作成
+    const newId = `foreigner_${Date.now().toString(36).toUpperCase()}`;
+    const docRef = doc(db, COLLECTIONS.FOREIGNERS, newId);
+    await setDoc(docRef, {
+      ...syncData,
+      id: newId,
+      branchId: 'hq_direct', // 将来的にログインセッションから取得するまでのフォールバック
+      createdAt: now,
+      updatedAt: now,
+    }, { merge: true });
+    return newId;
+  }
 }
 
 export const renewalApplicationService = {
@@ -73,6 +133,9 @@ export const renewalApplicationService = {
         ...(foreignerId ? { foreignerId } : {}),
       });
 
+      // マスタへの自動同期
+      await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, foreignerId);
+
       return existingId;
     } else {
       // 新規作成
@@ -92,6 +155,10 @@ export const renewalApplicationService = {
       };
 
       await setDoc(docRef, record);
+
+      // マスタへの自動同期
+      await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId);
+
       return newId;
     }
   },
@@ -118,4 +185,31 @@ export const renewalApplicationService = {
     const docSnap = snap.docs[0];
     return { id: docSnap.id, ...docSnap.data() } as RenewalApplicationRecord;
   },
+
+  /**
+   * 先行保存: フォームデータなしでステータス draft の空ドキュメントを作成し、
+   * applicationId を即座に発行する（書類ファーストワークフロー用）。
+   *
+   * @param foreignerId - 紐付ける外国人ID（任意）
+   * @returns 発行された applicationId
+   */
+  async createDraft(foreignerId?: string): Promise<string> {
+    const now  = new Date().toISOString();
+    const ts   = Date.now().toString(36).toUpperCase();
+    const newId = `renewal_draft_${ts}`;
+
+    const docRef = doc(db, COLLECTION_NAME, newId);
+    const record = {
+      id:         newId,
+      status:     APPLICATION_STATUS.DRAFT,
+      formData:   null,          // フォームデータはまだ存在しない
+      createdAt:  now,
+      updatedAt:  now,
+      ...(foreignerId ? { foreignerId } : {}),
+    };
+
+    await setDoc(docRef, record);
+    return newId;
+  },
 };
+

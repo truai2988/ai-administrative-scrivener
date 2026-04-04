@@ -331,7 +331,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2"
               >
                 <QrCode className="h-4 w-4" />
-                新規登録URL発行
+                新規申請
               </button>
             )}
 
@@ -639,12 +639,12 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                     <button
                       onClick={() => {
                         setShowShareModal(false);
-                        router.push('/foreigners/new');
+                        window.open('/forms/renewal', '_blank');
                       }}
                       className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 rounded-xl transition-colors mt-2"
                     >
                       <FilePen className="h-4 w-4" />
-                      職員が代わりに入力する
+                      職員が代わって申請書を作成する
                     </button>
                   </div>
                 </div>

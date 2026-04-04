@@ -13,7 +13,7 @@
  * このフックを使うコンポーネントはボタンのレンダリングのみに集中できる。
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import { renewalApplicationService } from '@/services/renewalApplicationService';
@@ -35,6 +35,8 @@ interface UseRenewalFormSubmitReturn {
   isSaving: boolean;
   isExporting: boolean;
   isBusy: boolean;
+  /** 先行保存中フラグ（マウント直後の draft 作成中） */
+  isCreatingDraft: boolean;
   /** 保存のみ実行するハンドラ（handleSubmit に渡す） */
   handleSaveOnly: (data: RenewalApplicationFormData) => Promise<void>;
   /** 保存 + CSV出力を実行するハンドラ（handleSubmit に渡す） */
@@ -49,10 +51,37 @@ export function useRenewalFormSubmit({
   assignments,
   onSubmit,
 }: UseRenewalFormSubmitOptions): UseRenewalFormSubmitReturn {
-  const [isSaving,       setIsSaving]       = useState(false);
-  const [isExporting,    setIsExporting]    = useState(false);
-  const [savedRecordId,  setSavedRecordId]  = useState<string | undefined>(recordId);
+  const [isSaving,        setIsSaving]        = useState(false);
+  const [isExporting,     setIsExporting]     = useState(false);
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
+  const [savedRecordId,   setSavedRecordId]   = useState<string | undefined>(recordId);
   const { show: showToast } = useToast();
+
+  // ─── 先行保存: マウント直後に applicationId を確定させる ─────────────────
+  useEffect(() => {
+    // すでに recordId がある場合（編集時）はスキップ
+    if (recordId) return;
+
+    let cancelled = false;
+    setIsCreatingDraft(true);
+
+    renewalApplicationService.createDraft(foreignerId)
+      .then((id) => {
+        if (!cancelled) setSavedRecordId(id);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('[先行保存エラー]', err);
+          // 失敗しても操作は続行可能（警告のみ）
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsCreatingDraft(false);
+      });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // マウント時1回のみ
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(
@@ -105,6 +134,7 @@ export function useRenewalFormSubmit({
     isSaving,
     isExporting,
     isBusy: isSaving || isExporting,
+    isCreatingDraft,
     handleSaveOnly,
     handleSaveAndExport,
     savedRecordId,

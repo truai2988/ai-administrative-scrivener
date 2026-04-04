@@ -1,19 +1,41 @@
 'use client';
 
-import React from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
+import React, { useState } from 'react';
+import { useFormContext, Controller, useWatch } from 'react-hook-form';
 import { FileStack } from 'lucide-react';
-import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
+import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
+import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import { FormField } from '../ui/FormField';
 import { FormRadioGroup } from '../ui/FormRadio';
+import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 
-export function SimultaneousApplicationSection({ isEditable = true }: { isEditable?: boolean }) {
+interface SimultaneousApplicationSectionProps {
+  isEditable?: boolean;
+  applicationId?: string;
+  initialAttachments?: AttachmentMeta[];
+  globalLimitContext?: GlobalLimitContext;
+}
+
+export function SimultaneousApplicationSection({
+  isEditable = true,
+  applicationId,
+  initialAttachments,
+  globalLimitContext,
+}: SimultaneousApplicationSectionProps) {
   const {
     control,
     formState: { errors },
   } = useFormContext<RenewalApplicationFormData>();
 
   const sim = errors.simultaneousApplication;
+
+  // 書類ファーストワークフローの制御
+  const [isManualInputEnabled, setIsManualInputEnabled] = useState(false);
+  const attachments = useWatch({ control, name: 'attachments.simultaneous' }) || initialAttachments || [];
+  const hasAttachments = attachments.length > 0;
+  
+  // 編集モードかつ（書類が添付されている OR 手動入力がオン）の場合のみフィールドを有効化
+  const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled);
 
   return (
     <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
@@ -22,14 +44,49 @@ export function SimultaneousApplicationSection({ isEditable = true }: { isEditab
           🔒 このセクションは閲覧のみです。自分の担当のタブのみ編集できます。
         </div>
       )}
-      <fieldset disabled={!isEditable} style={{ border: 'none', padding: 0, margin: 0 }}>
-        <div className="section-header">
-          <FileStack size={20} className="section-icon" />
-          <h2 className="section-title">同時申請</h2>
-          <p className="section-desc">
-            在留期間更新と同時に申請する手続きを選択してください（任意）
-          </p>
-        </div>
+      
+      <div className="section-header">
+        <FileStack size={20} className="section-icon" />
+        <h2 className="section-title">同時申請</h2>
+        <p className="section-desc">
+          在留期間更新と同時に申請する手続きを選択してください（任意）
+        </p>
+      </div>
+
+      {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
+      <div className="subsection subsection--attachments">
+        <SharedFileUploader
+          applicationId={applicationId}
+          attachmentKey="simultaneous"
+          tabLabel="同時申請"
+          initialAttachments={initialAttachments}
+          readonly={!isEditable}
+          globalLimitContext={globalLimitContext}
+          hints={[
+            '婚姻証明書（配偶者の場合）',
+            '出生証明書（子の場合）',
+            '再入国許可用深知書',
+            '資格外活動許可証明書（再発行申請時）',
+          ]}
+        />
+        
+        {isEditable && !hasAttachments && (
+          <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
+            <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fbbf24', fontSize: '0.85rem' }}>
+              <input 
+                type="checkbox" 
+                className="checkbox-input"
+                checked={isManualInputEnabled} 
+                onChange={(e) => setIsManualInputEnabled(e.target.checked)} 
+              />
+              <span>※書類を後日提出し、手動で入力を開始する</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      <fieldset disabled={!isFieldsEnabled} style={{ border: 'none', padding: 0, margin: 0, opacity: isFieldsEnabled ? 1 : 0.5, transition: 'opacity 0.2s', pointerEvents: isFieldsEnabled ? 'auto' : 'none' }}>
+
 
         {/* ─── 再入国許可申請 ──────────────────────────────────────────── */}
         <div className="subsection">
@@ -124,7 +181,6 @@ export function SimultaneousApplicationSection({ isEditable = true }: { isEditab
           </div>
         </div>
 
-        {/* 補足メモ */}
         <div className="subsection">
           <div className="info-box">
             <p className="info-box-text">
@@ -132,6 +188,7 @@ export function SimultaneousApplicationSection({ isEditable = true }: { isEditab
             </p>
           </div>
         </div>
+
       </fieldset>
     </div>
   );

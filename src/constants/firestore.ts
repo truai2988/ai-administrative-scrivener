@@ -13,9 +13,11 @@ export const COLLECTIONS = {
  * 更新申請書のステータス定数
  */
 export const APPLICATION_STATUS = {
-  EDITING: 'editing',
+  DRAFT:          'draft',          // 下書き（先行保存・書類添付待ち）
+  EDITING:        'editing',        // 編集中（フォーム入力中）
   PENDING_REVIEW: 'pending_review',
-  APPROVED: 'approved',
+  APPROVED:       'approved',
 } as const;
+
 
 export type ApplicationStatus = typeof APPLICATION_STATUS[keyof typeof APPLICATION_STATUS];

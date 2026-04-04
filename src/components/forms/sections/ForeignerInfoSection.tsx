@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
-import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
+import React, { useState } from 'react';
+import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { Plus, Trash2, User } from 'lucide-react';
-import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
+import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
+import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import {
   DESIRED_STAY_PERIOD_OPTIONS,
   SKILL_CERT_METHOD_OPTIONS,
@@ -14,8 +15,21 @@ import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
+import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 
-export function ForeignerInfoSection({ isEditable = true }: { isEditable?: boolean }) {
+interface ForeignerInfoSectionProps {
+  isEditable?: boolean;
+  applicationId?: string;
+  initialAttachments?: AttachmentMeta[];
+  globalLimitContext?: GlobalLimitContext;
+}
+
+export function ForeignerInfoSection({
+  isEditable = true,
+  applicationId,
+  initialAttachments,
+  globalLimitContext,
+}: ForeignerInfoSectionProps) {
   const {
     register,
     control,
@@ -38,6 +52,14 @@ export function ForeignerInfoSection({ isEditable = true }: { isEditable?: boole
   const skillMethod = watch('foreignerInfo.skillCertifications.0.method');
   const langMethod = watch('foreignerInfo.languageCertifications.0.method');
 
+  // 書類ファーストワークフローの制御
+  const [isManualInputEnabled, setIsManualInputEnabled] = useState(false);
+  const attachments = useWatch({ control, name: 'attachments.foreignerInfo' }) || initialAttachments || [];
+  const hasAttachments = attachments.length > 0;
+  
+  // 編集モードかつ（書類が添付されている OR 手動入力がオン）の場合のみフィールドを有効化
+  const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled);
+
   return (
     <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
       {!isEditable && (
@@ -45,12 +67,48 @@ export function ForeignerInfoSection({ isEditable = true }: { isEditable?: boole
           🔒 このセクションは閲覧のみです。自分の担当のタブのみ編集できます。
         </div>
       )}
-      <fieldset disabled={!isEditable} style={{ border: 'none', padding: 0, margin: 0 }}>
+      
       <div className="section-header">
         <User size={20} className="section-icon" />
         <h2 className="section-title">外国人本人情報</h2>
         <p className="section-desc">申請人等作成用（1〜3）に対応する項目です</p>
       </div>
+
+      {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
+      <div className="subsection subsection--attachments">
+        <SharedFileUploader
+          applicationId={applicationId}
+          attachmentKey="foreignerInfo"
+          tabLabel="外国人本人"
+          initialAttachments={initialAttachments}
+          readonly={!isEditable}
+          globalLimitContext={globalLimitContext}
+          hints={[
+            'パスポート顔写真ページ',
+            '在留カード（表面）',
+            '在留カード（裏面）',
+            '課税証明書',
+            '合格証明書（技能・日本語）',
+            '在日親族の在留カード',
+          ]}
+        />
+        
+        {isEditable && !hasAttachments && (
+          <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
+            <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fbbf24', fontSize: '0.85rem' }}>
+              <input 
+                type="checkbox" 
+                className="checkbox-input"
+                checked={isManualInputEnabled} 
+                onChange={(e) => setIsManualInputEnabled(e.target.checked)} 
+              />
+              <span>※書類を後日提出し、手動で入力を開始する</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      <fieldset disabled={!isFieldsEnabled} style={{ border: 'none', padding: 0, margin: 0, opacity: isFieldsEnabled ? 1 : 0.5, transition: 'opacity 0.2s', pointerEvents: isFieldsEnabled ? 'auto' : 'none' }}>
 
       {/* ─── ① 基本属性 ─────────────────────────────────────────────────── */}
       <div className="subsection">
@@ -771,7 +829,8 @@ export function ForeignerInfoSection({ isEditable = true }: { isEditable?: boole
           </div>
         )}
       </div>
-     </fieldset>
+
+      </fieldset>
     </div>
   );
 }

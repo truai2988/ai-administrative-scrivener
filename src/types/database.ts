@@ -152,6 +152,10 @@ export interface Foreigner {
   approvalStatus?: ApprovalStatus; // 承認ステータス（既存の status フィールドとは独立）
   returnReason?: string; // 差し戻し時の理由
 
+  // 最新申請とのリンク (申請書ファースト移行による追加)
+  current_application_id?: string;
+  current_status?: string;
+
   createdAt: string;
   updatedAt: string;
 }
