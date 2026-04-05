@@ -13,6 +13,7 @@
 import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getStorage, type Storage } from 'firebase-admin/storage';
 
 let _app: App | null = null;
 
@@ -57,6 +58,11 @@ export function getAdminAuth(): Auth {
 /** Firebase Admin Firestore インスタンス（遅延取得） */
 export function getAdminDb(): Firestore {
   return getFirestore(getAdminApp());
+}
+
+/** Firebase Admin Storage インスタンス（遅延取得） */
+export function getAdminStorage(): Storage {
+  return getStorage(getAdminApp());
 }
 
 // 後方互換のためのエイリアス（既存コードが壊れないよう）

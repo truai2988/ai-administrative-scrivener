@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
-import { Plus, Trash2, User } from 'lucide-react';
+import { Plus, Trash2, User, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import {
@@ -16,6 +16,7 @@ import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
+import { useOcrExtract } from '@/hooks/useOcrExtract';
 
 interface ForeignerInfoSectionProps {
   isEditable?: boolean;
@@ -34,6 +35,7 @@ export function ForeignerInfoSection({
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<RenewalApplicationFormData>();
 
@@ -54,11 +56,65 @@ export function ForeignerInfoSection({
 
   // 書類ファーストワークフローの制御
   const [isManualInputEnabled, setIsManualInputEnabled] = useState(false);
-  const attachments = useWatch({ control, name: 'attachments.foreignerInfo' }) || initialAttachments || [];
+  const watchedAttachments = useWatch({ control, name: 'attachments.foreignerInfo' });
+  const attachments = useMemo(
+    () => watchedAttachments || initialAttachments || [],
+    [watchedAttachments, initialAttachments]
+  );
   const hasAttachments = attachments.length > 0;
   
   // 編集モードかつ（書類が添付されている OR 手動入力がオン）の場合のみフィールドを有効化
   const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled);
+
+  // --- OCR 関連 state ---
+  const { runOcr, isOcring, ocrResult, ocrError } = useOcrExtract();
+  // OCR で自動入力されたフィールドのパス集合（ハイライト用）
+  const [ocrHighlightedFields, setOcrHighlightedFields] = useState<Set<string>>(new Set());
+  // ハイライトを一定時間後に消すタイマー
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * 新しいファイルがアップロードされたとき（onAttachmentsChange で呼ばれる）に
+   * OCR を走らせ、結果をフォームに反映する。
+   */
+  const handleAttachmentsChange = useCallback(
+    async (updatedAttachments: AttachmentMeta[]) => {
+      // 新しく追加されたファイルのみ対象（最後尾の要素）
+      const prevCount = (attachments as AttachmentMeta[]).length;
+      const newFile = updatedAttachments[updatedAttachments.length - 1];
+      if (!newFile || updatedAttachments.length <= prevCount) return;
+
+      // PDF はスキップ（スキャン画像のみ対象）
+      if (newFile.mimeType === 'application/pdf') return;
+
+      const result = await runOcr({
+        storagePath: newFile.path,
+        mimeType: newFile.mimeType,
+      });
+
+      if (!result || !result.formData) return;
+
+      // フォームに setValue
+      const newHighlights = new Set<string>();
+      for (const [key, value] of Object.entries(result.formData) as [keyof RenewalApplicationFormData['foreignerInfo'], string][]) {
+        if (value !== undefined && value !== '') {
+          setValue(`foreignerInfo.${key}` as Parameters<typeof setValue>[0], value, { shouldValidate: true });
+          newHighlights.add(`foreignerInfo.${key}`);
+        }
+      }
+
+      // ハイライト適用（3秒後に自動解除）
+      setOcrHighlightedFields(newHighlights);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => {
+        setOcrHighlightedFields(new Set());
+      }, 6000);
+    },
+    [attachments, runOcr, setValue]
+  );
+
+  /** フィールドが OCR で自動入力されたかを判定するヘルパー */
+  const isOcrFilled = (fieldPath: string) => ocrHighlightedFields.has(fieldPath);
 
   return (
     <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
@@ -83,6 +139,7 @@ export function ForeignerInfoSection({
           initialAttachments={initialAttachments}
           readonly={!isEditable}
           globalLimitContext={globalLimitContext}
+          onAttachmentsChange={handleAttachmentsChange}
           hints={[
             'パスポート顔写真ページ',
             '在留カード（表面）',
@@ -92,6 +149,51 @@ export function ForeignerInfoSection({
             '在日親族の在留カード',
           ]}
         />
+
+        {/* OCR バナー */}
+        {isOcring && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            marginTop: '0.75rem', padding: '0.75rem 1rem',
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            borderRadius: '0.5rem', color: '#4f46e5', fontSize: '0.85rem'
+          }}>
+            <Sparkles size={15} style={{ flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+            <span>AIが書類を読み取っています…少しお待ちください</span>
+          </div>
+        )}
+
+        {ocrResult && ocrHighlightedFields.size > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+            marginTop: '0.75rem', padding: '0.75rem 1rem',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            borderRadius: '0.5rem', color: '#059669', fontSize: '0.85rem'
+          }}>
+            <CheckCircle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <span style={{ fontWeight: 700 }}>OCR自動入力完了</span>
+              <span>　{ocrResult.extractedFields.length}項目を抽出しました（信頼度 {Math.round(ocrResult.confidence * 100)}%）。</span>
+              <br />
+              <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>青くハイライトされている欄を目視確認してください。</span>
+            </div>
+          </div>
+        )}
+
+        {ocrError && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            marginTop: '0.75rem', padding: '0.75rem 1rem',
+            background: 'rgba(239, 68, 68, 0.07)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '0.5rem', color: '#dc2626', fontSize: '0.85rem'
+          }}>
+            <AlertCircle size={15} />
+            <span>OCR読み取り失敗: {ocrError}（手動で入力してください）</span>
+          </div>
+        )}
         
         {isEditable && !hasAttachments && (
           <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
@@ -119,6 +221,7 @@ export function ForeignerInfoSection({
               {...register('foreignerInfo.nationality')}
               placeholder="例: 中国"
               error={!!info?.nationality}
+              style={isOcrFilled('foreignerInfo.nationality') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -127,6 +230,7 @@ export function ForeignerInfoSection({
               type="date"
               {...register('foreignerInfo.birthDate')}
               error={!!info?.birthDate}
+              style={isOcrFilled('foreignerInfo.birthDate') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -159,6 +263,7 @@ export function ForeignerInfoSection({
               {...register('foreignerInfo.nameEn')}
               placeholder="例: KOU OTUHEI"
               error={!!info?.nameEn}
+              style={isOcrFilled('foreignerInfo.nameEn') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -301,6 +406,7 @@ export function ForeignerInfoSection({
               {...register('foreignerInfo.currentResidenceStatus')}
               placeholder="例: 特定技能"
               error={!!info?.currentResidenceStatus}
+              style={isOcrFilled('foreignerInfo.currentResidenceStatus') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -317,6 +423,7 @@ export function ForeignerInfoSection({
               type="date"
               {...register('foreignerInfo.stayExpiryDate')}
               error={!!info?.stayExpiryDate}
+              style={isOcrFilled('foreignerInfo.stayExpiryDate') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -354,6 +461,7 @@ export function ForeignerInfoSection({
                 {...register('foreignerInfo.residenceCardNumber')}
                 placeholder="AB12345678CD"
                 error={!!info?.residenceCardNumber}
+                style={isOcrFilled('foreignerInfo.residenceCardNumber') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
               />
             </FormField>
           )}

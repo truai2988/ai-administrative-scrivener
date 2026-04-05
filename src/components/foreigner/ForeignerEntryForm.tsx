@@ -13,36 +13,6 @@ import { submitForeignerEntryAction } from '@/app/actions/foreignerActions';
 import { storageService } from '@/services/storageService';
 import { Foreigner } from '@/types/database';
 
-const normalizeNationality = (raw: string | null | undefined): string => {
-  if (!raw) return '';
-  const r = raw.toLowerCase();
-  if (r.includes('中国') || r.includes('china') || r.includes('prc')) return 'China';
-  if (r.includes('フィリピン') || r.includes('philippines')) return 'Philippines';
-  if (r.includes('ベトナム') || r.includes('vietnam')) return 'Vietnam';
-  if (r.includes('インドネシア') || r.includes('indonesia')) return 'Indonesia';
-  if (r.includes('ネパール') || r.includes('nepal')) return 'Nepal';
-  if (r.includes('ミャンマー') || r.includes('myanmar')) return 'Myanmar';
-  return raw;
-};
-
-const normalizeDate = (raw: string | null | undefined): string => {
-  if (!raw) return '';
-  // 数字のみを抽出
-  const numbers = raw.replace(/\D/g, '');
-  if (numbers.length === 8) {
-    // 19900101 -> 1990-01-01
-    return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6, 8)}`;
-  }
-  // すでに YYYY-MM-DD 形式に近い場合は調整
-  const parts = raw.split(/[-/.]/);
-  if (parts.length === 3) {
-    const y = parts[0].length === 4 ? parts[0] : parts[2];
-    const m = parts[1].padStart(2, '0');
-    const d = parts[0].length === 4 ? parts[2].padStart(2, '0') : parts[0].padStart(2, '0');
-    if (y.length === 4) return `${y}-${m}-${d}`;
-  }
-  return raw;
-};
 
 interface ForeignerEntryFormProps {
   token: string;
@@ -288,17 +258,6 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
                       file={formData.files['rc-front']}
                       compressionType="document"
                       onFileSelect={(f) => setFormData(prev => ({ ...prev, files: { ...prev.files, 'rc-front': f } }))} 
-                      onValidationSuccess={(data) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          name: data.name || prev.name,
-                          nationality: normalizeNationality(data.nationality) || prev.nationality,
-                          birthday: normalizeDate(data.birthDate) || prev.birthday,
-                          residenceCardNumber: data.residenceCardNumber || prev.residenceCardNumber,
-                          expiryDate: normalizeDate(data.expiryDate) || prev.expiryDate,
-                          visaType: data.visaType || prev.visaType,
-                        }));
-                      }}
                     />
                   </div>
                   <div>

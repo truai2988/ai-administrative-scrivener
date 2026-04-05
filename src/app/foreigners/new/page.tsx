@@ -12,14 +12,10 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation'; // ダッシュボードへの遷移に使用
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Sparkles, User, CreditCard, BookOpen, CheckCircle2,
+  User, CreditCard, BookOpen, CheckCircle2,
   AlertCircle, Loader2, Upload, RotateCcw, ChevronRight, ChevronLeft, X, FileImage,
 } from 'lucide-react';
-import {
-  mapAiExtractedToForeigner,
-  countMappedFields,
-  type AiExtractedData,
-} from '@/lib/mappers/aiExtractedToForeigner';
+
 import { storageService } from '@/services/storageService';
 import { foreignerService } from '@/services/foreignerService';
 import type { Foreigner } from '@/types/database';
@@ -57,15 +53,7 @@ const NATIONALITY_LABELS: Record<string, string> = {
   Cambodia: 'カンボジア', Thailand: 'タイ', India: 'インド', 'Sri Lanka': 'スリランカ',
 };
 
-// ─── ユーティリティ ───────────────────────────────────────────────────────────
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました。'));
-    reader.readAsDataURL(file);
-  });
-}
+
 
 // ─── メインページ ─────────────────────────────────────────────────────────────
 export default function ForeignersNewPage() {
@@ -91,12 +79,9 @@ export default function ForeignersNewPage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const isAnyAnalyzing = Object.values(slots).some(s => s.status === 'analyzing');
-  const totalDone = Object.values(slots).filter(s => s.status === 'done').length;
-  const totalFields = Object.values(slots).reduce((a, s) => a + s.fieldCount, 0);
 
-  /* ── OCR処理 ── */
-  const processFile = useCallback(async (slotId: DocSlotId, file: File) => {
+  /* ── 添付処理 ── */
+  const processFile = useCallback((slotId: DocSlotId, file: File) => {
     if (!file.type.startsWith('image/')) {
       showToast('error', '画像ファイル（JPG / PNG）のみ対応しています。');
       return;
@@ -106,42 +91,7 @@ export default function ForeignersNewPage() {
       return;
     }
 
-    setSlots(prev => ({ ...prev, [slotId]: { file, status: 'analyzing', errorMessage: '', fieldCount: 0 } }));
-
-    try {
-      const imageBase64 = await readFileAsBase64(file);
-      const res = await fetch('/api/validate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64, mimeType: file.type }),
-      });
-      if (!res.ok) throw new Error(`APIエラー: ${res.status}`);
-
-      const json = await res.json();
-      if (!json.isValid) {
-        const reason = json.reason || '読み取り不可能な画像です。';
-        setSlots(prev => ({ ...prev, [slotId]: { file, status: 'error', errorMessage: reason, fieldCount: 0 } }));
-        showToast('error', `読み取り失敗：${reason}`);
-        return;
-      }
-
-      const extracted: AiExtractedData = json.extractedData ?? {};
-      const mapped = mapAiExtractedToForeigner(extracted);
-      const fieldCount = countMappedFields(extracted);
-
-      setSlots(prev => ({ ...prev, [slotId]: { file, status: 'done', errorMessage: '', fieldCount } }));
-      setProfile(prev => ({
-        ...prev,
-        ...Object.fromEntries(
-          Object.entries(mapped).filter(([, v]) => v != null && v !== '')
-        ),
-      }));
-      showToast('success', `✨ ${fieldCount} 項目を読み取りました。`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '通信エラーが発生しました。';
-      setSlots(prev => ({ ...prev, [slotId]: { file, status: 'error', errorMessage: msg, fieldCount: 0 } }));
-      showToast('error', '読み取りに失敗しました。手動で入力してください。');
-    }
+    setSlots(prev => ({ ...prev, [slotId]: { file, status: 'done', errorMessage: '', fieldCount: 0 } }));
   }, [showToast]);
 
   const handleDrop = useCallback((e: React.DragEvent, slotId: DocSlotId) => {
@@ -259,7 +209,7 @@ export default function ForeignersNewPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {[{ n: 1, label: '書類スキャン' }, { n: 2, label: '情報確認・登録' }].map(({ n, label }) => (
+          {[{ n: 1, label: '書類添付' }, { n: 2, label: '情報登録' }].map(({ n, label }) => (
             <React.Fragment key={n}>
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold transition-all
                 ${step === n ? 'bg-indigo-600 text-white' : step > n ? 'bg-emerald-600/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>
@@ -279,44 +229,26 @@ export default function ForeignersNewPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-5xl w-full mx-auto px-8 pb-6">
 
-        {/* ═══ STEP 1: 書類スキャン ═══════════════════════════════════════════ */}
+        {/* ═══ STEP 1: 書類添付 ═══════════════════════════════════════════ */}
         {step === 1 && (
           <div>
             <div className="bg-slate-800 rounded-3xl p-6 border border-slate-700 mb-6">
               {/* ヘッダー */}
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-10 h-10 bg-indigo-600/30 rounded-xl flex items-center justify-center shrink-0">
-                  <Sparkles size={20} className="text-indigo-400" />
+                  <CreditCard size={20} className="text-indigo-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white mb-1">書類スキャン・自動入力（AIアシスト）</h2>
+                  <h2 className="text-lg font-bold text-white mb-1">関連書類のアップロード</h2>
                   <p className="text-slate-400 text-sm">
-                    書類の画像をアップロードすると、AIが文字を読み取って自動入力します。
+                    事前に在留カードやパスポートの画像がある場合は、ここにアップロードできます。
                     <span className="ml-2 bg-slate-700 text-slate-300 text-xs font-bold px-2 py-0.5 rounded-lg">JPG / PNG のみ対応</span>
                   </p>
                 </div>
               </div>
 
-              {/* 成功バナー */}
-              {totalDone > 0 && (
-                <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl px-4 py-3 mb-5">
-                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                  <span className="text-emerald-400 text-sm font-medium">
-                    {totalDone}件の書類から <strong>{totalFields}項目</strong> を読み取りました。
-                  </span>
-                </div>
-              )}
-
-              {/* 解析中オーバーレイ */}
-              {isAnyAnalyzing && (
-                <div className="flex items-center justify-center gap-3 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl px-4 py-4 mb-5">
-                  <Loader2 size={18} className="text-indigo-400 animate-spin" />
-                  <span className="text-indigo-400 font-medium text-sm">AIが書類を解析中...</span>
-                </div>
-              )}
-
               {/* スロットグリッド */}
-              <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${isAnyAnalyzing ? 'pointer-events-none opacity-70' : ''}`}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {SLOT_DEFS.map(def => {
                   const slot = slots[def.id];
                   const Icon = def.icon;
@@ -345,7 +277,6 @@ export default function ForeignersNewPage() {
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3
                           ${slot.status === 'done' ? 'bg-emerald-500/20' : slot.status === 'error' ? 'bg-rose-500/20' : 'bg-slate-700'}`}>
                           {slot.status === 'idle' && <Icon size={24} className="text-slate-400" />}
-                          {slot.status === 'analyzing' && <Loader2 size={24} className="text-indigo-400 animate-spin" />}
                           {slot.status === 'done' && <CheckCircle2 size={24} className="text-emerald-400" />}
                           {slot.status === 'error' && <AlertCircle size={24} className="text-rose-400" />}
                         </div>
@@ -363,10 +294,6 @@ export default function ForeignersNewPage() {
                           </div>
                         )}
 
-                        {slot.status === 'analyzing' && (
-                          <span className="text-xs text-indigo-400">解析中...</span>
-                        )}
-
                         {slot.status === 'done' && (
                           <div className="space-y-2">
                             {slot.file && (
@@ -374,7 +301,7 @@ export default function ForeignersNewPage() {
                                 <FileImage size={10}/> {slot.file.name.slice(0, 20)}
                               </div>
                             )}
-                            <span className="text-xs text-emerald-400 font-medium">{slot.fieldCount}項目を読み取りました</span>
+                            <span className="text-xs text-emerald-400 font-medium">添付完了</span>
                           </div>
                         )}
 
@@ -409,7 +336,7 @@ export default function ForeignersNewPage() {
                 onClick={() => setStep(2)}
                 className="flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-900 transition-all active:scale-95"
               >
-                {totalDone > 0 ? `${totalFields}項目を引き継いで確認へ` : '書類なしで情報入力へ'}
+                情報の入力へ進む
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -425,9 +352,9 @@ export default function ForeignersNewPage() {
                   <User size={20} className="text-emerald-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white mb-1">外国人プロフィールの確認・入力</h2>
+                  <h2 className="text-lg font-bold text-white mb-1">外国人プロフィールの入力</h2>
                   <p className="text-slate-400 text-sm">
-                    AIが読み取った情報を確認し、不足項目を補完してください。「登録する」で台帳に追加されます。
+                    項目を入力してください。「登録する」で台帳に追加されます。
                   </p>
                 </div>
               </div>
@@ -637,7 +564,7 @@ export default function ForeignersNewPage() {
                 onClick={() => setStep(1)}
                 className="flex items-center gap-2 px-5 py-3 text-slate-400 hover:text-slate-200 font-medium transition-colors"
               >
-                <ChevronLeft size={18} /> 書類スキャンに戻る
+                <ChevronLeft size={18} /> 書類添付に戻る
               </button>
 
               <button

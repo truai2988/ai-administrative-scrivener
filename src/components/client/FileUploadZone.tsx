@@ -17,7 +17,6 @@ interface FileUploadZoneProps {
   file?: File | null;
   compressionType?: CompressionType;
   onFileSelect?: (file: File | null) => void;
-  onValidationSuccess?: (extractedData: Record<string, string | null>) => void;
 }
 
 export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
@@ -26,17 +25,14 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   file,
   compressionType = 'none',
   onFileSelect,
-  onValidationSuccess,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [compressionResult, setCompressionResult] = useState<{
     originalSize: number;
     compressedSize: number;
   } | null>(null);
-  const [errorReason, setErrorReason] = useState<string | null>(null);
 
   const compressFile = async (inputFile: File): Promise<File> => {
     if (compressionType === 'none') return inputFile;
@@ -71,82 +67,18 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
     }
   };
 
-  /** 検証用に長辺800pxにリサイズする（転送量削減） */
-  const resizeForValidation = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const MAX = 800;
-        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * ratio;
-        canvas.height = img.height * ratio;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
-      img.src = url;
-    });
-  };
-
   const processFile = async (rawFile: File) => {
-    setErrorReason(null);
     setCompressionResult(null);
 
+    // 画像ファイルでない場合はそのまま許可
     if (!rawFile.type.startsWith('image/')) {
-      // PDF等の場合はそのまま許可
       if (onFileSelect) onFileSelect(rawFile);
       return;
     }
 
-    // 圧縮とリサイズを並行して実行
-    setIsChecking(true);
-    const [compressedFile, base64ForValidation] = await Promise.all([
-      compressFile(rawFile),
-      resizeForValidation(rawFile),
-    ]);
-
-    try {
-      const res = await fetch('/api/validate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64ForValidation, mimeType: 'image/jpeg' }),
-      });
-
-      let data;
-      try {
-        data = await res.json();
-      } catch (parseError) {
-        console.error("Failed to parse JSON response:", parseError);
-        setErrorReason('サーバーから予期せぬエラーが返されました（500エラー等）。サーバーのログを確認してください。');
-        const input = document.getElementById(`file-input-${label}`) as HTMLInputElement;
-        if (input) input.value = '';
-        return;
-      }
-
-      if (!data.isValid) {
-        if (data.systemError && !data.reason) {
-          setErrorReason('AIのエラーが発生しました。APIキー等が未設定の可能性があります。');
-        } else {
-          setErrorReason(data.reason || '画像の検証に失敗しました。');
-        }
-
-        const input = document.getElementById(`file-input-${label}`) as HTMLInputElement;
-        if (input) input.value = '';
-      } else {
-        // 圧縮後のファイルを設定
-        if (onFileSelect) onFileSelect(compressedFile);
-        if (onValidationSuccess && data.extractedData) {
-          onValidationSuccess(data.extractedData);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-      setErrorReason('通信エラーが発生しました。再度お試しください。');
-    } finally {
-      setIsChecking(false);
-    }
+    // 圧縮のみ実行（旧AI検証削除済み）
+    const compressedFile = await compressFile(rawFile);
+    if (onFileSelect) onFileSelect(compressedFile);
   };
 
 
@@ -160,7 +92,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   };
 
   const handleRemove = () => {
-    setErrorReason(null);
     setCompressionResult(null);
     if (onFileSelect) onFileSelect(null);
   };
@@ -183,28 +114,10 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
         )}
       </div>
       
-      {errorReason && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="bg-rose-50 border border-rose-200 text-rose-600 text-sm p-3 rounded-xl shadow-sm flex items-center justify-between gap-2"
-        >
-          <p className="font-medium">{errorReason}</p>
-          <button 
-            type="button" 
-            onClick={() => setErrorReason(null)}
-            className="p-1 hover:bg-rose-100 rounded-full transition-colors shrink-0"
-          >
-            <X className="w-5 h-5 text-rose-500 hover:text-rose-700" />
-          </button>
-        </motion.div>
-      )}
-
       <div 
         className={`relative border-2 border-dashed rounded-2xl p-4 transition-all duration-300 ${
           isDragOver ? 'border-indigo-500 bg-indigo-50/50' : 
           file ? 'border-emerald-500 bg-emerald-50/30' : 
-          errorReason ? 'border-rose-300 bg-rose-50/30' :
           'border-slate-200 hover:border-slate-300 bg-slate-50/50'
         }`}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -238,18 +151,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
                 />
               </div>
               <p className="text-[10px] text-teal-400 mt-2">{compressionProgress}% 完了</p>
-            </motion.div>
-          ) : isChecking ? (
-            <motion.div 
-              key="checking"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-6"
-            >
-              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-3" />
-              <p className="text-sm font-bold text-indigo-700">AIが画像の鮮明さをチェックしています...</p>
-              <p className="text-[10px] text-indigo-400 mt-1">光の反射やピンボケがないか確認中</p>
             </motion.div>
           ) : !file ? (
             <motion.div 
