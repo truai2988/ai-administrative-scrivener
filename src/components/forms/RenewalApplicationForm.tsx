@@ -6,8 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Download, Save, Loader2,
+  AlertCircle, Download, Save, Loader2, Sparkles,
 } from 'lucide-react';
+import { AiDiagnosticPanel } from './AiDiagnosticPanel';
+import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import {
   renewalApplicationSchema,
   type RenewalApplicationFormData,
@@ -186,6 +188,9 @@ function RenewalApplicationFormInner({
   const { toasts, dismiss, show: showToast } = useToast();
   const { isEditable, assignments } = useSectionPermission();
 
+  // AI診断フック
+  const aiDiag = useAiDiagnostics({ recordId });
+
   const visibleTabs = useMemo(() => TABS.filter(tab => isEditable(tab.id)), [isEditable]);
 
   /**
@@ -266,6 +271,35 @@ function RenewalApplicationFormInner({
               </div>
               <div className="applicant-type">在留期間更新許可申請（特定技能）</div>
             </div>
+
+            {/* ─── AI診断ボタン ─── */}
+            <button
+              type="button"
+              id="btn-ai-check"
+              className={`ai-check-btn ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
+              onClick={() => aiDiag.runCheck(methods.getValues())}
+              disabled={aiDiag.status === 'loading'}
+              title="入力内容・整合性・法的リスクをAIが診断します"
+            >
+              {aiDiag.status === 'loading' ? (
+                <Loader2 size={16} className="spin" />
+              ) : (
+                <Sparkles size={16} />
+              )}
+              <span>
+                {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
+              </span>
+              {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
+                <span className="ai-check-btn-badge ai-check-btn-badge--critical">
+                  {aiDiag.counts.critical}
+                </span>
+              )}
+              {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
+                <span className="ai-check-btn-badge ai-check-btn-badge--warning">
+                  {aiDiag.counts.warning}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* ─── タブナビゲーション ────────────────────────────────────── */}
@@ -406,6 +440,15 @@ function RenewalApplicationFormInner({
 
         </form>
       </FormProvider>
+
+      {/* ─── AI診断結果 Drawer ─── */}
+      <AiDiagnosticPanel
+        status={aiDiag.status}
+        diagnostics={aiDiag.diagnostics}
+        counts={aiDiag.counts}
+        errorMessage={aiDiag.errorMessage}
+        onClose={aiDiag.reset}
+      />
     </>
   );
 }
