@@ -25,6 +25,8 @@ interface UseRenewalFormSubmitOptions {
   recordId?: string;
   /** 紐付ける外国人ドキュメントID */
   foreignerId?: string;
+  /** 所属する組織のID */
+  organizationId?: string;
   /** タブごとの担当者割り当て（SectionPermissionContextから渡す） */
   assignments: TabAssignments;
   /** 保存完了後の外部コールバック（省略可） */
@@ -48,6 +50,7 @@ interface UseRenewalFormSubmitReturn {
 export function useRenewalFormSubmit({
   recordId,
   foreignerId,
+  organizationId,
   assignments,
   onSubmit,
 }: UseRenewalFormSubmitOptions): UseRenewalFormSubmitReturn {
@@ -87,12 +90,12 @@ export function useRenewalFormSubmit({
   const saveToFirebase = useCallback(
     async (data: RenewalApplicationFormData): Promise<string> => {
       const dataWithAssignments = { ...data, assignments };
-      const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId);
+      const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
       if (onSubmit) await onSubmit(dataWithAssignments);
       return id;
     },
-    [savedRecordId, foreignerId, assignments, onSubmit]
+    [savedRecordId, foreignerId, organizationId, assignments, onSubmit]
   );
 
   // ─── ① 保存のみ ──────────────────────────────────────────────────────────

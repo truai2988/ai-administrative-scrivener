@@ -52,7 +52,8 @@ async function _syncForeignerMaster(
   formData: RenewalApplicationFormData,
   applicationId: string,
   appStatus: string,
-  providedForeignerId?: string
+  providedForeignerId?: string,
+  organizationId?: string
 ): Promise<string> {
   const foreignersCol = collection(db, COLLECTIONS.FOREIGNERS);
   
@@ -96,7 +97,7 @@ async function _syncForeignerMaster(
     await setDoc(docRef, {
       ...syncData,
       id: newId,
-      branchId: 'hq_direct', // 将来的にログインセッションから取得するまでのフォールバック
+      branchId: organizationId || 'hq_direct',
       createdAt: now,
       updatedAt: now,
     }, { merge: true });
@@ -112,7 +113,8 @@ export const renewalApplicationService = {
   async save(
     formData: RenewalApplicationFormData,
     existingId?: string,
-    foreignerId?: string
+    foreignerId?: string,
+    organizationId?: string
   ): Promise<string> {
     const now = new Date().toISOString();
     const safeFormData = sanitizeForFirestore(formData);
@@ -134,7 +136,7 @@ export const renewalApplicationService = {
       });
 
       // マスタへの自動同期
-      await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, foreignerId);
+      await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
 
       return existingId;
     } else {
@@ -157,7 +159,7 @@ export const renewalApplicationService = {
       await setDoc(docRef, record);
 
       // マスタへの自動同期
-      await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId);
+      await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
 
       return newId;
     }

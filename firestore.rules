@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     function getUserBranchId() {
-      return getUserData().branchId;
+      return getUserData().organizationId;
     }
 
     function isHqAdmin()     { return getUserRole() == 'hq_admin'; }

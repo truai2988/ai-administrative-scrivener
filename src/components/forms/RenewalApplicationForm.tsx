@@ -229,8 +229,15 @@ function RenewalApplicationFormInner({
   }, [mergedDefaultValues, reset]);
 
   // 保存・エクスポートロジックはカスタムフックに委譲
+  const { currentUser } = useAuth();
   const { isSaving, isExporting, isBusy, handleSaveOnly, handleSaveAndExport, savedRecordId } =
-    useRenewalFormSubmit({ recordId, foreignerId, assignments, onSubmit });
+    useRenewalFormSubmit({
+      recordId,
+      foreignerId,
+      organizationId: currentUser?.organizationId ?? undefined,
+      assignments,
+      onSubmit
+    });
 
   const hasForeignerErrors    = !!errors.foreignerInfo;
   const hasEmployerErrors     = !!errors.employerInfo;
