@@ -199,31 +199,42 @@ export function SharedFileUploader({
       )}
 
       {/* ─── 推奨書類ヒント（クリックして事前選択可能） ────────────────────────────── */}
-      {hints.length > 0 && (
-        <div className="shared-file-uploader__hints">
-          <span className="shared-file-uploader__hints-label">推奨書類 (事前選択):</span>
-          <div className="shared-file-uploader__hints-chips">
-            {hints.map((hint) => {
-              const isSelected = selectedHint === hint;
-              return (
-                <button
-                  key={hint}
-                  type="button"
-                  onClick={() => setSelectedHint(isSelected ? null : hint)}
-                  className={`shared-file-uploader__hint-chip ${
-                    isSelected ? 'shared-file-uploader__hint-chip--selected' : ''
-                  }`}
-                  aria-pressed={isSelected}
-                  title={`${hint} をアップロードする前に選択してください`}
-                >
-                  {isSelected && <CheckCircle2 size={12} style={{ marginRight: '4px', display: 'inline-block' }} />}
-                  {hint}
-                </button>
-              );
-            })}
+      {hints.length > 0 && (() => {
+        // 既にアップロード済みのタグ一覧を抽出
+        const uploadedTags = new Set(attachments.map(a => a.tag).filter(Boolean));
+        return (
+          <div className="shared-file-uploader__hints">
+            <span className="shared-file-uploader__hints-label">推奨書類 (事前選択):</span>
+            <div className="shared-file-uploader__hints-chips">
+              {hints.map((hint) => {
+                const isSelected = selectedHint === hint;
+                const isDone     = uploadedTags.has(hint);
+                return (
+                  <button
+                    key={hint}
+                    type="button"
+                    onClick={() => setSelectedHint(isSelected ? null : hint)}
+                    className={`shared-file-uploader__hint-chip ${
+                      isDone     ? 'shared-file-uploader__hint-chip--done' :
+                      isSelected ? 'shared-file-uploader__hint-chip--selected' : ''
+                    }`}
+                    aria-pressed={isSelected}
+                    title={
+                      isDone
+                        ? `${hint} は添付済みです（クリックで上書きアップロード可能）`
+                        : `${hint} をアップロードする前に選択してください`
+                    }
+                  >
+                    {isDone     && <CheckCircle2 size={12} style={{ marginRight: '4px', display: 'inline-block', flexShrink: 0 }} />}
+                    {!isDone && isSelected && <CheckCircle2 size={12} style={{ marginRight: '4px', display: 'inline-block', flexShrink: 0 }} />}
+                    {hint}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ─── 対応形式の案内 ─────────────────────────────────────────────────── */}
       {!readonly && (

@@ -95,23 +95,24 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     setMounted(true);
   }, []);
 
-  // ロールベースのデータ取得
+  // ロールベースのデータ取得 (リアルタイム購読)
   useEffect(() => {
     if (!currentUser) return;
-    const loadData = async () => {
-      try {
-        const fetched = await foreignerService.getForeignersByRole(
-          currentUser.role,
-          currentUser.organizationId ?? undefined
-        );
-        setData(fetched);
-      } catch (err) {
-        console.error(err);
-      } finally {
+    
+    setLoading(true);
+    
+    // リアルタイムリスナーを開始
+    const unsubscribe = foreignerService.subscribeForeignersByRole(
+      currentUser.role,
+      currentUser.organizationId ?? undefined,
+      (fetchedData) => {
+        setData(fetchedData);
         setLoading(false);
       }
-    };
-    loadData();
+    );
+    
+    // クリーンアップ関数で購読解除
+    return () => unsubscribe();
   }, [currentUser]);
 
   // 未ログインチェック（Middlewareを通過しても念のためクライアント側でもチェック）
@@ -449,8 +450,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 onSelect={(f) => setSelectedForeigner(f)}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
-                readonly={activeTab === 'all'}
-                showBranch={activeTab === 'all'}
+                readonly={isHqAdmin && activeTab === 'all'}
+                showBranch={isHqAdmin && activeTab === 'all'}
                 getBranchLabel={(branchId: string) => branchId === 'hq_direct' ? '本部直轄' : (BRANCH_LABEL[branchId] ?? branchId)}
               />
             </motion.div>

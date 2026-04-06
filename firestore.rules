@@ -12,15 +12,17 @@ service cloud.firestore {
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     function getUserRole() {
-      return getUserData().role;
+      let docData = getUserData();
+      return docData != null ? docData.data.get('role', 'none') : 'none';
     }
 
     function getUserBranchId() {
-      return getUserData().organizationId;
+      let docData = getUserData();
+      return docData != null ? docData.data.get('organizationId', 'none') : 'none';
     }
 
     function isHqAdmin()     { return getUserRole() == 'hq_admin'; }
@@ -70,7 +72,7 @@ service cloud.firestore {
       
       allow list: if isAuthenticated() && (
         canViewAllBranches() ||
-        (isBranchStaff() && resource.data.branchId == getUserBranchId())
+        (isBranchStaff() && resource.data.get('branchId', '') == getUserBranchId())
       );
 
       // ===== 作成 =====
@@ -80,8 +82,8 @@ service cloud.firestore {
         // 認証済みユーザーによる作成（既存ルール）
         (isAuthenticated() && (
           isScrivener() ||
-          (isHqAdmin()     && request.resource.data.branchId == 'hq_direct') ||
-          (isBranchStaff() && request.resource.data.branchId == getUserBranchId())
+          (isHqAdmin()     && request.resource.data.get('branchId', '') == 'hq_direct') ||
+          (isBranchStaff() && request.resource.data.get('branchId', '') == getUserBranchId())
         )) ||
         // 未認証ユーザー（外国人本人）による申請フォームからの作成
         (!isAuthenticated() && request.resource.data.keys().hasAll(['name', 'updatedAt']));
@@ -97,20 +99,20 @@ service cloud.firestore {
           isScrivener() ||
           (
             isHqAdmin() &&
-            resource.data.branchId == 'hq_direct' &&
+            resource.data.get('branchId', '') == 'hq_direct' &&
             (
               !('status' in request.resource.data) ||
-              request.resource.data.status == resource.data.status ||
+              request.resource.data.status == resource.data.get('status', '') ||
               request.resource.data.status == '編集中'
             )
           ) ||
           (
             isBranchStaff() &&
-            resource.data.branchId == getUserBranchId() &&
-            request.resource.data.branchId == resource.data.branchId &&
+            resource.data.get('branchId', '') == getUserBranchId() &&
+            request.resource.data.get('branchId', '') == resource.data.get('branchId', '') &&
             (
               !('status' in request.resource.data) ||
-              request.resource.data.status == resource.data.status ||
+              request.resource.data.status == resource.data.get('status', '') ||
               request.resource.data.status == '編集中'
             )
           )

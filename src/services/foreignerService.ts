@@ -8,7 +8,8 @@ import {
   query,
   orderBy,
   where,
-  writeBatch
+  writeBatch,
+  onSnapshot
 } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
 import { Foreigner, UserRole, DEFAULT_BRANCH_ID } from "../types/database";
@@ -73,6 +74,39 @@ export const foreignerService = {
       id: doc.id,
       ...doc.data()
     })) as Foreigner[];
+  },
+
+  /**
+   * ロールに基づいて外国人データをリアルタイム取得（購読）
+   */
+  subscribeForeignersByRole(
+    role: UserRole, 
+    branchId: string | undefined, 
+    callback: (data: Foreigner[]) => void
+  ): () => void {
+    let q;
+
+    if (canViewAllBranches(role)) {
+      q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
+    } else {
+      if (!branchId) {
+        console.error("[foreignerService] branch_staff requires branchId");
+        return () => {}; // return empty unsubscribe
+      }
+      q = query(
+        collection(db, COLLECTION_NAME),
+        where("branchId", "==", branchId),
+        orderBy("updatedAt", "desc")
+      );
+    }
+
+    return onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Foreigner[];
+      callback(docs);
+    });
   },
 
   /**

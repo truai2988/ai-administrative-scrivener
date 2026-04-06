@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Download, Save, Loader2, Sparkles,
+  AlertCircle, Save, Loader2, Sparkles,
 } from 'lucide-react';
 import { AiDiagnosticPanel } from './AiDiagnosticPanel';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
@@ -204,7 +204,7 @@ function RenewalApplicationFormInner({
   hideHeader,
 }: Omit<RenewalApplicationFormProps, 'initialAssignments' | 'templatesRecord'>) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
-  const { toasts, dismiss, show: showToast } = useToast();
+  const { toasts, dismiss } = useToast();
   const { isEditable, assignments } = useSectionPermission();
 
   // AI診断フック
@@ -235,7 +235,7 @@ function RenewalApplicationFormInner({
     mode: 'onBlur',
   });
 
-  const { handleSubmit, formState: { errors }, reset } = methods;
+  const { formState: { errors }, reset } = methods;
 
   // useWatch: React Compiler に安全な方法でフォーム値をサブスクライブ
   const nameEn = useWatch({ control: methods.control, name: 'foreignerInfo.nameEn' });
@@ -249,7 +249,7 @@ function RenewalApplicationFormInner({
 
   // 保存・エクスポートロジックはカスタムフックに委譲
   const { currentUser } = useAuth();
-  const { isSaving, isExporting, isBusy, handleSaveOnly, handleSaveAndExport, savedRecordId } =
+  const { isSaving, isBusy, handleSaveOnly, savedRecordId } =
     useRenewalFormSubmit({
       recordId,
       foreignerId,
@@ -261,10 +261,6 @@ function RenewalApplicationFormInner({
   const hasForeignerErrors    = !!errors.foreignerInfo;
   const hasEmployerErrors     = !!errors.employerInfo;
   const hasSimultaneousErrors = !!errors.simultaneousApplication;
-
-  const onValidationFailed = () => {
-    showToast('error', '入力内容にエラーがあります。赤く表示されたタブ・項目を確認してください。');
-  };
 
   return (
     <>
@@ -426,39 +422,27 @@ function RenewalApplicationFormInner({
                     </button>
                   )}
 
-                  {nextTab ? (
-                    <button type="button" className="btn-secondary" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
-                      {nextTab.label}へ <ChevronRight size={18} />
+                  <div className="form-action-bar">
+                    {/* ① 保存（全タブ常時表示） */}
+                    <button
+                      type="button"
+                      className="btn-outline btn-save"
+                      onClick={() => handleSaveOnly(methods.getValues())}
+                      disabled={isBusy}
+                      id="btn-save-only"
+                      title="入力途中の内容を下書き保存します"
+                    >
+                      {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
+                      {isSaving ? '保存中...' : '保存'}
                     </button>
-                  ) : (
-                    <div className="form-action-bar">
-                      {/* ① 保存 */}
-                      <button
-                        type="button"
-                        className="btn-outline btn-save"
-                        onClick={() => handleSaveOnly(methods.getValues())}
-                        disabled={isBusy}
-                        id="btn-save-only"
-                        title="入力途中の内容を下書き保存します"
-                      >
-                        {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-                        {isSaving ? '保存中...' : '保存'}
-                      </button>
 
-                      {/* ② 保存してCSV出力 */}
-                      <button
-                        type="button"
-                        className="btn-primary"
-                        onClick={handleSubmit(handleSaveAndExport, onValidationFailed)}
-                        disabled={isBusy}
-                        id="btn-save-and-export"
-                        title="保存後、入管申請用CSVを3ファイルダウンロードします"
-                      >
-                        {isExporting ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
-                        {isExporting ? 'CSV生成中...' : '保存してCSVを出力する'}
+                    {/* ② 次のタブへ */}
+                    {nextTab && (
+                      <button type="button" className="btn-secondary" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
+                        {nextTab.label}へ <ChevronRight size={18} />
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             })()}
@@ -475,6 +459,7 @@ function RenewalApplicationFormInner({
         errorMessage={aiDiag.errorMessage}
         onClose={aiDiag.reset}
       />
+
     </>
   );
 }
