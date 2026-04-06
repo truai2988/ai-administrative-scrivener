@@ -112,10 +112,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 抽出テキストをログ（デバッグ用） ────────────────────────────────
-    console.log('[OCR] Full text:', document.text?.slice(0, 500));
+    console.log('[OCR DEBUG] Full text preview:', document.text?.slice(0, 500));
+    
+    // Entity のキーを調査できるようにログ追加
+    if (document.entities && document.entities.length > 0) {
+      console.log(
+        '[OCR DEBUG] Detected Entity Types:', 
+        document.entities.map(e => ({ type: e.type, text: e.mentionText || e.normalizedValue?.text }))
+      );
+    }
 
     // ── マッパーでフォームデータへ変換 ──────────────────────────────────
     const { formData, extractedFields, confidence } = mapDocumentAiToFormData(document);
+
+    console.log('[OCR DEBUG] Mapped formData keys/values:', formData);
+    console.log('[OCR DEBUG] Extracted fields paths:', extractedFields.map(f => `${f.fieldPath} => ${f.rawValue}`));
 
     return NextResponse.json({
       success: true,

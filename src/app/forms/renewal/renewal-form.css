@@ -1482,6 +1482,20 @@
   font-size: 0.7rem;
   font-weight: 500;
   color: #7dd3fc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shared-file-uploader__hint-chip:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.shared-file-uploader__hint-chip--selected {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #bae6fd;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
 }
 
 /* ─── 注意メッセージ */
@@ -1799,9 +1813,22 @@
 .file-list__meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
   font-size: 0.7rem;
   color: #475569;
+}
+
+.file-list__tag-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+  color: #38bdf8;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .file-list__sep {

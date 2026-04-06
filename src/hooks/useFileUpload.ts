@@ -18,7 +18,7 @@
  *   - ファイル名サニタイズに連番インデックスを伝播
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ref,
   uploadBytesResumable,
@@ -75,7 +75,7 @@ export interface UseFileUploadReturn {
   /** エラーメッセージ（null = エラーなし） */
   error: string | null;
   /** ファイルをアップロードする */
-  uploadFile: (file: File) => Promise<void>;
+  uploadFile: (file: File, tag?: string) => Promise<void>;
   /** 指定IDのファイルを削除する */
   deleteFile: (attachmentId: string) => Promise<void>;
   /** エラーをクリアする */
@@ -93,16 +93,64 @@ export function useFileUpload({
   onAttachmentsChange,
 }: UseFileUploadOptions): UseFileUploadReturn {
   const [attachments, setAttachments] = useState<AttachmentMeta[]>(initialAttachments);
+  const attachmentsRef = useRef<AttachmentMeta[]>(attachments);
+  
+  useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
+  // ─── 削除 ─────────────────────────────────────────────────────────────────
+
+  const deleteFile = useCallback(
+    async (attachmentId: string): Promise<void> => {
+      if (readonly) {
+        setError('このタブからのファイル削除権限がありません。');
+        return;
+      }
+
+      const target = attachmentsRef.current.find((a) => a.id === attachmentId);
+      if (!target) return;
+
+      setError(null);
+
+      try {
+        // Storage からファイルを削除
+        const storageRef = ref(storage, target.path);
+        await deleteObject(storageRef);
+
+        // Firestore の配列から削除（arrayRemove で対象オブジェクトを除去）
+        const docRef = doc(db, COLLECTIONS.RENEWAL_APPLICATIONS, applicationId);
+        await updateDoc(docRef, {
+          [`attachments.${attachmentKey}`]: arrayRemove(target),
+          updatedAt: new Date().toISOString(),
+        });
+
+        // ローカル状態を更新
+        // ローカル状態と参照を即座に更新してから通知する
+        const next = attachmentsRef.current.filter((a) => a.id !== attachmentId);
+        attachmentsRef.current = next;
+        setAttachments(next);
+        onAttachmentsChange?.(next);
+      } catch (err) {
+        console.error('[useFileUpload] 削除エラー:', err);
+        const message =
+          err instanceof Error ? err.message : '不明なエラーが発生しました。';
+        setError(`ファイルの削除に失敗しました: ${message}`);
+      }
+    },
+    [readonly, applicationId, attachmentKey, onAttachmentsChange]
+  );
+
   // ─── アップロード ─────────────────────────────────────────────────────────
 
   const uploadFile = useCallback(
-    async (file: File): Promise<void> => {
+    async (file: File, tag?: string): Promise<void> => {
       if (readonly) {
         setError('このタブへのファイルアップロード権限がありません。');
         return;
@@ -112,6 +160,15 @@ export function useFileUpload({
       if (!applicationId) {
         setError('申請書を一度「保存」してからファイルをアップロードしてください。');
         return;
+      }
+
+      // 事前選択されたタグがあり、もしすでに同種（同タグ）の書類があれば事前に削除する
+      if (tag) {
+        const existingFile = attachmentsRef.current.find((a) => a.tag === tag);
+        if (existingFile && existingFile.id) {
+          // 同種書類を削除（Firestore と Storage の両方から消える）
+          await deleteFile(existingFile.id);
+        }
       }
 
       // バリデーション（グローバル制限コンテキストを渡す）
@@ -127,7 +184,7 @@ export function useFileUpload({
 
       try {
         // ファイル名サニタイズ（連番は現在のファイル数をインデックスとして使用）
-        const sanitizedName = sanitizeFileName(file.name, attachments.length);
+        const sanitizedName = sanitizeFileName(file.name, attachmentsRef.current.length);
         const storagePath = generateStoragePath(applicationId, attachmentKey, sanitizedName);
         const storageRef = ref(storage, storagePath);
 
@@ -160,6 +217,7 @@ export function useFileUpload({
                   size: file.size,
                   mimeType: file.type,
                   uploadedAt: new Date().toISOString(),
+                  ...(tag ? { tag } : {}),
                 };
 
                 // Firestore の attachments.{attachmentKey} 配列に追記
@@ -169,8 +227,9 @@ export function useFileUpload({
                   updatedAt: new Date().toISOString(),
                 });
 
-                // ローカル状態を更新
-                const next = [...attachments, newAttachment];
+                // ローカル状態と参照を即座に更新してから通知する
+                const next = [...attachmentsRef.current, newAttachment];
+                attachmentsRef.current = next;
                 setAttachments(next);
                 onAttachmentsChange?.(next);
 
@@ -199,47 +258,7 @@ export function useFileUpload({
         setUploadProgress(0);
       }
     },
-    [readonly, applicationId, attachmentKey, attachments, globalLimitContext, onAttachmentsChange]
-  );
-
-  // ─── 削除 ─────────────────────────────────────────────────────────────────
-
-  const deleteFile = useCallback(
-    async (attachmentId: string): Promise<void> => {
-      if (readonly) {
-        setError('このタブからのファイル削除権限がありません。');
-        return;
-      }
-
-      const target = attachments.find((a) => a.id === attachmentId);
-      if (!target) return;
-
-      setError(null);
-
-      try {
-        // Storage からファイルを削除
-        const storageRef = ref(storage, target.path);
-        await deleteObject(storageRef);
-
-        // Firestore の配列から削除（arrayRemove で対象オブジェクトを除去）
-        const docRef = doc(db, COLLECTIONS.RENEWAL_APPLICATIONS, applicationId);
-        await updateDoc(docRef, {
-          [`attachments.${attachmentKey}`]: arrayRemove(target),
-          updatedAt: new Date().toISOString(),
-        });
-
-        // ローカル状態を更新
-        const next = attachments.filter((a) => a.id !== attachmentId);
-        setAttachments(next);
-        onAttachmentsChange?.(next);
-      } catch (err) {
-        console.error('[useFileUpload] 削除エラー:', err);
-        const message =
-          err instanceof Error ? err.message : '不明なエラーが発生しました。';
-        setError(`ファイルの削除に失敗しました: ${message}`);
-      }
-    },
-    [readonly, applicationId, attachmentKey, attachments, onAttachmentsChange]
+    [readonly, applicationId, attachmentKey, globalLimitContext, onAttachmentsChange, deleteFile]
   );
 
   return {

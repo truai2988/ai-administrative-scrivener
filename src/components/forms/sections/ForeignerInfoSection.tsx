@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
-import { Plus, Trash2, User, Sparkles, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, User, Sparkles, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import {
@@ -36,12 +36,22 @@ export function ForeignerInfoSection({
     control,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useFormContext<RenewalApplicationFormData>();
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'foreignerInfo.relatives',
+  });
+
+  const {
+    fields: internFields,
+    append: appendIntern,
+    remove: removeIntern,
+  } = useFieldArray({
+    control,
+    name: 'foreignerInfo.technicalInternRecords',
   });
 
   const info = errors.foreignerInfo;
@@ -53,6 +63,10 @@ export function ForeignerInfoSection({
   const hasRelatives = watch('foreignerInfo.hasRelatives');
   const skillMethod = watch('foreignerInfo.skillCertifications.0.method');
   const langMethod = watch('foreignerInfo.languageCertifications.0.method');
+
+  // 代理人・取次者 アコーディオン状態
+  const [showAgent, setShowAgent] = useState(false);
+  const [showAgencyRep, setShowAgencyRep] = useState(false);
 
   // 書類ファーストワークフローの制御
   const [isManualInputEnabled, setIsManualInputEnabled] = useState(false);
@@ -70,8 +84,13 @@ export function ForeignerInfoSection({
   const { runOcr, isOcring, ocrResult, ocrError } = useOcrExtract();
   // OCR で自動入力されたフィールドのパス集合（ハイライト用）
   const [ocrHighlightedFields, setOcrHighlightedFields] = useState<Set<string>>(new Set());
-  // ハイライトを一定時間後に消すタイマー
-  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // OCR で抽出されたフィールドの記録（削除時にそのファイルが読み込んだ項目をクリアするため）
+  type FileOcrData = {
+    filePath: string;
+    extractedPaths: string[]; // このファイルが抽出・反映した全フィールド
+  };
+  const fileOcrDataRef = useRef<FileOcrData[]>([]);
 
   /**
    * 新しいファイルがアップロードされたとき（onAttachmentsChange で呼ばれる）に
@@ -79,45 +98,123 @@ export function ForeignerInfoSection({
    */
   const handleAttachmentsChange = useCallback(
     async (updatedAttachments: AttachmentMeta[]) => {
-      // 新しく追加されたファイルのみ対象（最後尾の要素）
-      const prevCount = (attachments as AttachmentMeta[]).length;
+      // getValuesを使って常にreact-hook-formが持つ最新の状態から前回値を取得する
+      const prevAttachments = getValues('attachments.foreignerInfo') || [];
+      const prevCount = prevAttachments.length;
+      
+      // 更新がなくても setValue で react-hook-form に同期しておく
+      setValue('attachments.foreignerInfo', updatedAttachments);
+
+      // ファイルが削除された場合のクリア処理
+      if (updatedAttachments.length < prevCount) {
+        const currentPaths = new Set(updatedAttachments.map(a => a.path));
+        const deletedData = fileOcrDataRef.current.filter(b => !currentPaths.has(b.filePath));
+        const remainingData = fileOcrDataRef.current.filter(b => currentPaths.has(b.filePath));
+        
+        // 記録配列から削除されたファイル分を取り除く
+        fileOcrDataRef.current = remainingData;
+
+        // 残存しているファイルが抽出したパスを収集（これらはクリアしてはいけない）
+        const activeExtractedPaths = new Set<string>();
+        remainingData.forEach(data => {
+          data.extractedPaths.forEach(p => activeExtractedPaths.add(p));
+        });
+
+        // 削除されたファイルが読み取ったフィールドのうち、他生存ファイルが触っていないもののみ空にする
+        deletedData.forEach(data => {
+          data.extractedPaths.forEach(path => {
+            if (!activeExtractedPaths.has(path)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setValue(path as any, '', { shouldValidate: true, shouldDirty: true });
+            }
+          });
+        });
+        
+        setOcrHighlightedFields(activeExtractedPaths);
+        return;
+      }
+
       const newFile = updatedAttachments[updatedAttachments.length - 1];
       if (!newFile || updatedAttachments.length <= prevCount) return;
-
-      // PDF はスキップ（スキャン画像のみ対象）
-      if (newFile.mimeType === 'application/pdf') return;
 
       const result = await runOcr({
         storagePath: newFile.path,
         mimeType: newFile.mimeType,
       });
 
-      if (!result || !result.formData) return;
+      if (!result || !result.formData) {
+        return;
+      }
+
+      const entries = Object.entries(result.formData);
+      if (entries.length === 0) {
+        alert('画像から情報を読み取れませんでした。画質が悪いか、対応していない形式の可能性があります。');
+        return;
+      }
+
+      // ファイル単位での抽出データ記録オブジェクトを作成
+      const ocrDataForFile: FileOcrData = {
+        filePath: newFile.path,
+        extractedPaths: []
+      };
 
       // フォームに setValue
       const newHighlights = new Set<string>();
-      for (const [key, value] of Object.entries(result.formData) as [keyof RenewalApplicationFormData['foreignerInfo'], string][]) {
+      for (const [key, value] of entries as [keyof RenewalApplicationFormData['foreignerInfo'], string][]) {
         if (value !== undefined && value !== '') {
-          setValue(`foreignerInfo.${key}` as Parameters<typeof setValue>[0], value, { shouldValidate: true });
-          newHighlights.add(`foreignerInfo.${key}`);
+          const fieldPath = `foreignerInfo.${key}`;
+          
+          ocrDataForFile.extractedPaths.push(fieldPath);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setValue(fieldPath as any, value, { shouldValidate: true, shouldDirty: true });
+          newHighlights.add(fieldPath);
         }
       }
 
-      // ハイライト適用（3秒後に自動解除）
+      // 抽出したフィールドがあれば記録を積む
+      if (ocrDataForFile.extractedPaths.length > 0) {
+        fileOcrDataRef.current.push(ocrDataForFile);
+      }
+
+      // ハイライト適用（解除タイマーは使用せず、永続化する）
       setOcrHighlightedFields(newHighlights);
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = setTimeout(() => {
-        setOcrHighlightedFields(new Set());
-      }, 6000);
     },
-    [attachments, runOcr, setValue]
+    [getValues, runOcr, setValue]
   );
 
   /** フィールドが OCR で自動入力されたかを判定するヘルパー */
   const isOcrFilled = (fieldPath: string) => ocrHighlightedFields.has(fieldPath);
 
+  // 画面上に表示されない内部データ（住所分割情報など）を除外してカウントする
+  // ユーザーが視認できる入力欄のハイライト数とカウントを一致させるため。
+  const visibleExtractedCount = React.useMemo(() => {
+    if (!ocrResult) return 0;
+    const hiddenFields = [
+      'foreignerInfo.japanZipCode',
+      'foreignerInfo.japanPrefecture',
+      'foreignerInfo.japanCity',
+      'foreignerInfo.japanAddressLines',
+    ];
+    return ocrResult.extractedFields.filter(f => !hiddenFields.includes(f.fieldPath)).length;
+  }, [ocrResult]);
+
+  const highlightSelectors = Array.from(ocrHighlightedFields)
+    .map((name) => `[name="${name}"]`)
+    .join(', ');
+
+  const highlightStyles = ocrHighlightedFields.size > 0 ? (
+    <style>{`
+      ${highlightSelectors} {
+        border-color: #3b82f6 !important;
+        border-width: 2px !important;
+        background-color: transparent !important;
+      }
+    `}</style>
+  ) : null;
+
   return (
     <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
+      {highlightStyles}
       {!isEditable && (
         <div className="section-readonly-banner">
           🔒 このセクションは閲覧のみです。自分の担当のタブのみ編集できます。
@@ -175,7 +272,7 @@ export function ForeignerInfoSection({
             <CheckCircle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <span style={{ fontWeight: 700 }}>OCR自動入力完了</span>
-              <span>　{ocrResult.extractedFields.length}項目を抽出しました（信頼度 {Math.round(ocrResult.confidence * 100)}%）。</span>
+              <span>　{visibleExtractedCount}項目を抽出しました（信頼度 {Math.round(ocrResult.confidence * 100)}%）。</span>
               <br />
               <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>青くハイライトされている欄を目視確認してください。</span>
             </div>
@@ -221,7 +318,6 @@ export function ForeignerInfoSection({
               {...register('foreignerInfo.nationality')}
               placeholder="例: 中国"
               error={!!info?.nationality}
-              style={isOcrFilled('foreignerInfo.nationality') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -230,7 +326,6 @@ export function ForeignerInfoSection({
               type="date"
               {...register('foreignerInfo.birthDate')}
               error={!!info?.birthDate}
-              style={isOcrFilled('foreignerInfo.birthDate') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -248,6 +343,7 @@ export function ForeignerInfoSection({
                   value={field.value}
                   onChange={field.onChange}
                   error={!!info?.gender}
+                  isOcrHighlighted={isOcrFilled('foreignerInfo.gender')}
                 />
               )}
             />
@@ -293,6 +389,7 @@ export function ForeignerInfoSection({
                   value={field.value}
                   onChange={field.onChange}
                   error={!!info?.maritalStatus}
+                  isOcrHighlighted={isOcrFilled('foreignerInfo.maritalStatus')}
                 />
               )}
             />
@@ -423,7 +520,6 @@ export function ForeignerInfoSection({
               type="date"
               {...register('foreignerInfo.stayExpiryDate')}
               error={!!info?.stayExpiryDate}
-              style={isOcrFilled('foreignerInfo.stayExpiryDate') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
             />
           </FormField>
 
@@ -445,6 +541,7 @@ export function ForeignerInfoSection({
                   value={String(field.value ?? '')}
                   onChange={(v) => field.onChange(v === 'true')}
                   error={!!info?.hasResidenceCard}
+                  isOcrHighlighted={isOcrFilled('foreignerInfo.hasResidenceCard')}
                 />
               )}
             />
@@ -461,7 +558,6 @@ export function ForeignerInfoSection({
                 {...register('foreignerInfo.residenceCardNumber')}
                 placeholder="AB12345678CD"
                 error={!!info?.residenceCardNumber}
-                style={isOcrFilled('foreignerInfo.residenceCardNumber') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
               />
             </FormField>
           )}
@@ -477,21 +573,22 @@ export function ForeignerInfoSection({
             required
             error={info?.desiredStayPeriod?.message}
           >
-            <Controller
-              name="foreignerInfo.desiredStayPeriod"
-              control={control}
-              render={({ field }) => (
-                <FormSelect
-                  options={DESIRED_STAY_PERIOD_OPTIONS.map((o) => ({
-                    value: o.value,
-                    label: o.label,
-                  }))}
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={!!info?.desiredStayPeriod}
-                />
-              )}
-            />
+              <Controller
+                name="foreignerInfo.desiredStayPeriod"
+                control={control}
+                render={({ field }) => (
+                  <FormSelect
+                    options={DESIRED_STAY_PERIOD_OPTIONS.map((o) => ({
+                      value: o.value,
+                      label: o.label,
+                    }))}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    error={!!info?.desiredStayPeriod}
+                    style={isOcrFilled('foreignerInfo.desiredStayPeriod') ? { background: 'transparent', borderColor: '#3b82f6', borderStyle: 'solid', borderWidth: '2px' } : undefined}
+                  />
+                )}
+              />
           </FormField>
 
           {desiredStayPeriod === 'other' && (
@@ -545,6 +642,7 @@ export function ForeignerInfoSection({
                 value={String(field.value ?? '')}
                 onChange={(v) => field.onChange(v === 'true')}
                 error={!!info?.criminalRecord}
+                isOcrHighlighted={isOcrFilled('foreignerInfo.criminalRecord')}
               />
             )}
           />
@@ -645,6 +743,64 @@ export function ForeignerInfoSection({
               </>
             )}
           </div>
+
+          {/* 技能実習2号良好修了記録（technical_intern 選択時のみ展開） */}
+          {skillMethod === 'technical_intern' && (
+            <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(99,102,241,0.04)', borderRadius: '0.5rem', border: '1px solid rgba(99,102,241,0.12)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <p style={{ fontWeight: 700, fontSize: '0.85rem', color: '#4338ca', margin: 0 }}>技能実習2号 良好修了記録（最大2件）</p>
+                {internFields.length < 2 && (
+                  <button
+                    type="button"
+                    className="btn-add"
+                    onClick={() => appendIntern({ jobType: '', workType: '', completionProof: '' })}
+                  >
+                    <Plus size={14} />
+                    追加
+                  </button>
+                )}
+              </div>
+              {internFields.length === 0 && (
+                <p className="empty-list-hint">「追加」から修了した技能実習2号の職種・作業を記録してください（最大2件）</p>
+              )}
+              {internFields.map((f, idx) => {
+                const rec = info?.technicalInternRecords?.[idx];
+                return (
+                  <div key={f.id} className="relative-row">
+                    <div className="relative-row-header">
+                      <span className="relative-row-number">記録 #{idx + 1}</span>
+                      <button type="button" className="btn-remove" onClick={() => removeIntern(idx)}>
+                        <Trash2 size={14} /> 削除
+                      </button>
+                    </div>
+                    <div className="form-grid form-grid--3">
+                      <FormField label="職種" error={(rec as {jobType?: {message?: string}} | undefined)?.jobType?.message}>
+                        <FormInput
+                          {...register(`foreignerInfo.technicalInternRecords.${idx}.jobType`)}
+                          placeholder="例: 溶接"
+                          error={!!(rec as {jobType?: unknown} | undefined)?.jobType}
+                        />
+                      </FormField>
+                      <FormField label="作業" error={(rec as {workType?: {message?: string}} | undefined)?.workType?.message}>
+                        <FormInput
+                          {...register(`foreignerInfo.technicalInternRecords.${idx}.workType`)}
+                          placeholder="例: 手溶接"
+                          error={!!(rec as {workType?: unknown} | undefined)?.workType}
+                        />
+                      </FormField>
+                      <FormField label="良好修了の証明" error={(rec as {completionProof?: {message?: string}} | undefined)?.completionProof?.message}>
+                        <FormInput
+                          {...register(`foreignerInfo.technicalInternRecords.${idx}.completionProof`)}
+                          placeholder="例: 技能実習評価試験 専門級合格"
+                          error={!!(rec as {completionProof?: unknown} | undefined)?.completionProof}
+                        />
+                      </FormField>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* 日本語能力 */}
@@ -934,6 +1090,185 @@ export function ForeignerInfoSection({
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* ─── ⑩ 代理人・取次者 ────────────────────────────────────────────── */}
+      <div className="subsection">
+        <h3 className="subsection-title">代理人・取次者</h3>
+        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>法定代理人または取次者（行政書士等）が申請を行う場合のみ入力してください。</p>
+
+        {/* ── 代理人（法定代理人）アコーディオン ── */}
+        <button
+          type="button"
+          onClick={() => setShowAgent(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            width: '100%', padding: '0.6rem 0.875rem',
+            background: showAgent ? 'rgba(99,102,241,0.07)' : 'rgba(0,0,0,0.03)',
+            border: '1px solid rgba(99,102,241,0.2)',
+            borderRadius: '0.5rem', cursor: 'pointer',
+            fontWeight: 600, fontSize: '0.85rem', color: '#3730a3',
+            marginBottom: showAgent ? '0.75rem' : '0.5rem',
+            textAlign: 'left',
+          }}
+        >
+          {showAgent ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          代理人（法定代理人）を入力する
+        </button>
+
+        {showAgent && (
+          <div
+            style={{
+              padding: '1rem', marginBottom: '1rem',
+              background: 'rgba(99,102,241,0.04)',
+              border: '1px solid rgba(99,102,241,0.15)',
+              borderRadius: '0.5rem',
+            }}
+          >
+            <div className="form-grid form-grid--2">
+              <FormField label="代理人 氏名" error={(info?.agent as {name?: {message?: string}} | undefined)?.name?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.name')}
+                  placeholder="例: 田中 一郎"
+                  error={!!(info?.agent as {name?: unknown} | undefined)?.name}
+                />
+              </FormField>
+              <FormField label="本人との関係" error={(info?.agent as {relationship?: {message?: string}} | undefined)?.relationship?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.relationship')}
+                  placeholder="例: 親権者・配偶者"
+                  error={!!(info?.agent as {relationship?: unknown} | undefined)?.relationship}
+                />
+              </FormField>
+              <FormField label="郵便番号" hint="7桁・ハイフンなし" error={(info?.agent as {zipCode?: {message?: string}} | undefined)?.zipCode?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.zipCode')}
+                  placeholder="1000001"
+                  maxLength={7}
+                  error={!!(info?.agent as {zipCode?: unknown} | undefined)?.zipCode}
+                />
+              </FormField>
+              <FormField label="都道府県" error={(info?.agent as {prefecture?: {message?: string}} | undefined)?.prefecture?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.prefecture')}
+                  placeholder="例: 東京都"
+                  error={!!(info?.agent as {prefecture?: unknown} | undefined)?.prefecture}
+                />
+              </FormField>
+              <FormField label="市区町村" error={(info?.agent as {city?: {message?: string}} | undefined)?.city?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.city')}
+                  placeholder="例: 港区"
+                  error={!!(info?.agent as {city?: unknown} | undefined)?.city}
+                />
+              </FormField>
+              <FormField label="町名丁目番地号等" error={(info?.agent as {addressLines?: {message?: string}} | undefined)?.addressLines?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.addressLines')}
+                  placeholder="例: 芝公園1-1-1"
+                  error={!!(info?.agent as {addressLines?: unknown} | undefined)?.addressLines}
+                />
+              </FormField>
+              <FormField label="電話番号" hint="ハイフンなし" error={(info?.agent as {phone?: {message?: string}} | undefined)?.phone?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.phone')}
+                  placeholder="0312345678"
+                  error={!!(info?.agent as {phone?: unknown} | undefined)?.phone}
+                />
+              </FormField>
+              <FormField label="携帯電話番号" hint="任意・ハイフンなし" error={(info?.agent as {mobilePhone?: {message?: string}} | undefined)?.mobilePhone?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agent.mobilePhone')}
+                  placeholder="09012345678"
+                  error={!!(info?.agent as {mobilePhone?: unknown} | undefined)?.mobilePhone}
+                />
+              </FormField>
+            </div>
+          </div>
+        )}
+
+        {/* ── 取次者（行政書士等）アコーディオン ── */}
+        <button
+          type="button"
+          onClick={() => setShowAgencyRep(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            width: '100%', padding: '0.6rem 0.875rem',
+            background: showAgencyRep ? 'rgba(16,185,129,0.07)' : 'rgba(0,0,0,0.03)',
+            border: '1px solid rgba(16,185,129,0.2)',
+            borderRadius: '0.5rem', cursor: 'pointer',
+            fontWeight: 600, fontSize: '0.85rem', color: '#065f46',
+            marginBottom: showAgencyRep ? '0.75rem' : 0,
+            textAlign: 'left',
+          }}
+        >
+          {showAgencyRep ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          取次者（行政書士・申請取次者等）を入力する
+        </button>
+
+        {showAgencyRep && (
+          <div
+            style={{
+              padding: '1rem', marginTop: '0.75rem',
+              background: 'rgba(16,185,129,0.04)',
+              border: '1px solid rgba(16,185,129,0.15)',
+              borderRadius: '0.5rem',
+            }}
+          >
+            <div className="form-grid form-grid--2">
+              <FormField label="取次者 氏名" error={(info?.agencyRep as {name?: {message?: string}} | undefined)?.name?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agencyRep.name')}
+                  placeholder="例: 行政書士 山田 花子"
+                  error={!!(info?.agencyRep as {name?: unknown} | undefined)?.name}
+                />
+              </FormField>
+              <FormField label="所属機関等" hint="事務所名・法人名" error={(info?.agencyRep as {organization?: {message?: string}} | undefined)?.organization?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agencyRep.organization')}
+                  placeholder="例: 山田行政書士事務所"
+                  error={!!(info?.agencyRep as {organization?: unknown} | undefined)?.organization}
+                />
+              </FormField>
+              <FormField label="郵便番号" hint="7桁・ハイフンなし" error={(info?.agencyRep as {zipCode?: {message?: string}} | undefined)?.zipCode?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agencyRep.zipCode')}
+                  placeholder="1000001"
+                  maxLength={7}
+                  error={!!(info?.agencyRep as {zipCode?: unknown} | undefined)?.zipCode}
+                />
+              </FormField>
+              <FormField label="都道府県" error={(info?.agencyRep as {prefecture?: {message?: string}} | undefined)?.prefecture?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agencyRep.prefecture')}
+                  placeholder="例: 東京都"
+                  error={!!(info?.agencyRep as {prefecture?: unknown} | undefined)?.prefecture}
+                />
+              </FormField>
+              <FormField label="市区町村" error={(info?.agencyRep as {city?: {message?: string}} | undefined)?.city?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agencyRep.city')}
+                  placeholder="例: 港区"
+                  error={!!(info?.agencyRep as {city?: unknown} | undefined)?.city}
+                />
+              </FormField>
+              <FormField label="町名丁目番地号等" error={(info?.agencyRep as {addressLines?: {message?: string}} | undefined)?.addressLines?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agencyRep.addressLines')}
+                  placeholder="例: 芝公園1-1-1"
+                  error={!!(info?.agencyRep as {addressLines?: unknown} | undefined)?.addressLines}
+                />
+              </FormField>
+              <FormField label="電話番号" hint="ハイフンなし" error={(info?.agencyRep as {phone?: {message?: string}} | undefined)?.phone?.message}>
+                <FormInput
+                  {...register('foreignerInfo.agencyRep.phone')}
+                  placeholder="0312345678"
+                  error={!!(info?.agencyRep as {phone?: unknown} | undefined)?.phone}
+                />
+              </FormField>
+            </div>
           </div>
         )}
       </div>

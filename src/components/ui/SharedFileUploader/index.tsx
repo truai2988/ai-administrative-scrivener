@@ -12,8 +12,8 @@
  *   - ファイル形式: JPEG（顔写真）/ PDF（書類）のみ
  */
 
-import React, { useCallback } from 'react';
-import { Paperclip, AlertCircle, X, HardDrive } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { Paperclip, AlertCircle, X, HardDrive, CheckCircle2 } from 'lucide-react';
 import { DropZone } from './DropZone';
 import { FileList } from './FileList';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -108,14 +108,21 @@ export function SharedFileUploader({
     []
   );
 
+  // 事前選択された書類種別タグ
+  const [selectedHint, setSelectedHint] = useState<string | null>(null);
+
   // 複数ファイルが drop された際、順番に処理する
   const handleFilesSelected = useCallback(
     async (files: File[]) => {
-      for (const file of files) {
-        await uploadFile(file);
+      for (let i = 0; i < files.length; i++) {
+        // 複数ファイル同時ドロップ時、互いに上書きし合わないようタグは最初のファイルにのみ付与する
+        const tag = i === 0 && selectedHint ? selectedHint : undefined;
+        await uploadFile(files[i], tag);
       }
+      // アップロード開始後に選択状態をクリア
+      setSelectedHint(null);
     },
-    [uploadFile]
+    [uploadFile, selectedHint]
   );
 
   // グローバル残量の計算
@@ -191,16 +198,29 @@ export function SharedFileUploader({
         </div>
       )}
 
-      {/* ─── 推奨書類ヒント ────────────────────────────────────────────────── */}
+      {/* ─── 推奨書類ヒント（クリックして事前選択可能） ────────────────────────────── */}
       {hints.length > 0 && (
         <div className="shared-file-uploader__hints">
-          <span className="shared-file-uploader__hints-label">推奨書類:</span>
+          <span className="shared-file-uploader__hints-label">推奨書類 (事前選択):</span>
           <div className="shared-file-uploader__hints-chips">
-            {hints.map((hint) => (
-              <span key={hint} className="shared-file-uploader__hint-chip">
-                {hint}
-              </span>
-            ))}
+            {hints.map((hint) => {
+              const isSelected = selectedHint === hint;
+              return (
+                <button
+                  key={hint}
+                  type="button"
+                  onClick={() => setSelectedHint(isSelected ? null : hint)}
+                  className={`shared-file-uploader__hint-chip ${
+                    isSelected ? 'shared-file-uploader__hint-chip--selected' : ''
+                  }`}
+                  aria-pressed={isSelected}
+                  title={`${hint} をアップロードする前に選択してください`}
+                >
+                  {isSelected && <CheckCircle2 size={12} style={{ marginRight: '4px', display: 'inline-block' }} />}
+                  {hint}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -229,6 +249,11 @@ export function SharedFileUploader({
           readonly={readonly}
           tabLabel={tabLabel}
           globalLimitContext={effectiveGlobalCtx}
+          disabledReason={
+            hints.length > 0 && !selectedHint
+              ? '「推奨書類 (事前選択)」から、これからアップロードする書類の種類を1つ選んでください。'
+              : undefined
+          }
         />
       )}
 

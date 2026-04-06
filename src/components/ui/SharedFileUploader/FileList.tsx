@@ -64,6 +64,12 @@ export function FileList({ attachments, onDelete, isDeleting, readonly }: FileLi
                 <ExternalLink size={12} className="file-list__name-icon" />
               </a>
               <div className="file-list__meta">
+                {attachment.tag && (
+                  <>
+                    <span className="file-list__tag-badge">{attachment.tag}</span>
+                    <span className="file-list__sep">•</span>
+                  </>
+                )}
                 <span className="file-list__size">{formatFileSize(attachment.size)}</span>
                 <span className="file-list__sep">•</span>
                 <span className="file-list__date">{uploadDate}</span>

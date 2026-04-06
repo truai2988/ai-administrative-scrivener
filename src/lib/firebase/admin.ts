@@ -43,8 +43,11 @@ function getAdminApp(): App {
     );
   }
 
+  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`;
+
   _app = initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
+    storageBucket,
   });
 
   return _app;

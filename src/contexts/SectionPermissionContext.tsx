@@ -22,7 +22,6 @@ import React, {
 import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 import type { TabId, TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import { DEFAULT_ASSIGNMENT_TEMPLATES } from '@/lib/constants/assignmentTemplates';
-import { isGlobalAdmin } from '@/types/database';
 import type { UserRole } from '@/types/database';
 
 // ─── コンテキスト型定義 ──────────────────────────────────────────────────────
@@ -52,8 +51,6 @@ const SectionPermissionContext = createContext<SectionPermissionContextType>({
 
 interface SectionPermissionProviderProps {
   children: React.ReactNode;
-  /** 現在ログイン中のユーザーID（Firebase Auth UID） */
-  currentUserId: string;
   /** 現在ログイン中のユーザーのロール */
   currentUserRole: UserRole;
   /** 初期割り当てマップ（既存レコードから読み込んだ値） */
@@ -66,7 +63,6 @@ interface SectionPermissionProviderProps {
 
 export function SectionPermissionProvider({
   children,
-  currentUserId,
   currentUserRole,
   initialAssignments = {},
   templatesRecord = DEFAULT_ASSIGNMENT_TEMPLATES,
@@ -78,25 +74,21 @@ export function SectionPermissionProvider({
    * isScrivener: 担当者割り当てパネル（TabAssignmentPanel）の表示・操作権限
    * → scrivener（行政書士）のみが担当者割り当てを変更できる専権。
    * hq_admin は全タブ編集可能だが、割り当て設定の変更は行政書士のみ。
-   *
-   * ※ タブ編集可否（isEditable）は別途 isGlobalAdmin で scrivener+hq_admin 両方に付与。
    */
   const isScrivener = currentUserRole === 'scrivener';
 
-  /** 編集権限判定: scrivener / hq_admin は全タブ常時編集可 */
-  const canEditAll = isGlobalAdmin(currentUserRole);
-
-  /**
-   * 現在のユーザーがタブを編集できるか判断
-   * - グローバル管理者（scrivener / hq_admin）: 常にtrue
-   * - それ以外: assignments[tabId] === currentUserId のときのみtrue
-   */
   const isEditable = useCallback(
     (tabId: TabId): boolean => {
-      if (canEditAll) return true;
-      return assignments[tabId] === currentUserId;
+      // 所属企業（enterprise_staff）は「所属機関タブ（employer）」のみ閲覧・編集可
+      if (currentUserRole === 'enterprise_staff') {
+        return tabId === 'employer';
+      }
+      
+      // それ以外の権限（行政書士、東京直轄、登録した担当支部）は全てのタブを閲覧・編集可
+      // ※担当者割り当て(assignments)に関わらず、アクセス権を持つ関係者は常に編集可能とする
+      return true;
     },
-    [canEditAll, currentUserId, assignments]
+    [currentUserRole]
   );
 
   /**

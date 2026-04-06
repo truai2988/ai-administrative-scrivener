@@ -14,6 +14,7 @@ interface FormRadioGroupProps {
   onChange?: (value: string) => void;
   error?: boolean;
   inline?: boolean;
+  isOcrHighlighted?: boolean;
 }
 
 export function FormRadioGroup({
@@ -23,12 +24,23 @@ export function FormRadioGroup({
   onChange,
   error,
   inline = true,
+  isOcrHighlighted,
 }: FormRadioGroupProps) {
   return (
     <div
       className={`form-radio-group ${inline ? 'form-radio-group--inline' : ''} ${
         error ? 'form-radio-group--error' : ''
       }`}
+      style={
+        isOcrHighlighted
+          ? {
+              background: 'transparent',
+              border: '2px solid #3b82f6',
+              borderRadius: '0.4rem',
+              padding: '0.4rem 0.6rem',
+            }
+          : undefined
+      }
     >
       {options.map((opt) => (
         <label key={opt.value} className="form-radio-label">

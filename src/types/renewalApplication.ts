@@ -117,7 +117,7 @@ export interface ForeignerInfo {
 
   // ⑥ 申請内容
   /** [Y] 希望する在留期間 */
-  desiredStayPeriod: '4months' | '6months' | '1year' | 'other';
+  desiredStayPeriod: '4months' | '6months' | '1year' | 'other' | '';
   /** 希望する在留期間（その他の場合） */
   desiredStayPeriodOther?: string;
   /** [Z] 在留期間更新の理由 */

@@ -68,7 +68,7 @@ const DEFAULT_VALUES: RenewalApplicationFormData = {
     stayExpiryDate: '',
     hasResidenceCard: true,
     residenceCardNumber: '',
-    desiredStayPeriod: '1year',
+    desiredStayPeriod: '',
     desiredStayPeriodOther: '',
     renewalReason: '',
     criminalRecord: false,
@@ -137,13 +137,32 @@ const DEFAULT_VALUES: RenewalApplicationFormData = {
     hasJobHistory: false,
     jobHistory: [],
     complianceOaths: {
-      hadLaborLawPenalty: false,
-      hadIllegalDismissal: false,
-      hadMissingPersons: false,
+      hadLaborLawPenalty:        { applies: false, detail: '' },
+      hadInvoluntaryDismissal:   { applies: false, detail: '' },
+      hadMissingPersons:         { applies: false, detail: '' },
+      hadCriminalPenalty:        { applies: false, detail: '' },
+      hasMentalImpairment:       { applies: false, detail: '' },
+      hasBankruptcy:             { applies: false, detail: '' },
+      hadTechnicalInternRevocation:  { applies: false, detail: '' },
+      wasOfficerOfRevokedEntity: { applies: false, detail: '' },
+      hadIllegalAct:             { applies: false, detail: '' },
+      hadGangsterRelation:       { applies: false, detail: '' },
+      legalRepresentativeQualifies: { applies: false, detail: '' },
+      isGangControlled:          { applies: false, detail: '' },
+      keepsActivityRecords:      true,
+      awaresOfGuaranteeContract: { applies: false, detail: '' },
+      hasCompliancePenaltyContract: { applies: false, detail: '' },
+      noSupportCostBurdenOnForeigner: true,
+      allowsTemporaryReturn:          true,
+      meetsEmploymentStandards:       true,
+      coversReturnTravelCost:         true,
+      monitorsHealthAndLife:          true,
+      meetsSpecificIndustryEmploymentStandards: undefined,
+      hasContractContinuationSystem:  true,
+      paysWageByTransfer:             true,
+      meetsAdditionalEmploymentStandards: undefined,
     },
     delegateSupportEntirely: false,
-    supportAgencyName: '',
-    supportAgencyRegistrationNumber: '',
     supportPersonnel: {
       supervisorName: '',
       supervisorTitle: '',
@@ -473,14 +492,10 @@ export function RenewalApplicationForm({
   const { currentUser } = useAuth();
 
   // 認証情報を SectionPermissionProvider に渡す
-  // currentUser が null の場合はフォーム自体が認証ガードで場外される想定だが、
-  // 安全のため null でも動くようデフォルト値を設定する
-  const userId = currentUser?.id ?? '';
   const userRole = currentUser?.role ?? 'branch_staff';
 
   return (
     <SectionPermissionProvider
-      currentUserId={userId}
       currentUserRole={userRole}
       initialAssignments={initialAssignments}
       templatesRecord={templatesRecord}

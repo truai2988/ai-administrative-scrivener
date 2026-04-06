@@ -65,6 +65,12 @@ export function useOcrExtract(): UseOcrExtractReturn {
         rawText: data.rawText,
       };
 
+      console.log('============= OCR DEBUG =============');
+      console.log('[Frontend] Raw OCR Text:', result.rawText);
+      console.log('[Frontend] Mapped FormData:', result.formData);
+      console.log('[Frontend] Extracted Fields mapping:', result.extractedFields);
+      console.log('=====================================');
+
       setOcrResult(result);
       return result;
 

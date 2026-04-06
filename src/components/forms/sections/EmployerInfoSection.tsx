@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
-import { Building2, Plus, Trash2 } from 'lucide-react';
+import { useFormContext, useFieldArray, Controller, useWatch, Path } from 'react-hook-form';
+import { Building2, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import { INDUSTRY_FIELD_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/types/renewalApplication';
@@ -10,7 +10,63 @@ import { FormField } from '../ui/FormField';
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
+import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
+
+type ComplianceOathItem = {
+  key: string;
+  label: string;
+  hasDetail?: boolean;
+};
+
+const COMPLIANCE_OATHS: ComplianceOathItem[] = [
+  { key: 'hadLaborLawPenalty', label: '(11) 労働・社会保険・租税法令違反で罰則を受けた', hasDetail: true },
+  { key: 'hadInvoluntaryDismissal', label: '(12) 1年以内に特定技能外国人を非自発的に離職させた', hasDetail: true },
+  { key: 'hadMissingPersons', label: '(13) 1年以内に特定技能外国人の行方不明者を発生させた', hasDetail: true },
+  { key: 'hadCriminalPenalty', label: '(14) 禁錮以上の刑又は出入国管理法違反等の特定の刑に処せられた', hasDetail: true },
+  { key: 'hasMentalImpairment', label: '(15) 精神の障害等により業務を適正に行うに当たって必要な認知等が適切にできない', hasDetail: true },
+  { key: 'hasBankruptcy', label: '(16) 破産手続開始の決定を受けて復権を得ない', hasDetail: true },
+  { key: 'hadTechnicalInternRevocation', label: '(17) 過去5年以内に技能実習計画の認定を取り消された等', hasDetail: true },
+  { key: 'wasOfficerOfRevokedEntity', label: '(18) 技能実習計画の認定を取り消された法人の役員等であった', hasDetail: true },
+  { key: 'hadIllegalAct', label: '(19) 過去5年以内に出入国又は労働法令に関し不正・著しく不当な行為をした', hasDetail: true },
+  { key: 'hadGangsterRelation', label: '(20) 暴力団等に該当する', hasDetail: true },
+  { key: 'legalRepresentativeQualifies', label: '(21) 法定代理人が(14)〜(20)に該当する', hasDetail: true },
+  { key: 'isGangControlled', label: '(22) 役員等が暴力団等の統制下にある', hasDetail: true },
+  { key: 'keepsActivityRecords', label: '(23) 活動状況書類を作成し雇用終了後1年以上保存する' },
+  { key: 'awaresOfGuaranteeContract', label: '(24) 保証金の徴収等をされていることを認識して契約を結んだ', hasDetail: true },
+  { key: 'hasCompliancePenaltyContract', label: '(25) 違約金を定める契約を結んだ', hasDetail: true },
+  { key: 'noSupportCostBurdenOnForeigner', label: '(26) 1号支援費用を外国人に負担させない' },
+  { key: 'allowsTemporaryReturn', label: '(7) 一時帰国を希望する場合は必要な有給休暇を取得させる' },
+  { key: 'meetsEmploymentStandards', label: '(8) 雇用関係基準に適合している' },
+  { key: 'coversReturnTravelCost', label: '(9) 帰国旅費負担に合意する' },
+  { key: 'monitorsHealthAndLife', label: '(10) 健康・生活状況を把握する' },
+  { key: 'meetsSpecificIndustryEmploymentStandards', label: '(11) 特定産業分野固有の雇用基準に適合している' },
+  { key: 'hasContractContinuationSystem', label: '(30) 雇用契約継続体制が確保されている' },
+  { key: 'paysWageByTransfer', label: '(31) 報酬を振込等により確実に支払う' },
+  { key: 'meetsAdditionalEmploymentStandards', label: '(32) 雇用契約適正履行追加基準に適合している' },
+];
+
+type SupportPlanItem = {
+  key: string;
+  label: string;
+};
+
+const SUPPORT_PLAN_ITEMS: SupportPlanItem[] = [
+  { key: 'airportPickup', label: '(1) 出入国時の送迎' },
+  { key: 'housingSupport', label: '(2) 適切な住居の確保に係る支援' },
+  { key: 'financialContractSupport', label: '(3) 預貯金口座開設・生活に必要な契約の支援' },
+  { key: 'lifeInfoProvision', label: '(4) 生活オリエンテーションの実施（外国語等）' },
+  { key: 'adminProcedureEscort', label: '(5) 行政機関の手続への同行等' },
+  { key: 'japaneseLanguageLearning', label: '(6) 日本語学習機会の提供' },
+  { key: 'complaintSupport', label: '(7) 相談又は苦情への対応（外国語等）' },
+  { key: 'interculturalExchange', label: '(8) 日本人との交流促進に係る支援' },
+  { key: 'jobChangeSupport', label: '(9) 非自発的離職時の転職支援' },
+  { key: 'regularInterviewAndReport', label: '(10) 定期面談の実施・行政関係機関通報' },
+  { key: 'writtenPlanProvision', label: '(11) 支援計画の書面交付（外国語等）' },
+  { key: 'specificIndustryItems', label: '(12) 特定産業分野固有事項の対応' },
+  { key: 'implementationCapability', label: '(13) 支援実施体制の適切性担保' },
+  { key: 'meetsRegulationStandards', label: '(14) 支援計画が基準に適合している' },
+];
 
 /** チェックボックス行コンポーネント（欠格事由など） */
 function CheckboxRow({
@@ -60,6 +116,12 @@ export function EmployerInfoSection({
 
   const emp = errors.employerInfo;
   
+  // エラーオブジェクトの安全な参照（any回避）
+  const saErr = emp?.supportAgency as Record<string, { message?: string }> | undefined;
+  const dispatchErr = emp?.dispatchDestination as Record<string, { message?: string }> | undefined;
+  const placeErr = emp?.placementAgency as Record<string, { message?: string }> | undefined;
+  const interErr = emp?.intermediaryAgency as Record<string, { message?: string }> | undefined;
+  
   const { fields: jobFields, append: appendJob, remove: removeJob } = useFieldArray({
     control,
     name: 'employerInfo.jobHistory',
@@ -71,6 +133,11 @@ export function EmployerInfoSection({
   const hasCorporateNumber = watch('employerInfo.hasCorporateNumber');
   const hasDifferentTreatment = watch('employerInfo.hasDifferentTreatment');
   const hasJobHistory = watch('employerInfo.hasJobHistory');
+
+  // アコーディオン制御ステート
+  const [showDispatch, setShowDispatch] = useState(false);
+  const [showPlacement, setShowPlacement] = useState(false);
+  const [showIntermediary, setShowIntermediary] = useState(false);
 
   // 書類ファーストワークフローの制御
   const [isManualInputEnabled, setIsManualInputEnabled] = useState(false);
@@ -326,7 +393,7 @@ export function EmployerInfoSection({
                     value: o.value,
                     label: o.label,
                   }))}
-                  value={field.value}
+                  value={field.value ?? ''}
                   onChange={field.onChange}
                   error={!!emp?.paymentMethod}
                 />
@@ -640,49 +707,73 @@ export function EmployerInfoSection({
         </div>
       </div>
 
-      {/* ─── ⑦ 欠格事由 ──────────────────────────────────────────────────── */}
+      {/* ─── ⑦ 欠格事由等の確認（誓約事項） ────────────────────────────────── */}
       <div className="subsection">
         <h3 className="subsection-title">欠格事由等の確認（誓約事項）</h3>
         <p className="subsection-desc">
-          以下の項目に該当する場合は、特定技能外国人の受入れができない可能性があります。
+          以下の項目に「該当する（はい）」がある場合は、特定技能外国人の受入れができない可能性があります。<br/>
+          該当するものにはチェックを入れ、詳細経緯を記入してください。
         </p>
-        <div className="disqualify-block">
-          <Controller
-            name="employerInfo.complianceOaths.hadMissingPersons"
-            control={control}
-            render={({ field }) => (
-              <CheckboxRow
-                id="hadMissingPersons"
-                label="1年以内に特定技能外国人の行方不明者を発生させた"
-                checked={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-          <Controller
-            name="employerInfo.complianceOaths.hadIllegalDismissal"
-            control={control}
-            render={({ field }) => (
-              <CheckboxRow
-                id="hadIllegalDismissal"
-                label="1年以内に特定技能外国人を不当に解雇したことがある"
-                checked={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-          <Controller
-            name="employerInfo.complianceOaths.hadLaborLawPenalty"
-            control={control}
-            render={({ field }) => (
-              <CheckboxRow
-                id="hadLaborLawPenalty"
-                label="5年以内に労働関係法令違反で罰則を受けたことがある"
-                checked={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
+        <div className="disqualify-block" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {COMPLIANCE_OATHS.map(item => {
+            const appliesPath = item.hasDetail
+              ? `employerInfo.complianceOaths.${item.key}.applies`
+              : `employerInfo.complianceOaths.${item.key}`;
+            const detailPath = item.hasDetail
+              ? `employerInfo.complianceOaths.${item.key}.detail`
+              : null;
+            
+            return (
+              <div key={item.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+                <Controller
+                  name={appliesPath as Path<RenewalApplicationFormData>}
+                  control={control}
+                  render={({ field }) => (
+                    <CheckboxRow
+                      id={`compliance-${item.key}`}
+                      label={item.label}
+                      checked={field.value as boolean}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+                {item.hasDetail && watch(appliesPath as Path<RenewalApplicationFormData>) && (
+                  <div style={{ paddingLeft: '1.75rem', marginTop: '0.25rem' }}>
+                    <FormTextarea
+                      {...register(detailPath as Path<RenewalApplicationFormData>)}
+                      placeholder="詳細な理由・経緯を記入してください"
+                      rows={2}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ─── ⑧ 1号特定技能外国人支援計画 ─────────────────────────────────────── */}
+      <div className="subsection">
+        <h3 className="subsection-title">1号特定技能外国人支援計画</h3>
+        <p className="subsection-desc">
+          作成した支援計画に含まれる支援の実施項目にチェックを入れてください。
+        </p>
+        <div className="disqualify-block" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '0.5rem' }}>
+          {SUPPORT_PLAN_ITEMS.map(item => (
+             <Controller
+               key={item.key}
+               name={`employerInfo.supportPlan.${item.key}` as Path<RenewalApplicationFormData>}
+               control={control}
+               render={({ field }) => (
+                 <CheckboxRow
+                   id={`supportPlan-${item.key}`}
+                   label={item.label}
+                   checked={field.value as boolean}
+                   onChange={field.onChange}
+                 />
+               )}
+             />
+          ))}
         </div>
       </div>
 
@@ -715,30 +806,64 @@ export function EmployerInfoSection({
 
           {/* 全部委託の場合のみ: 登録支援機関の詳細 */}
           {delegateSupportEntirely && (
-            <>
-              <FormField
-                label="登録支援機関の名称"
-                required
-                error={emp?.supportAgencyName?.message}
-              >
-                <FormInput
-                  {...register('employerInfo.supportAgencyName')}
-                  placeholder="例: 株式会社〇〇支援機関"
-                  error={!!emp?.supportAgencyName}
-                />
-              </FormField>
-              <FormField
-                label="登録支援機関 登録番号"
-                hint="例: 20登-000000"
-                error={emp?.supportAgencyRegistrationNumber?.message}
-              >
-                <FormInput
-                  {...register('employerInfo.supportAgencyRegistrationNumber')}
-                  placeholder="例: 20登-000000"
-                  error={!!emp?.supportAgencyRegistrationNumber}
-                />
-              </FormField>
-            </>
+            <div style={{ gridColumn: '1 / -1', padding: '1.25rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155', marginBottom: '1rem' }}>登録支援機関の詳細情報</h4>
+              <div className="form-grid form-grid--2">
+                <FormField label="登録支援機関の名称" required error={saErr?.name?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.name')} placeholder="例: 株式会社〇〇支援機関" error={!!saErr?.name} />
+                </FormField>
+                <FormField label="登録番号" hint="例: 20登-000000" error={saErr?.registrationNumber?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.registrationNumber')} placeholder="例: 20登-000000" error={!!saErr?.registrationNumber} />
+                </FormField>
+                <FormField label="登録年月日" error={saErr?.registrationDate?.message}>
+                  <FormInput type="date" {...register('employerInfo.supportAgency.registrationDate')} error={!!saErr?.registrationDate} />
+                </FormField>
+                <FormField label="代表者の氏名" error={saErr?.representativeName?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.representativeName')} placeholder="例: 田中 一郎" error={!!saErr?.representativeName} />
+                </FormField>
+                <FormField label="郵便番号" hint="ハイフンなし" error={saErr?.zipCode?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.zipCode')} placeholder="1000001" maxLength={7} error={!!saErr?.zipCode} />
+                </FormField>
+                <FormField label="都道府県" error={saErr?.prefecture?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.prefecture')} placeholder="例: 東京都" error={!!saErr?.prefecture} />
+                </FormField>
+                <FormField label="市区町村" error={saErr?.city?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.city')} placeholder="例: 港区" error={!!saErr?.city} />
+                </FormField>
+                <FormField label="町名・番地等" error={saErr?.addressLines?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.addressLines')} placeholder="例: 芝公園1-1-1" error={!!saErr?.addressLines} />
+                </FormField>
+                <FormField label="電話番号" hint="ハイフンなし" error={saErr?.phone?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.phone')} placeholder="0312345678" error={!!saErr?.phone} />
+                </FormField>
+                
+                {/* 支援責任者・事業所 */}
+                <FormField label="支援を行う事業所の名称" error={saErr?.supportOfficeName?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.supportOfficeName')} placeholder="例: 関東支社" error={!!saErr?.supportOfficeName} />
+                </FormField>
+                <FormField label="事業所 郵便番号" error={saErr?.officeZipCode?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.officeZipCode')} placeholder="1000001" maxLength={7} error={!!saErr?.officeZipCode} />
+                </FormField>
+                <FormField label="事業所 都道府県" error={saErr?.officePrefecture?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.officePrefecture')} placeholder="例: 東京都" error={!!saErr?.officePrefecture} />
+                </FormField>
+                <FormField label="事業所 市区町村" error={saErr?.officeCity?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.officeCity')} placeholder="例: 港区" error={!!saErr?.officeCity} />
+                </FormField>
+                <FormField label="支援責任者名" error={saErr?.supportSupervisorName?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.supportSupervisorName')} placeholder="例: 鈴木 次郎" error={!!saErr?.supportSupervisorName} />
+                </FormField>
+                <FormField label="支援担当者名" error={saErr?.supportOfficerName?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.supportOfficerName')} placeholder="例: 佐藤 花子" error={!!saErr?.supportOfficerName} />
+                </FormField>
+                <FormField label="対応可能言語" error={saErr?.supportLanguages?.message}>
+                  <FormInput {...register('employerInfo.supportAgency.supportLanguages')} placeholder="例: 日本語、英語" error={!!saErr?.supportLanguages} />
+                </FormField>
+                <FormField label="支援委託手数料(月額/人)" error={saErr?.supportFeeMonthly?.message}>
+                  <FormInput type="number" {...register('employerInfo.supportAgency.supportFeeMonthly', { valueAsNumber: true })} placeholder="15000" error={!!saErr?.supportFeeMonthly} />
+                </FormField>
+              </div>
+            </div>
           )}
 
           <FormField
@@ -885,6 +1010,90 @@ export function EmployerInfoSection({
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* ─── 関連機関（派遣先・職業紹介等） ─────────────────────────────────── */}
+      <div className="subsection">
+        <h3 className="subsection-title">関連機関</h3>
+        <p className="subsection-desc" style={{ marginBottom: '0.75rem' }}>
+          派遣形態の場合や、職業紹介・取次機関を利用した場合のみ広げて入力してください。
+        </p>
+
+        {/* 派遣先 */}
+        <button
+          type="button"
+          onClick={() => setShowDispatch(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.875rem', background: showDispatch ? '#f1f5f9' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', color: '#475569', marginBottom: showDispatch ? '0.75rem' : '0.5rem', textAlign: 'left' }}
+        >
+          {showDispatch ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          派遣先（雇用形態が派遣の場合）
+        </button>
+        {showDispatch && (
+          <div style={{ padding: '1rem', marginBottom: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}>
+            <div className="form-grid form-grid--2">
+              <FormField label="派遣先 氏名・名称" error={dispatchErr?.name?.message}><FormInput {...register('employerInfo.dispatchDestination.name')} error={!!dispatchErr?.name} /></FormField>
+              <FormField label="法人番号" error={dispatchErr?.corporateNumber?.message}><FormInput {...register('employerInfo.dispatchDestination.corporateNumber')} maxLength={13} error={!!dispatchErr?.corporateNumber} /></FormField>
+              <FormField label="雇用保険適用事業所番号" error={dispatchErr?.employmentInsuranceNumber?.message}><FormInput {...register('employerInfo.dispatchDestination.employmentInsuranceNumber')} maxLength={11} error={!!dispatchErr?.employmentInsuranceNumber} /></FormField>
+              <FormField label="代表者の氏名" error={dispatchErr?.representativeName?.message}><FormInput {...register('employerInfo.dispatchDestination.representativeName')} error={!!dispatchErr?.representativeName} /></FormField>
+              <FormField label="郵便番号" hint="ハイフンなし" error={dispatchErr?.zipCode?.message}><FormInput {...register('employerInfo.dispatchDestination.zipCode')} maxLength={7} error={!!dispatchErr?.zipCode} /></FormField>
+              <FormField label="都道府県" error={dispatchErr?.prefecture?.message}><FormInput {...register('employerInfo.dispatchDestination.prefecture')} error={!!dispatchErr?.prefecture} /></FormField>
+              <FormField label="市区町村" error={dispatchErr?.city?.message}><FormInput {...register('employerInfo.dispatchDestination.city')} error={!!dispatchErr?.city} /></FormField>
+              <FormField label="町名・番地等" error={dispatchErr?.addressLines?.message}><FormInput {...register('employerInfo.dispatchDestination.addressLines')} error={!!dispatchErr?.addressLines} /></FormField>
+              <FormField label="電話番号" hint="ハイフンなし" error={dispatchErr?.phone?.message}><FormInput {...register('employerInfo.dispatchDestination.phone')} error={!!dispatchErr?.phone} /></FormField>
+              <FormField label="派遣期間(始期)" error={dispatchErr?.periodStart?.message}><FormInput type="date" {...register('employerInfo.dispatchDestination.periodStart')} error={!!dispatchErr?.periodStart} /></FormField>
+              <FormField label="派遣期間(終期)" error={dispatchErr?.periodEnd?.message}><FormInput type="date" {...register('employerInfo.dispatchDestination.periodEnd')} error={!!dispatchErr?.periodEnd} /></FormField>
+            </div>
+          </div>
+        )}
+
+        {/* 職業紹介事業者 */}
+        <button
+          type="button"
+          onClick={() => setShowPlacement(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.875rem', background: showPlacement ? '#f1f5f9' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', color: '#475569', marginBottom: showPlacement ? '0.75rem' : '0.5rem', textAlign: 'left' }}
+        >
+          {showPlacement ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          職業紹介事業者
+        </button>
+        {showPlacement && (
+          <div style={{ padding: '1rem', marginBottom: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}>
+            <div className="form-grid form-grid--2">
+              <FormField label="職業紹介事業者 氏名・名称" error={placeErr?.name?.message}><FormInput {...register('employerInfo.placementAgency.name')} error={!!placeErr?.name} /></FormField>
+              <FormField label="法人番号" error={placeErr?.corporateNumber?.message}><FormInput {...register('employerInfo.placementAgency.corporateNumber')} maxLength={13} error={!!placeErr?.corporateNumber} /></FormField>
+              <FormField label="雇用保険適用事業所番号" error={placeErr?.employmentInsuranceNumber?.message}><FormInput {...register('employerInfo.placementAgency.employmentInsuranceNumber')} maxLength={11} error={!!placeErr?.employmentInsuranceNumber} /></FormField>
+              <FormField label="許可・届出番号" error={placeErr?.licenseNumber?.message}><FormInput {...register('employerInfo.placementAgency.licenseNumber')} error={!!placeErr?.licenseNumber} /></FormField>
+              <FormField label="受理年月日" error={placeErr?.acceptanceDate?.message}><FormInput type="date" {...register('employerInfo.placementAgency.acceptanceDate')} error={!!placeErr?.acceptanceDate} /></FormField>
+              <FormField label="郵便番号" hint="ハイフンなし" error={placeErr?.zipCode?.message}><FormInput {...register('employerInfo.placementAgency.zipCode')} maxLength={7} error={!!placeErr?.zipCode} /></FormField>
+              <FormField label="都道府県" error={placeErr?.prefecture?.message}><FormInput {...register('employerInfo.placementAgency.prefecture')} error={!!placeErr?.prefecture} /></FormField>
+              <FormField label="市区町村" error={placeErr?.city?.message}><FormInput {...register('employerInfo.placementAgency.city')} error={!!placeErr?.city} /></FormField>
+              <FormField label="町名・番地等" error={placeErr?.addressLines?.message}><FormInput {...register('employerInfo.placementAgency.addressLines')} error={!!placeErr?.addressLines} /></FormField>
+              <FormField label="電話番号" hint="ハイフンなし" error={placeErr?.phone?.message}><FormInput {...register('employerInfo.placementAgency.phone')} error={!!placeErr?.phone} /></FormField>
+            </div>
+          </div>
+        )}
+
+        {/* 取次機関 */}
+        <button
+          type="button"
+          onClick={() => setShowIntermediary(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.875rem', background: showIntermediary ? '#f1f5f9' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', color: '#475569', marginBottom: showIntermediary ? '0.75rem' : 0, textAlign: 'left' }}
+        >
+          {showIntermediary ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          海外の取次機関
+        </button>
+        {showIntermediary && (
+          <div style={{ padding: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}>
+            <div className="form-grid form-grid--2">
+              <FormField label="取次機関 氏名・名称" error={interErr?.name?.message}><FormInput {...register('employerInfo.intermediaryAgency.name')} error={!!interErr?.name} /></FormField>
+              <FormField label="国・地域" error={interErr?.country?.message}><FormInput {...register('employerInfo.intermediaryAgency.country')} error={!!interErr?.country} /></FormField>
+              <FormField label="郵便番号" hint="ハイフンなし" error={interErr?.zipCode?.message}><FormInput {...register('employerInfo.intermediaryAgency.zipCode')} maxLength={7} error={!!interErr?.zipCode} /></FormField>
+              <FormField label="都道府県・州など" error={interErr?.prefecture?.message}><FormInput {...register('employerInfo.intermediaryAgency.prefecture')} error={!!interErr?.prefecture} /></FormField>
+              <FormField label="市区町村" error={interErr?.city?.message}><FormInput {...register('employerInfo.intermediaryAgency.city')} error={!!interErr?.city} /></FormField>
+              <FormField label="町名・番地等" error={interErr?.addressLines?.message}><FormInput {...register('employerInfo.intermediaryAgency.addressLines')} error={!!interErr?.addressLines} /></FormField>
+              <FormField label="電話番号" hint="ハイフンなし" error={interErr?.phone?.message}><FormInput {...register('employerInfo.intermediaryAgency.phone')} error={!!interErr?.phone} /></FormField>
+            </div>
           </div>
         )}
       </div>

@@ -36,6 +36,8 @@ interface DropZoneProps {
   tabLabel: string;
   /** 申請全体のグローバル使用量（即時バリデーション用） */
   globalLimitContext?: GlobalLimitContext;
+  /** ドロップゾーンを無効化する理由（未選択など） */
+  disabledReason?: string;
 }
 
 export function DropZone({
@@ -45,11 +47,12 @@ export function DropZone({
   readonly,
   tabLabel,
   globalLimitContext,
+  disabledReason,
 }: DropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isDisabled = isUploading || readonly;
+  const isDisabled = isUploading || readonly || !!disabledReason;
 
   // ─── 即時バリデーション（ファイル選択 / ドロップ直後に実行） ─────────────
 
@@ -135,6 +138,7 @@ export function DropZone({
     isDragOver  ? 'file-dropzone--dragover'   : '',
     isUploading ? 'file-dropzone--uploading'  : '',
     readonly    ? 'file-dropzone--readonly'   : '',
+    disabledReason ? 'file-dropzone--disabled-reason' : '',
     !isDisabled ? 'file-dropzone--interactive' : '',
   ]
     .filter(Boolean)
@@ -180,7 +184,7 @@ export function DropZone({
 
       {/* ─── アイコン ───────────────────────────────────── */}
       <div className="file-dropzone__icon-wrap">
-        {readonly ? (
+        {readonly || disabledReason ? (
           <Lock size={30} className="file-dropzone__icon file-dropzone__icon--readonly" />
         ) : (
           <Upload
@@ -199,6 +203,15 @@ export function DropZone({
             </p>
             <p className="file-dropzone__hint">
               担当者として割り当てられていないため、<br />ファイルのアップロードはできません。
+            </p>
+          </>
+        ) : disabledReason ? (
+          <>
+            <p className="file-dropzone__title file-dropzone__title--readonly" style={{ color: '#fbbf24' }}>
+              アップロードするには
+            </p>
+            <p className="file-dropzone__hint" style={{ color: '#fcd34d' }}>
+              {disabledReason}
             </p>
           </>
         ) : isUploading ? (
