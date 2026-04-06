@@ -40,9 +40,8 @@ const marital = (v: 'married' | 'unmarried'): string =>
 const paymentMethod = (v: 'cash' | 'bank_transfer'): string =>
   v === 'cash' ? '現金' : '口座振込';
 
-/** 希望在留期間変換 */
 const desiredStayPeriod = (
-  v: '4months' | '6months' | '1year' | 'other',
+  v: '4months' | '6months' | '1year' | 'other' | '' | undefined,
   other?: string
 ): string => {
   switch (v) {
@@ -50,6 +49,7 @@ const desiredStayPeriod = (
     case '6months': return '6月';
     case '1year': return '1年';
     case 'other': return other ?? '';
+    default: return '';
   }
 };
 
