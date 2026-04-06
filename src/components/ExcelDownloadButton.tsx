@@ -7,7 +7,7 @@ import { FileDown, Loader2, CheckCircle } from 'lucide-react';
 
 interface ExcelDownloadButtonProps {
   foreigner: Foreigner;
-  variant?: 'default' | 'outline' | 'compact';
+  variant?: 'default' | 'outline' | 'compact' | 'icon';
 }
 
 export const ExcelDownloadButton: React.FC<ExcelDownloadButtonProps> = ({ 
@@ -82,6 +82,11 @@ export const ExcelDownloadButton: React.FC<ExcelDownloadButtonProps> = ({
       isDone
         ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
         : 'border-indigo-100 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200'
+    }`,
+    icon: `flex items-center justify-center w-8 h-8 rounded-lg transition-all ${
+      isDone
+        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+        : 'bg-white text-slate-500 hover:text-indigo-600 hover:bg-slate-50 border border-slate-200 shadow-sm'
     }`
   };
 
@@ -92,22 +97,23 @@ export const ExcelDownloadButton: React.FC<ExcelDownloadButtonProps> = ({
         handleDownload();
       }}
       disabled={isGenerating}
+      title={variant === 'icon' ? "Excel出力" : undefined}
       className={`${buttonClasses[variant]} disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
     >
       {isGenerating ? (
         <>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {variant === 'compact' ? '中...' : '帳票を生成中...'}
+          <Loader2 className={`${variant === 'icon' ? 'h-4 w-4' : 'h-4 w-4'} animate-spin`} />
+          {variant !== 'icon' && (variant === 'compact' ? '中...' : '帳票を生成中...')}
         </>
       ) : isDone ? (
         <>
-          <CheckCircle className="h-4 w-4" />
-          {variant === 'compact' ? '完了' : 'ダウンロード済み'}
+          <CheckCircle className={`${variant === 'icon' ? 'h-4 w-4' : 'h-4 w-4'}`} />
+          {variant !== 'icon' && (variant === 'compact' ? '完了' : 'ダウンロード済み')}
         </>
       ) : (
         <>
-          <FileDown className="h-4 w-4" />
-          {variant === 'compact' ? 'Excel出力' : '入管提出用Excelを一括生成'}
+          <FileDown className={`${variant === 'icon' ? 'h-4 w-4' : 'h-4 w-4'}`} />
+          {variant !== 'icon' && (variant === 'compact' ? 'Excel出力' : '入管提出用Excelを一括生成')}
         </>
       )}
     </button>

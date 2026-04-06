@@ -4,19 +4,25 @@ import React, { useState } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Search, ChevronRight, Clock, ShieldCheck, CheckSquare, Square, MinusSquare, Gavel } from 'lucide-react';
+import { Search, Clock, CheckSquare, Square, MinusSquare, FilePen, Mail, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import { UserRole } from '@/types/database';
+import { foreignerService } from '@/services/foreignerService';
+import { canRequestReview, canApproveOrReturn } from '@/utils/permissions';
+import { ExcelDownloadButton } from './ExcelDownloadButton';
+import { ConsentPdfButton } from './ConsentPdfButton';
 
 interface ForeignerListProps {
   data: Foreigner[];
-  onSelect: (foreigner: Foreigner, editMode?: boolean) => void;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
   readonly?: boolean;
   showBranch?: boolean;
   getBranchLabel?: (branchId: string) => string;
+  userRole?: UserRole;
+  onUpdate?: (updated: Foreigner) => void;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel }) => {
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, onUpdate }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredData = data.filter(
@@ -111,8 +117,6 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">所属 / 在留資格</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">在留期限</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">進捗ステータス</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">法的同意</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">AIレビュー</th>
               {!readonly && (
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">操作</th>
               )}
@@ -124,11 +128,62 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
               const isUrgent = daysLeft < 90;
               const isChecked = selectedIds?.has(person.id) ?? false;
 
+              const allowApproveOrReturn = userRole ? canApproveOrReturn(userRole) : false;
+              const allowRequestReview = userRole ? (canRequestReview(userRole) || (userRole === 'hq_admin' && person.branchId === 'hq_direct')) : false;
+
+              const isStatusDraft = person.status === '準備中' || person.status === '編集中' || person.status === '差し戻し';
+              const isStatusPendingReview = person.approvalStatus === 'pending_review' || person.status === 'チェック中';
+              const isWorkflowDraftOrReturned = !person.approvalStatus || person.approvalStatus === 'draft' || person.approvalStatus === 'returned';
+
+              const showRequestReviewBtn = allowRequestReview && isStatusDraft && isWorkflowDraftOrReturned;
+              const showApproveReturnBtn = allowApproveOrReturn && isStatusPendingReview;
+
+              const handleRequestReview = async (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (!confirm('行政書士に内容の確認を依頼しますか？')) return;
+                try {
+                  await foreignerService.updateApprovalStatus(person.id, 'pending_review');
+                  if (onUpdate) onUpdate({ ...person, approvalStatus: 'pending_review', status: 'チェック中' });
+                } catch (err) {
+                  console.error(err);
+                  alert('エラーが発生しました');
+                }
+              };
+              
+              const handleApprove = async (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (!confirm('このデータを承認し、「申請済」にしますか？')) return;
+                try {
+                  await foreignerService.updateApprovalStatus(person.id, 'approved');
+                  if (onUpdate) onUpdate({ ...person, approvalStatus: 'approved', status: '申請済' });
+                } catch (err) {
+                  console.error(err);
+                  alert('エラーが発生しました');
+                }
+              };
+              
+              const handleReturn = async (e: React.MouseEvent) => {
+                e.stopPropagation();
+                const reason = window.prompt('差し戻しの理由を入力してください');
+                if (reason === null) return;
+                try {
+                  await foreignerService.updateApprovalStatus(person.id, 'returned', reason);
+                  if (onUpdate) onUpdate({ ...person, approvalStatus: 'returned', returnReason: reason, status: '差し戻し' });
+                } catch (err) {
+                  console.error(err);
+                  alert('エラーが発生しました');
+                }
+              };
+              
+              const handleEdit = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                window.open(`/forms/renewal/${person.id}`, '_blank');
+              };
+
               return (
                 <tr 
                   key={person.id} 
-                  className={`${!readonly ? 'hover:bg-indigo-50/30 cursor-pointer' : ''} transition-colors group ${isChecked ? 'bg-teal-50/30' : ''}`}
-                  onClick={() => !readonly && onSelect(person)}
+                  className={`group transition-colors ${isChecked ? 'bg-teal-50/30' : ''}`}
                 >
                   {isSelectable && (
                     <td className="px-4 py-4">
@@ -162,7 +217,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                    <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-slate-700">{person.company || '未所属'}</span>
-                      <span className="text-xs text-slate-400 line-clamp-1">{person.visaType || '特定技能'}</span>
+                      <span className="text-xs text-slate-400 line-clamp-1">{person.visaType || '−'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -176,36 +231,75 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, onSelect, se
                   <td className="px-6 py-4">
                     <StatusBadge status={person.status} />
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    {person.consentLog ? (
-                      <div className="flex flex-col items-center gap-1" title="法的同意済み (PDF出力可能)">
-                        <Gavel className="h-4 w-4 text-emerald-500" />
-                        <span className="text-[8px] font-bold text-emerald-600 uppercase">DONE</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1 opacity-20" title="同意未完了">
-                        <Gavel className="h-4 w-4 text-slate-400" />
-                        <span className="text-[8px] font-bold text-slate-400 uppercase">PENDING</span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {person.aiReview ? (
-                      <div className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg w-fit">
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        <span className="text-[10px] font-bold">完了 ({person.aiReview.riskScore}%)</span>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-slate-300">未入庫</span>
-                    )}
-                  </td>
                   {!readonly && (
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* 詳細モーダルへ */}
-                        <div className="flex items-center text-slate-300 group-hover:text-indigo-600 transition-colors">
-                          <ChevronRight className="h-5 w-5" />
-                        </div>
+                      <div className="flex items-center justify-end gap-2.5">
+                        <ExcelDownloadButton foreigner={person} variant="icon" />
+                        <ConsentPdfButton foreigner={person} variant="icon" />
+
+                        {person.aiReview ? (
+                          <div
+                            title={`AIリーガルチェック: リスクスコア ${person.aiReview.riskScore}点\n${person.aiReview.reason}`}
+                            className={`flex items-center justify-center gap-1 h-8 px-2 rounded-lg border cursor-help transition-all ${
+                              person.aiReview.riskScore < 30 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                              person.aiReview.riskScore < 70 ? 'bg-amber-50 border-amber-100 text-amber-600' :
+                              'bg-rose-50 border-rose-100 text-rose-600'
+                            }`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span className="text-xs font-black">{person.aiReview.riskScore}</span>
+                          </div>
+                        ) : (
+                          <div 
+                            title="AIリーガルチェック: 未実施"
+                            className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 text-slate-300"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+
+                        <div className="w-px h-6 bg-slate-200 mx-1"></div>
+
+                        <button
+                          onClick={handleEdit}
+                          title="申請書を編集・新規作成"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm"
+                        >
+                          <FilePen className="w-3.5 h-3.5" />
+                          編集
+                        </button>
+                        
+                        {showRequestReviewBtn && (
+                          <button
+                            onClick={handleRequestReview}
+                            title="行政書士へ確認依頼"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white border border-violet-700 text-xs font-bold rounded-lg hover:bg-violet-700 transition-colors shadow-sm"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            確認依頼
+                          </button>
+                        )}
+                        
+                        {showApproveReturnBtn && (
+                          <>
+                            <button
+                              onClick={handleReturn}
+                              title="差し戻し"
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white text-rose-600 border border-rose-200 text-xs font-bold rounded-lg hover:bg-rose-50 transition-colors shadow-sm"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              差戻
+                            </button>
+                            <button
+                              onClick={handleApprove}
+                              title="承認"
+                              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white border border-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              承認
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   )}

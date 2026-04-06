@@ -54,7 +54,8 @@ export function mapFormDataToForeigner(
                     
     // 企業情報
     company: eInfo.companyNameJa || '',
-    // 職務
+    // 職務・在留資格
     jobTitle: eInfo.mainJobType || '', 
+    visaType: fInfo.currentResidenceStatus || '',
   };
 }

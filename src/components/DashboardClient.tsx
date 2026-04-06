@@ -8,7 +8,6 @@ import { Foreigner, USER_ROLE_LABELS } from '@/types/database';
 import { canCreateForeigner, canExportCsv } from '@/utils/permissions';
 import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
-import { ForeignerDetail } from '@/components/ForeignerDetail';
 import { CsvDownloadButton } from '@/components/CsvDownloadButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, FileText, PenTool, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
@@ -65,7 +64,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [data, setData] = useState<Foreigner[]>(initialData);
   const [loading, setLoading] = useState<boolean>(true);
   const [mounted, setMounted] = useState<boolean>(false);
-  const [selectedForeigner, setSelectedForeigner] = useState<Foreigner | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // hq_admin専用: タブ選択状態 ('all' | 'hq_direct' | branchId)
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -447,30 +445,16 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               )}
               <ForeignerList 
                 data={displayedData} 
-                onSelect={(f) => setSelectedForeigner(f)}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
                 readonly={isHqAdmin && activeTab === 'all'}
                 showBranch={isHqAdmin && activeTab === 'all'}
                 getBranchLabel={(branchId: string) => branchId === 'hq_direct' ? '本部直轄' : (BRANCH_LABEL[branchId] ?? branchId)}
+                userRole={userRole}
+                onUpdate={(updated) => setData(prev => prev.map(f => f.id === updated.id ? updated : f))}
               />
             </motion.div>
           </div>
-        )}
-
-        {/* Full Screen Detail Modal/Panel */}
-        {selectedForeigner && (
-          <ForeignerDetail 
-            foreigner={selectedForeigner} 
-            onClose={() => {
-              setSelectedForeigner(null);
-            }} 
-            onUpdate={(updatedInfo) => {
-              setData((prev) => prev.map((f) => f.id === updatedInfo.id ? updatedInfo : f));
-              setSelectedForeigner(updatedInfo);
-            }}
-            userRole={userRole}
-          />
         )}
 
         {/* データ整合性チェックパネル（scrivener専用） */}

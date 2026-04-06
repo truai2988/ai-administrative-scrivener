@@ -78,6 +78,8 @@ async function main() {
       console.log(`  name               : ${data.name ?? data.nameKanji ?? '(名前なし)'}`);
       console.log(`  residenceCardNumber: ${data.residenceCardNumber ?? '(なし)'}`);
       console.log(`  branchId           : ${data.branchId ?? '(なし)'}`);
+      console.log(`  company            : ${data.company ?? '(なし)'}`);
+      console.log(`  visaType           : ${data.visaType ?? '(なし)'}`);
       console.log('');
     });
   }
