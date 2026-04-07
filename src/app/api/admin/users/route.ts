@@ -1,15 +1,17 @@
 /**
  * GET /api/admin/users  - ユーザー一覧取得
  *
- * - scrivener ロールのみ実行可能。
+ * - scrivener / hq_admin ロールのみ実行可能。
  * - 組織（hq/branch/enterprise）関係なくすべてのユーザーを返す。
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, getAdminDb } from '@/lib/firebase/admin';
 
-/** 共通: Bearer トークンから callerUid を取得し、scrivenerか確認する */
-async function requireScrivener(req: NextRequest): Promise<
+const ALLOWED_ROLES = ['scrivener', 'hq_admin'];
+
+/** 共通: Bearer トークンから callerUid を取得し、許可ロールか確認する */
+async function requireManagerRole(req: NextRequest): Promise<
   { callerUid: string; error?: never } | { callerUid?: never; error: NextResponse }
 > {
   const authHeader = req.headers.get('Authorization');
@@ -30,10 +32,10 @@ async function requireScrivener(req: NextRequest): Promise<
   const db = getAdminDb();
   const callerDoc = await db.collection('users').doc(callerUid).get();
   const callerRole = callerDoc.data()?.role as string;
-  if (callerRole !== 'scrivener') {
+  if (!ALLOWED_ROLES.includes(callerRole)) {
     return {
       error: NextResponse.json(
-        { error: 'この操作は行政書士（scrivener）のみ実行できます' },
+        { error: 'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます' },
         { status: 403 }
       ),
     };
@@ -43,7 +45,7 @@ async function requireScrivener(req: NextRequest): Promise<
 }
 
 export async function GET(req: NextRequest) {
-  const result = await requireScrivener(req);
+  const result = await requireManagerRole(req);
   if (result.error) return result.error;
 
   try {

@@ -5,10 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { foreignerService } from '@/services/foreignerService';
 import { Foreigner, USER_ROLE_LABELS } from '@/types/database';
-import { canCreateForeigner, canExportCsv } from '@/utils/permissions';
+import { canCreateForeigner } from '@/utils/permissions';
 import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
-import { CsvDownloadButton } from '@/components/CsvDownloadButton';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, FileText, PenTool, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
 import Link from 'next/link';
@@ -69,6 +69,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [activeTab, setActiveTab] = useState<string>('all');
   // データ整合性チェックパネル（scrivener専用）
   const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
+  // 組織ID → 表示名マップ（動的・APIから取得）
+  const [organizationLabelMap, setOrganizationLabelMap] = useState<Record<string, string>>({});
+  // 登録済み組織のリスト（タブ表示の根拠。typeも保持しheadquartersを除外するため）
+  const [organizationsList, setOrganizationsList] = useState<Array<{ id: string; name: string; type: string }>>([]);
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -92,6 +96,30 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 組織一覧を取得してタブリストと表示名マップを構築
+  useEffect(() => {
+    if (!currentUser) return;
+    const roles = ['scrivener', 'hq_admin'];
+    if (!roles.includes(currentUser.role)) return;
+
+    (async () => {
+      try {
+        const { fetchOrganizations } = await import('@/lib/api/adminClient');
+        const orgs = await fetchOrganizations();
+        const map: Record<string, string> = {};
+        const list: Array<{ id: string; name: string; type: string }> = [];
+        for (const org of orgs) {
+          map[org.id] = org.name;
+          list.push({ id: org.id, name: org.name, type: org.type });
+        }
+        setOrganizationLabelMap(map);
+        setOrganizationsList(list);
+      } catch {
+        // 取得失敗時はフォールバックとしてIDをそのまま表示
+      }
+    })();
+  }, [currentUser]);
 
   // ロールベースのデータ取得 (リアルタイム購読)
   useEffect(() => {
@@ -142,36 +170,21 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const isHqAdmin = userRole === 'hq_admin';
   const displayedData = (() => {
     if (!isHqAdmin) return data;
-    if (activeTab === 'hq_direct') return data.filter(f => f.branchId === 'hq_direct');
     if (activeTab !== 'all') return data.filter(f => f.branchId === activeTab);
     return data;
   })();
 
-  // 支部タブリスト: hq_direct 以外のユニーク branchIdを動的に取得
+  // 支部タブリスト: 支部・企業のみ（本部系を除外）
+  // 本部は外国人を管轄しないためタブに表示しない
+  // ※ Firestoreの実データは "headquarters"、型定義は "hq" のため両方を除外
   const branchTabs = isHqAdmin
-    ? [...new Set(data.filter(f => f.branchId && f.branchId !== 'hq_direct').map(f => f.branchId))]
+    ? organizationsList.filter(org => org.type !== 'headquarters' && org.type !== 'hq')
     : [];
 
-  /** branchId → 表示名のマッピング（新しい支部はここに追加） */
-  const BRANCH_LABEL: Record<string, string> = {
-    osaka: '大阪支部',
-    osaka_branch: '大阪支部',
-    branch_osaka: '大阪支部',
-    tokyo: '東京支部',
-    tokyo_branch: '東京支部',
-    branch_tokyo: '東京支部',
-    nagoya: '名古屋支部',
-    nagoya_branch: '名古屋支部',
-    branch_nagoya: '名古屋支部',
-    fukuoka: '福岡支部',
-    fukuoka_branch: '福岡支部',
-    branch_fukuoka: '福岡支部',
-    sapporo: '札幌支部',
-    branch_sapporo: '札幌支部',
-    sendai: '仙台支部',
-    branch_sendai: '仙台支部',
-    hiroshima: '広島支部',
-    branch_hiroshima: '広島支部',
+  /** branchId → 表示名のマッピング（組織APIから動的取得） */
+  const getBranchLabel = (branchId: string): string => {
+    if (branchId === 'hq_direct') return '本部直轄';
+    return organizationLabelMap[branchId] ?? branchId;
   };
 
 
@@ -241,11 +254,20 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             href="/settings/profile"
           />
 
-          {/* 組織・ユーザー管理（scrivener専用） */}
-          {userRole === 'scrivener' && (
+          {/* 組織・ユーザー管理（scrivener / hq_admin） */}
+          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
             <SidebarItem
               icon={Shield}
               label="組織・ユーザー管理"
+              href="/admin/organizations"
+            />
+          )}
+
+          {/* 支部情報（閲覧専用）: branch_staff */}
+          {userRole === 'branch_staff' && (
+            <SidebarItem
+              icon={Shield}
+              label="支部情報（閲覧）"
               href="/admin/organizations"
             />
           )}
@@ -318,11 +340,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{loading ? '-' : data.length}名</span>の外国人を管理しています。</p>
           </div>
           <div className="flex items-center gap-5">
-            {!loading && canExportCsv(userRole) && (
-              <div className="hidden sm:block">
-                <CsvDownloadButton foreigners={data.filter(f => selectedIds.has(f.id))} />
-              </div>
-            )}
 
             {canCreateForeigner(userRole) && (
               <button 
@@ -388,7 +405,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               {isHqAdmin && (
                 <div className="flex mb-6 overflow-x-auto no-scrollbar">
                   <div className="inline-flex bg-slate-100 rounded-2xl p-1 gap-1 shrink-0">
-                    {/* 全支部 */}
+                    {/* すべて（全件表示フィルター） */}
                     <button
                       onClick={() => setActiveTab('all')}
                       className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${
@@ -397,46 +414,28 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                           : 'text-slate-400 hover:text-slate-600'
                       }`}
                     >
-                      全支部
+                      すべて
                       <span className="ml-1.5 text-[10px] font-black px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded-full">
                         {data.length}
                       </span>
                     </button>
 
-                    {/* 本部直轄 */}
-                    <button
-                      onClick={() => setActiveTab('hq_direct')}
-                      className={`px-5 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 ${
-                        activeTab === 'hq_direct'
-                          ? 'bg-white text-violet-700 shadow-sm'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      <Shield className="h-3.5 w-3.5" />
-                      本部直轄
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                        activeTab === 'hq_direct' ? 'bg-violet-100 text-violet-600' : 'bg-slate-200 text-slate-500'
-                      }`}>
-                        {data.filter(f => f.branchId === 'hq_direct').length}
-                      </span>
-                    </button>
-
-                    {/* 動的支部タブ */}
-                    {branchTabs.map(branchId => (
+                    {/* 動的支部タブ（登録済み組織を根拠に表示・外国人数は無関係） */}
+                    {branchTabs.map(org => (
                       <button
-                        key={branchId}
-                        onClick={() => setActiveTab(branchId)}
-                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${
-                          activeTab === branchId
+                        key={org.id}
+                        onClick={() => setActiveTab(org.id)}
+                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+                          activeTab === org.id
                             ? 'bg-white text-violet-700 shadow-sm'
                             : 'text-slate-400 hover:text-slate-600'
                         }`}
                       >
-                        {BRANCH_LABEL[branchId] ?? branchId}
+                        {org.name}
                         <span className={`ml-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                          activeTab === branchId ? 'bg-violet-100 text-violet-600' : 'bg-slate-200 text-slate-500'
+                          activeTab === org.id ? 'bg-violet-100 text-violet-600' : 'bg-slate-200 text-slate-500'
                         }`}>
-                          {data.filter(f => f.branchId === branchId).length}
+                          {data.filter(f => f.branchId === org.id).length}
                         </span>
                       </button>
                     ))}
@@ -449,7 +448,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 onSelectionChange={setSelectedIds}
                 readonly={isHqAdmin && activeTab === 'all'}
                 showBranch={isHqAdmin && activeTab === 'all'}
-                getBranchLabel={(branchId: string) => branchId === 'hq_direct' ? '本部直轄' : (BRANCH_LABEL[branchId] ?? branchId)}
+                getBranchLabel={getBranchLabel}
                 userRole={userRole}
                 onUpdate={(updated) => setData(prev => prev.map(f => f.id === updated.id ? updated : f))}
               />

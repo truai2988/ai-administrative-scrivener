@@ -159,6 +159,12 @@ export default function AdminOrganizationsPage() {
   });
   const [updatingUser, setUpdatingUser] = useState(false);
 
+  // ── 権限フラグ
+  // 組織の作成・削除・ユーザー管理が可能なロール
+  const canManage = currentUser?.role === 'scrivener' || currentUser?.role === 'hq_admin';
+  // 支部事務員（閲覧専用）
+  const isStaffViewer = currentUser?.role === 'branch_staff';
+
   // ── 認証ガード
   useEffect(() => {
     if (authLoading) return;
@@ -166,7 +172,8 @@ export default function AdminOrganizationsPage() {
       router.push('/login');
       return;
     }
-    if (currentUser.role !== 'scrivener') {
+    // enterprise_staff は組織管理ページへのアクセス不可
+    if (currentUser.role === 'enterprise_staff') {
       router.push('/');
     }
   }, [currentUser, authLoading, router]);
@@ -221,9 +228,16 @@ export default function AdminOrganizationsPage() {
   }, [editUser, editUserForm, loadUsersData, showToast]);
 
   useEffect(() => {
-    if (!authLoading && currentUser?.role === 'scrivener') {
+    // scrivener / hq_admin / branch_staff がアクセス可能
+    const canView = currentUser?.role === 'scrivener'
+      || currentUser?.role === 'hq_admin'
+      || currentUser?.role === 'branch_staff';
+    if (!authLoading && canView) {
       loadOrganizations();
-      loadUsersData();
+      // branch_staff はユーザー一覧不要
+      if (currentUser?.role !== 'branch_staff') {
+        loadUsersData();
+      }
     }
   }, [authLoading, currentUser, loadOrganizations, loadUsersData]);
 
@@ -326,7 +340,8 @@ export default function AdminOrganizationsPage() {
   };
 
   // ── ロードガード表示
-  if (authLoading || (currentUser && currentUser.role !== 'scrivener' && !authLoading)) {
+  const allowedRoles = ['scrivener', 'hq_admin', 'branch_staff'];
+  if (authLoading || (currentUser && !allowedRoles.includes(currentUser.role) && !authLoading)) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
@@ -341,12 +356,12 @@ export default function AdminOrganizationsPage() {
       ? organizations
       : organizations.filter((o) => o.type === requiredOrgType);
 
-  // 組織をカテゴリー別に分ける
+  // 組織をカテゴリー別に分ける（本部は管理対象外のため表示しない）
   const orgCategories = [
     {
-      title: '支援団体（本部・支部）',
-      orgs: organizations.filter((o) => o.type === 'hq' || o.type === 'branch'),
-      emptyMessage: 'まだ支援団体が登録されていません',
+      title: '支援団体（支部）',
+      orgs: organizations.filter((o) => o.type === 'branch'),
+      emptyMessage: 'まだ支部が登録されていません',
     },
     {
       title: '所属団体（受入企業）',
@@ -373,27 +388,41 @@ export default function AdminOrganizationsPage() {
                 組織・ユーザー管理
               </h1>
               <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                行政書士専用 ─ 組織の作成とアカウント発行
+                {canManage
+                  ? '本部・管理者専用 ─ 組織の作成とアカウント発行'
+                  : isStaffViewer
+                  ? '閲覧専用モード ─ 自分の所属支部のみ表示'
+                  : '組織の確認'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setShowOrgForm(!showOrgForm); setShowUserForm(false); }}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-xs"
-            >
-              <Building2 size={16} />
-              組織を追加
-            </button>
-            <button
-              onClick={() => { setShowUserForm(!showUserForm); setShowOrgForm(false); }}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
-            >
-              <UserPlus size={16} />
-              ユーザーを発行
-            </button>
-          </div>
+          {/* 管理権限（scrivener / hq_admin）のみボタンを表示 */}
+          {canManage && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setShowOrgForm(!showOrgForm); setShowUserForm(false); }}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-xs"
+              >
+                <Building2 size={16} />
+                組織を追加
+              </button>
+              <button
+                onClick={() => { setShowUserForm(!showUserForm); setShowOrgForm(false); }}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+              >
+                <UserPlus size={16} />
+                ユーザーを発行
+              </button>
+            </div>
+          )}
+          {/* branch_staff 向け: 閲覧専用バッジ */}
+          {isStaffViewer && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl">
+              <ShieldCheck size={13} />
+              閲覧専用
+            </span>
+          )}
         </div>
       </header>
 
@@ -458,7 +487,6 @@ export default function AdminOrganizationsPage() {
                         onChange={(e) => setOrgFormData({ ...orgFormData, type: e.target.value as OrganizationType })}
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none"
                       >
-                        <option value="hq">東京本部（hq）</option>
                         <option value="branch">支部（branch）</option>
                         <option value="enterprise">企業（enterprise）</option>
                       </select>
@@ -756,17 +784,19 @@ export default function AdminOrganizationsPage() {
                               {ORGANIZATION_TYPE_LABELS[org.type]}
                             </span>
                             <span className="text-xs text-slate-400 font-mono hidden sm:inline">{org.id.slice(0, 8)}…</span>
-                            {/* 削除ボタン */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirmDeleteOrg(org);
-                              }}
-                              className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                              title="組織を削除"
-                            >
-                              <Trash2 size={15} />
-                            </button>
+                            {/* 削除ボタン: 管理権限のみ表示 */}
+                            {canManage && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDeleteOrg(org);
+                                }}
+                                className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                                title="組織を削除"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -807,34 +837,37 @@ export default function AdminOrganizationsPage() {
                                           <span className="px-2 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-500">
                                             {USER_ROLE_LABELS[usr.role] || usr.role}
                                           </span>
-                                          {/* 編集ボタン */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditUserForm({
-                                                displayName: usr.displayName,
-                                                email: usr.email,
-                                                role: usr.role,
-                                              });
-                                              setEditUser(usr);
-                                            }}
-                                            className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
-                                            title="アカウントを編集"
-                                          >
-                                            <Pencil size={13} />
-                                          </button>
-                                          {/* 削除ボタン */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setConfirmDeleteUser(usr);
-                                            }}
-                                            disabled={isSelf}
-                                            className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-30"
-                                            title={isSelf ? '自分自身は削除できません' : 'アカウントを削除'}
-                                          >
-                                            <Trash2 size={13} />
-                                          </button>
+                                          {/* 編集・削除ボタン: 管理権限のみ表示 */}
+                                          {canManage && (
+                                            <>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditUserForm({
+                                                    displayName: usr.displayName,
+                                                    email: usr.email,
+                                                    role: usr.role,
+                                                  });
+                                                  setEditUser(usr);
+                                                }}
+                                                className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                                title="アカウントを編集"
+                                              >
+                                                <Pencil size={13} />
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setConfirmDeleteUser(usr);
+                                                }}
+                                                disabled={isSelf}
+                                                className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-30"
+                                                title={isSelf ? '自分自身は削除できません' : 'アカウントを削除'}
+                                              >
+                                                <Trash2 size={13} />
+                                              </button>
+                                            </>
+                                          )}
                                         </div>
                                       </div>
                                     );
@@ -853,16 +886,17 @@ export default function AdminOrganizationsPage() {
           ))}
         </div>
 
-        {/* ─── システム管理者（組織未割当）アカウント一覧 ─────────────────────────────────────────────────────── */}
-        {(() => {
-          const sysAdmins = usersList.filter((u) => !u.organizationId);
+        {/* ─── システム管理者（組織未割当）アカウント一覧: 管理権限のみ表示 ─── */}
+        {canManage && (() => {
+          // 東京本部（hq_direct）所属 または 組織未所属のユーザーを特権管理者として表示
+          const sysAdmins = usersList.filter((u) => !u.organizationId || u.organizationId === 'hq_direct');
           if (sysAdmins.length === 0) return null;
           return (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-8">
               <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                 <h2 className="font-bold text-base flex items-center gap-2 text-slate-700">
                   <ShieldCheck size={17} className="text-indigo-500" />
-                  特権管理者アカウント（組織未所属）
+                  特権管理者アカウント（東京本部・組織未所属）
                 </h2>
               </div>
               <div className="divide-y divide-slate-100">
@@ -893,7 +927,6 @@ export default function AdminOrganizationsPage() {
                         <span className="px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-200 text-indigo-600 bg-indigo-50">
                           {USER_ROLE_LABELS[usr.role] || usr.role}
                         </span>
-                        {/* 編集ボタン */}
                         <button
                           onClick={() => {
                             setEditUserForm({
@@ -908,7 +941,6 @@ export default function AdminOrganizationsPage() {
                         >
                           <Pencil size={15} />
                         </button>
-                        {/* 削除ボタン */}
                         <button
                           onClick={() => setConfirmDeleteUser(usr)}
                           disabled={isSelf}

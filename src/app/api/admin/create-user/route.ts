@@ -40,15 +40,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 });
   }
 
-  // ── 2. 呼び出し者が scrivener か確認 ────────────────────────────────────────
+  // ── 2. 呼び出し者が scrivener または hq_admin か確認 ─────────────────────────
   const callerDoc = await adminDb.collection('users').doc(callerUid).get();
   if (!callerDoc.exists) {
     return NextResponse.json({ error: 'ユーザー情報が見つかりません' }, { status: 403 });
   }
   const callerRole = callerDoc.data()?.role as string;
-  if (callerRole !== 'scrivener') {
+  const ALLOWED_ROLES = ['scrivener', 'hq_admin'];
+  if (!ALLOWED_ROLES.includes(callerRole)) {
     return NextResponse.json(
-      { error: 'この操作は行政書士（scrivener）のみ実行できます' },
+      { error: 'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます' },
       { status: 403 }
     );
   }

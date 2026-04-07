@@ -1,26 +1,39 @@
 /**
  * DELETE /api/admin/organizations/[id]  - 組織削除
  *
- * - scrivener ロールのみ実行可能
+ * - scrivener / hq_admin ロールのみ実行可能（branch_staff 以下は 403）
  * - 所属スタッフ（users コレクション）がいる場合は削除不可
  * - 所属外国人（foreigners コレクション）は自動的に「本部直轄（hq_direct）」へ移管
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, getAdminDb } from '@/lib/firebase/admin';
+import type { UserRole } from '@/types/database';
 
 /** 本部直轄の branchId / organizationId */
 const HQ_DIRECT_ID = 'hq_direct';
 
-/** 共通: Bearer トークンから callerUid を取得し、scrivenerか確認する */
-async function requireScrivener(req: NextRequest): Promise<
-  { callerUid: string; error?: never } | { callerUid?: never; error: NextResponse }
+/** 組織の削除が許可されたロール */
+const BRANCH_MANAGER_ROLES: UserRole[] = ['scrivener', 'hq_admin'];
+
+interface CallerInfo {
+  callerUid: string;
+  callerRole: UserRole;
+}
+
+/**
+ * 共通: Bearer トークンからユーザー情報を取得する
+ */
+async function getCallerInfo(req: NextRequest): Promise<
+  { info: CallerInfo; error?: never } | { info?: never; error: NextResponse }
 > {
   const authHeader = req.headers.get('Authorization');
   const idToken = authHeader?.replace('Bearer ', '').trim();
 
   if (!idToken) {
-    return { error: NextResponse.json({ error: '認証トークンがありません' }, { status: 401 }) };
+    return {
+      error: NextResponse.json({ error: '認証トークンがありません' }, { status: 401 }),
+    };
   }
 
   let callerUid: string;
@@ -28,22 +41,22 @@ async function requireScrivener(req: NextRequest): Promise<
     const decoded = await adminAuth.verifyIdToken(idToken);
     callerUid = decoded.uid;
   } catch {
-    return { error: NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 }) };
+    return {
+      error: NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 }),
+    };
   }
 
   const db = getAdminDb();
   const callerDoc = await db.collection('users').doc(callerUid).get();
-  const callerRole = callerDoc.data()?.role as string;
-  if (callerRole !== 'scrivener') {
+  if (!callerDoc.exists) {
     return {
-      error: NextResponse.json(
-        { error: 'この操作は行政書士（scrivener）のみ実行できます' },
-        { status: 403 }
-      ),
+      error: NextResponse.json({ error: 'ユーザー情報が見つかりません' }, { status: 401 }),
     };
   }
 
-  return { callerUid };
+  const callerRole = callerDoc.data()?.role as UserRole;
+
+  return { info: { callerUid, callerRole } };
 }
 
 // ── DELETE: 組織削除 ──────────────────────────────────────────────────────────
@@ -51,8 +64,21 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const result = await requireScrivener(req);
+  const result = await getCallerInfo(req);
   if (result.error) return result.error;
+
+  const { callerRole } = result.info;
+
+  // 削除権限チェック: scrivener / hq_admin のみ
+  if (!BRANCH_MANAGER_ROLES.includes(callerRole)) {
+    return NextResponse.json(
+      {
+        error:
+          'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます（403 Forbidden）',
+      },
+      { status: 403 }
+    );
+  }
 
   const { id: orgId } = await params;
 

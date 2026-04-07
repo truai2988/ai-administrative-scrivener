@@ -234,8 +234,12 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   {!readonly && (
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2.5">
-                        <ExcelDownloadButton foreigner={person} variant="icon" />
-                        <ConsentPdfButton foreigner={person} variant="icon" />
+                        {userRole === 'scrivener' && (
+                          <>
+                            <ExcelDownloadButton foreigner={person} variant="icon" />
+                            <ConsentPdfButton foreigner={person} variant="icon" />
+                          </>
+                        )}
 
                         {person.aiReview ? (
                           <div
