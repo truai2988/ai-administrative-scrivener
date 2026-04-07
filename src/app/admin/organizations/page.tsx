@@ -34,6 +34,8 @@ import {
   ChevronDown,
   ChevronRight,
   Pencil,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -137,6 +139,7 @@ export default function AdminOrganizationsPage() {
   });
   const [userFormError, setUserFormError] = useState<string | null>(null);
   const [savingUser, setSavingUser] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // 削除確認ダイアログの状態
   const [confirmDeleteOrg, setConfirmDeleteOrg] = useState<Organization | null>(null);
@@ -569,7 +572,6 @@ export default function AdminOrganizationsPage() {
               <div className="mx-5 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
                 <ShieldCheck size={15} className="text-amber-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-amber-700 font-medium leading-relaxed">
-                  サーバーサイド処理のため、あなた（行政書士）のセッションは維持されます。
                   発行したメールアドレスとパスワードを当該ユーザーに安全な方法で共有してください。
                 </p>
               </div>
@@ -652,13 +654,25 @@ export default function AdminOrganizationsPage() {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={userFormData.password}
                         onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
                         placeholder="8文字以上"
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
