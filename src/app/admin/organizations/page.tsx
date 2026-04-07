@@ -228,16 +228,11 @@ export default function AdminOrganizationsPage() {
   }, [editUser, editUserForm, loadUsersData, showToast]);
 
   useEffect(() => {
-    // scrivener / hq_admin / branch_staff がアクセス可能
-    const canView = currentUser?.role === 'scrivener'
-      || currentUser?.role === 'hq_admin'
-      || currentUser?.role === 'branch_staff';
+    // scrivener / hq_admin がアクセス可能
+    const canView = currentUser?.role === 'scrivener' || currentUser?.role === 'hq_admin';
     if (!authLoading && canView) {
       loadOrganizations();
-      // branch_staff はユーザー一覧不要
-      if (currentUser?.role !== 'branch_staff') {
-        loadUsersData();
-      }
+      loadUsersData();
     }
   }, [authLoading, currentUser, loadOrganizations, loadUsersData]);
 
@@ -340,7 +335,7 @@ export default function AdminOrganizationsPage() {
   };
 
   // ── ロードガード表示
-  const allowedRoles = ['scrivener', 'hq_admin', 'branch_staff'];
+  const allowedRoles = ['scrivener', 'hq_admin'];
   if (authLoading || (currentUser && !allowedRoles.includes(currentUser.role) && !authLoading)) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">

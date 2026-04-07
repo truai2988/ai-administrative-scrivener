@@ -181,16 +181,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Demo Version Badge */}
-        <div className="mt-6 flex items-center justify-center gap-2 px-4 py-2 bg-amber-50/80 border border-amber-200/60 rounded-xl mx-auto w-fit">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-          </span>
-          <span className="text-[10px] font-bold text-amber-700 tracking-wide">
-            DEMO VERSION
-          </span>
-        </div>
       </motion.div>
     </div>
   );

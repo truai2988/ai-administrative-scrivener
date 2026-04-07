@@ -10,7 +10,7 @@ import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, FileText, PenTool, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
 import Link from 'next/link';
 
 // ─── Toast Message Component ─────────────────────────────────────────────────
@@ -46,8 +46,6 @@ function ToastNotification({ message, onClose }: { message: string; onClose: () 
 const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage: string; badge?: number }[] = [
   { icon: UserCircle, label: '外国人管理・台帳', toastMessage: '高度な外国人台帳管理' },
   { icon: Bell, label: '通知・期限アラート', toastMessage: '自動期限監視アラート', badge: 12 },
-  { icon: FileText, label: '附属書類PDFの自動生成', toastMessage: '附属書類PDFの自動生成' },
-  { icon: PenTool, label: '完全電子署名', toastMessage: '完全電子署名' },
 ];
 
 // ─── Role Badge Colors ───────────────────────────────────────────────────────
@@ -215,15 +213,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">AI Labor Management</p>
             </div>
           </div>
-          {/* Demo Version Badge */}
-          <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200/60 rounded-lg">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-            <span className="text-[10px] font-bold text-amber-700 tracking-wide">DEMO VERSION</span>
-          </div>
         </div>
+
 
         {/* Navigation - Scrollable */}
         <nav className="flex-1 overflow-y-auto px-8 py-4 space-y-2 no-scrollbar">
@@ -238,11 +229,11 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           ))}
 
-          {/* システム管理（scrivener/hq_admin用） */}
-          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
+          {/* アサイン設定（scrivener用） */}
+          {userRole === 'scrivener' && (
             <SidebarItem
               icon={Settings}
-              label="システム設定"
+              label="アサイン設定"
               href="/settings"
             />
           )}
@@ -263,14 +254,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
-          {/* 支部情報（閲覧専用）: branch_staff */}
-          {userRole === 'branch_staff' && (
-            <SidebarItem
-              icon={Shield}
-              label="支部情報（閲覧）"
-              href="/admin/organizations"
-            />
-          )}
+
 
 
           {/* scrivener専用: データ整合性チェック */}
@@ -300,7 +284,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         <div className="p-8 pt-4 border-t border-slate-50 space-y-4 bg-white">
           <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100/50">
             <p className="text-xs font-bold text-indigo-600 mb-1">サポート窓口</p>
-            <p className="text-[10px] text-slate-500 leading-relaxed">ご不明点はいつでもAIアシスタントへお尋ねください。</p>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-bold">Coming Soon: 2026年実装予定</p>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -351,10 +335,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               </button>
             )}
 
-            <button className="p-3 bg-white border border-slate-100 rounded-2xl hover:shadow-lg hover:shadow-indigo-50 transition-all relative group">
-              <Bell className="h-5 w-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-              <span className="absolute top-2.5 right-2.5 h-2.5 w-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
-            </button>
+
 
             {/* ユーザー情報（ロール表示） */}
             <div className="flex items-center gap-4 bg-white p-2 pr-6 rounded-2xl border border-slate-100 shadow-sm">
@@ -367,9 +348,12 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               </div>
               <div>
                 <p className="text-xs font-black text-slate-900 leading-tight">{currentUser.displayName} 様</p>
-                <p className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
-                  {roleLabel}
-                </p>
+                {/* 名前と役職名が実質的に同じ場合は役職バッジを隠す（二重表記防止） */}
+                {currentUser.displayName.replace(/\s+/g, '') !== roleLabel.replace(/\s+/g, '') && (
+                  <p className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
+                    {roleLabel}
+                  </p>
+                )}
               </div>
             </div>
           </div>

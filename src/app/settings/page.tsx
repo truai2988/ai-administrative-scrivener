@@ -45,8 +45,8 @@ export default function SettingsPage() {
       router.push('/login');
       return;
     }
-    // 行政書士（Scrivener）チェック（今回は簡易的にロールで判定）
-    if (currentUser.role !== 'scrivener' && currentUser.role !== 'hq_admin') {
+    // 行政書士（Scrivener）チェック
+    if (currentUser.role !== 'scrivener') {
       showToast('error', '権限がありません');
       setTimeout(() => router.push('/'), 1500);
       return;
@@ -120,7 +120,7 @@ export default function SettingsPage() {
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <Settings size={22} className="text-indigo-600" />
-                システム設定
+                アサイン設定
               </h1>
               <p className="text-xs text-slate-500 mt-1 font-medium">申請フローや業務ルールのカスタマイズ</p>
             </div>
