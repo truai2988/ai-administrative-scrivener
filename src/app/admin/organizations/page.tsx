@@ -55,6 +55,7 @@ import {
   fetchUsers,
   deleteUserAdmin,
   updateUserAdmin,
+  updateOrganizationAdmin,
 } from '@/lib/api/adminClient';
 
 // ─── ユーティリティ ────────────────────────────────────────────────────────────
@@ -127,6 +128,16 @@ export default function AdminOrganizationsPage() {
   });
   const [orgFormError, setOrgFormError] = useState<string | null>(null);
   const [savingOrg, setSavingOrg] = useState(false);
+
+  // ── 組織編集フォーム状態
+  const [editOrg, setEditOrg] = useState<Organization | null>(null);
+  const [editOrgForm, setEditOrgForm] = useState({
+    name: '',
+    type: 'branch' as OrganizationType,
+    address: '',
+    phone: '',
+  });
+  const [updatingOrg, setUpdatingOrg] = useState(false);
 
   // ── ユーザー作成フォーム状態
   const [showUserForm, setShowUserForm] = useState(false);
@@ -316,6 +327,25 @@ export default function AdminOrganizationsPage() {
       setConfirmDeleteOrg(null);
     } finally {
       setDeletingOrg(false);
+    }
+  };
+
+  // ―― 組織更新ハンドラ
+  const handleUpdateOrg = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editOrg) return;
+
+    setUpdatingOrg(true);
+    try {
+      const result = await updateOrganizationAdmin(editOrg.id, editOrgForm);
+      showToast('success', result.message);
+      setEditOrg(null);
+      loadOrganizations(); // リロード
+    } catch (err: unknown) {
+      const e = err as Error;
+      showToast('error', e.message ?? '組織の更新に失敗しました');
+    } finally {
+      setUpdatingOrg(false);
     }
   };
 
@@ -793,18 +823,36 @@ export default function AdminOrganizationsPage() {
                               {ORGANIZATION_TYPE_LABELS[org.type]}
                             </span>
                             <span className="text-xs text-slate-400 font-mono hidden sm:inline">{org.id.slice(0, 8)}…</span>
-                            {/* 削除ボタン: 管理権限のみ表示 */}
+                            {/* 編集・削除ボタン: 管理権限のみ表示 */}
                             {canManage && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setConfirmDeleteOrg(org);
-                                }}
-                                className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                                title="組織を削除"
-                              >
-                                <Trash2 size={15} />
-                              </button>
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditOrgForm({
+                                      name: org.name,
+                                      type: org.type,
+                                      address: org.address || '',
+                                      phone: org.phone || '',
+                                    });
+                                    setEditOrg(org);
+                                  }}
+                                  className="ml-2 p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                  title="組織を編集"
+                                >
+                                  <Pencil size={15} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmDeleteOrg(org);
+                                  }}
+                                  className="ml-1 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                                  title="組織を削除"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -1172,6 +1220,101 @@ export default function AdminOrganizationsPage() {
                     className="flex-1 flex justify-center items-center py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                   >
                     {updatingUser ? <Loader2 size={18} className="animate-spin" /> : '更新を保存'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 組織情報編集モーダル ────────────────────────────── */}
+      <AnimatePresence>
+        {editOrg && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative"
+            >
+              <button
+                onClick={() => setEditOrg(null)}
+                className="absolute top-6 right-6 p-2 bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+
+              <h3 className="text-xl font-black text-slate-800 mb-2">組織情報の編集</h3>
+              <p className="text-sm text-slate-500 mb-6">組織名、種類、連絡先を更新します。</p>
+
+              <form onSubmit={handleUpdateOrg} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">組織名 *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editOrgForm.name}
+                    onChange={(e) => setEditOrgForm({ ...editOrgForm, name: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">種別 *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['branch', 'enterprise'].map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setEditOrgForm({ ...editOrgForm, type: t as OrganizationType })}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                          editOrgForm.type === t
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        {ORGANIZATION_TYPE_LABELS[t as keyof typeof ORGANIZATION_TYPE_LABELS]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">住所（任意）</label>
+                  <input
+                    type="text"
+                    value={editOrgForm.address}
+                    onChange={(e) => setEditOrgForm({ ...editOrgForm, address: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">電話番号（任意）</label>
+                  <input
+                    type="tel"
+                    value={editOrgForm.phone}
+                    onChange={(e) => setEditOrgForm({ ...editOrgForm, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditOrg(null)}
+                    disabled={updatingOrg}
+                    className="flex-1 py-3 text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatingOrg || !editOrgForm.name}
+                    className="flex-1 flex justify-center items-center py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {updatingOrg ? <Loader2 size={18} className="animate-spin" /> : '更新を保存'}
                   </button>
                 </div>
               </form>

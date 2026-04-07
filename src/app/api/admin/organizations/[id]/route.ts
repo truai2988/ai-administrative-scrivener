@@ -166,3 +166,70 @@ export async function DELETE(
     return NextResponse.json({ error: '組織の削除に失敗しました' }, { status: 500 });
   }
 }
+
+// ── PATCH: 組織更新 ──────────────────────────────────────────────────────────
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const result = await getCallerInfo(req);
+  if (result.error) return result.error;
+
+  const { callerRole } = result.info;
+
+  // 更新権限チェック: scrivener / hq_admin のみ
+  if (!BRANCH_MANAGER_ROLES.includes(callerRole)) {
+    return NextResponse.json(
+      {
+        error:
+          'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます（403 Forbidden）',
+      },
+      { status: 403 }
+    );
+  }
+
+  const { id: orgId } = await params;
+
+  if (!orgId) {
+    return NextResponse.json({ error: '組織IDが指定されていません' }, { status: 400 });
+  }
+
+  // 本部直轄の更新は不可（必要に応じて許可してもよいが、一旦制限）
+  if (orgId === HQ_DIRECT_ID) {
+    return NextResponse.json(
+      { error: '本部直轄組織は設定から変更できません' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const body = await req.json();
+    const { name, type, address, phone } = body;
+
+    const db = getAdminDb();
+    const orgRef = db.collection('organizations').doc(orgId);
+    
+    const orgDoc = await orgRef.get();
+    if (!orgDoc.exists) {
+      return NextResponse.json({ error: '指定された組織が見つかりません' }, { status: 404 });
+    }
+
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+    };
+    if (name !== undefined) updates.name = name;
+    if (type !== undefined) updates.type = type;
+    if (address !== undefined) updates.address = address;
+    if (phone !== undefined) updates.phone = phone;
+
+    await orgRef.update(updates);
+
+    return NextResponse.json(
+      { success: true, message: '組織情報を更新しました' },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error('[organizations PATCH] error:', err);
+    return NextResponse.json({ error: '組織の更新に失敗しました' }, { status: 500 });
+  }
+}

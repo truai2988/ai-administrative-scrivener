@@ -8,7 +8,7 @@
 import { auth } from '@/lib/firebase/auth';
 import type { CreateUserRequest } from '@/lib/schemas/organizationSchema';
 import type { CreateOrganizationInput } from '@/lib/schemas/organizationSchema';
-import type { Organization } from '@/types/database';
+import type { Organization, OrganizationType } from '@/types/database';
 
 /** 現在ログイン中のユーザーの IDトークンを取得する */
 async function getIdToken(): Promise<string> {
@@ -138,4 +138,20 @@ export async function deleteOrganization(orgId: string): Promise<{ message: stri
     throw new Error(json.error ?? '組織の削除に失敗しました');
   }
   return { message: json.message ?? '組織を削除しました' };
+}
+
+/** 組織情報を更新する（scrivener/hq_admin専用） */
+export async function updateOrganizationAdmin(
+  orgId: string,
+  data: { name?: string; type?: OrganizationType; address?: string; phone?: string }
+): Promise<{ message: string }> {
+  const res = await adminFetch(`/api/admin/organizations/${orgId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.error ?? '組織情報の更新に失敗しました');
+  }
+  return { message: json.message ?? '組織情報を更新しました' };
 }
