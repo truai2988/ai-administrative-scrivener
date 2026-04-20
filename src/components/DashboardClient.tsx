@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useForeigners } from '@/hooks/useForeigners';
 import { foreignerService } from '@/services/foreignerService';
-import { Foreigner, USER_ROLE_LABELS } from '@/types/database';
+import { Foreigner, USER_ROLE_LABELS, UserRole } from '@/types/database';
 import { canCreateForeigner } from '@/utils/permissions';
 import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
@@ -59,9 +60,9 @@ const ROLE_BADGE_STYLES: Record<string, string> = {
 export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[] }) {
   const { currentUser, loading: authLoading, logout } = useAuth();
   const router = useRouter();
-  const [data, setData] = useState<Foreigner[]>(initialData);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { data, loading, setData } = useForeigners(currentUser, initialData);
   const [mounted, setMounted] = useState<boolean>(false);
+  const [isSeeding, setIsSeeding] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // hq_admin専用: タブ選択状態 ('all' | 'hq_direct' | branchId)
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -119,25 +120,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     })();
   }, [currentUser]);
 
-  // ロールベースのデータ取得 (リアルタイム購読)
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    setLoading(true);
-    
-    // リアルタイムリスナーを開始
-    const unsubscribe = foreignerService.subscribeForeignersByRole(
-      currentUser.role,
-      currentUser.organizationId ?? undefined,
-      (fetchedData) => {
-        setData(fetchedData);
-        setLoading(false);
-      }
-    );
-    
-    // クリーンアップ関数で購読解除
-    return () => unsubscribe();
-  }, [currentUser]);
 
   // 未ログインチェック（Middlewareを通過しても念のためクライアント側でもチェック）
   useEffect(() => {
@@ -157,20 +139,30 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
 
 
-  if (!mounted || authLoading) return null;
-  if (!currentUser) return null;
-
-  const userRole = currentUser.role;
-  const roleLabel = USER_ROLE_LABELS[userRole] || userRole;
-  const roleBadgeStyle = ROLE_BADGE_STYLES[userRole] || 'bg-slate-50 text-slate-600 border-slate-100';
+  const userRole = currentUser?.role as UserRole;
+  const roleLabel = userRole ? (USER_ROLE_LABELS[userRole] || userRole) : '';
+  const roleBadgeStyle = userRole ? (ROLE_BADGE_STYLES[userRole] || 'bg-slate-50 text-slate-600 border-slate-100') : '';
 
   // hq_admin のみ有効なフィルター適用
   const isHqAdmin = userRole === 'hq_admin';
-  const displayedData = (() => {
+  const displayedData = useMemo(() => {
     if (!isHqAdmin) return data;
     if (activeTab !== 'all') return data.filter(f => f.branchId === activeTab);
     return data;
-  })();
+  }, [data, isHqAdmin, activeTab]);
+
+  // サマリー計算
+  const { total, expiringSoon, pending, completed } = useMemo(() => {
+    const total = displayedData.length;
+    const expiringSoon = displayedData.filter((p) => {
+      const days = Math.ceil((new Date(p.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      return days < 90 && days > 0;
+    }).length;
+    const pending = displayedData.filter((p) => p.status === 'チェック中' || p.status === '準備中' || p.status === '編集中' || p.status === '差し戻し').length;
+    const completed = displayedData.filter(p => p.status === '申請済').length;
+    
+    return { total, expiringSoon, pending, completed };
+  }, [displayedData]);
 
   // 支部タブリスト: 支部・企業のみ（本部系を除外）
   // 本部は外国人を管轄しないためタブに表示しない
@@ -185,16 +177,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     return organizationLabelMap[branchId] ?? branchId;
   };
 
-
-  // サマリー計算
-  const total = displayedData.length;
-  const expiringSoon = displayedData.filter((p) => {
-    const days = Math.ceil((new Date(p.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-    return days < 90 && days > 0;
-  }).length;
-  const pending = displayedData.filter((p) => p.status === 'チェック中' || p.status === '準備中' || p.status === '編集中' || p.status === '差し戻し').length;
-  const completed = displayedData.filter(p => p.status === '申請済').length;
-
+  if (!mounted || authLoading) return null;
+  if (!currentUser) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans">
@@ -294,7 +278,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               <button 
                 onClick={async () => {
                   if (confirm('デモデータを3件投入します。よろしいですか？')) {
-                    setLoading(true);
+                    setIsSeeding(true);
                     const res = await foreignerService.seedDemoData(currentUser.organizationId ?? undefined);
                     if (res.success) {
                       const fetched = await foreignerService.getForeignersByRole(currentUser.role, currentUser.organizationId ?? undefined);
@@ -302,7 +286,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                     } else {
                       alert('エラーが発生しました: ' + res.error);
                     }
-                    setLoading(false);
+                    setIsSeeding(false);
                   }
                 }}
                 title="デモデータ一括投入"
@@ -360,7 +344,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         </header>
 
         {/* Content */}
-        {loading ? (
+        {loading || isSeeding ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[400px]">
             <Loader2 className="h-10 w-10 text-indigo-500 animate-spin" />
             <p className="text-slate-500 font-bold text-sm">データを読み込み中...</p>
