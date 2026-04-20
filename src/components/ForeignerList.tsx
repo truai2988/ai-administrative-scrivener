@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Search, Clock, CheckSquare, Square, MinusSquare, FilePen, Mail, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import { Clock, CheckSquare, Square, MinusSquare, FilePen, Mail, CheckCircle, XCircle, Sparkles, ChevronDown } from 'lucide-react';
 import { UserRole } from '@/types/database';
 import { foreignerService } from '@/services/foreignerService';
 import { canRequestReview, canApproveOrReturn } from '@/utils/permissions';
@@ -23,14 +23,21 @@ interface ForeignerListProps {
 }
 
 export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, onUpdate }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
+  const [filterNationality, setFilterNationality] = useState('');
+  const [filterCompany, setFilterCompany] = useState('');
 
-  const filteredData = data.filter(
-    (item) =>
-      item.name.includes(searchTerm) ||
-      item.nationality.includes(searchTerm) ||
-      (item.company && item.company.includes(searchTerm))
-  );
+  // 支部選択肢: hq_direct（本部直轄）は常に先頭に固定 + data から追加
+  const branchOptions = Array.from(new Set(['hq_direct', ...data.map(d => d.branchId).filter(Boolean) as string[]]));
+  const nationalityOptions = Array.from(new Set(data.map(d => d.nationality).filter(Boolean)));
+  const companyOptions = Array.from(new Set(data.map(d => d.company).filter(Boolean)));
+
+  const filteredData = data.filter((item) => {
+    if (filterBranch && item.branchId !== filterBranch) return false;
+    if (filterNationality && item.nationality !== filterNationality) return false;
+    if (filterCompany && item.company !== filterCompany) return false;
+    return true;
+  });
 
   const displayedData = filteredData.slice(0, 100);
 
@@ -77,15 +84,51 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
             </span>
           )}
         </h2>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="名前、国籍、企業名で検索..."
-            className="pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm w-full md:w-80 focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-wrap gap-2">
+          {/* 支部名 */}
+          {showBranch && (
+            <div className="relative">
+              <select
+                value={filterBranch}
+                onChange={(e) => setFilterBranch(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer min-w-[120px]"
+              >
+                <option value="">支部名: すべて</option>
+                {branchOptions.map(b => (
+                  <option key={b} value={b}>{getBranchLabel ? getBranchLabel(b!) : b}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+            </div>
+          )}
+          {/* 国籍 */}
+          <div className="relative">
+            <select
+              value={filterNationality}
+              onChange={(e) => setFilterNationality(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer min-w-[120px]"
+            >
+              <option value="">国籍: すべて</option>
+              {nationalityOptions.map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+          </div>
+          {/* 企業名 */}
+          <div className="relative">
+            <select
+              value={filterCompany}
+              onChange={(e) => setFilterCompany(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer min-w-[140px]"
+            >
+              <option value="">企業名: すべて</option>
+              {companyOptions.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+          </div>
         </div>
       </div>
 

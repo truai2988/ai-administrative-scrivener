@@ -7,7 +7,7 @@ import { useForeigners } from '@/hooks/useForeigners';
 import { foreignerService } from '@/services/foreignerService';
 import { Foreigner, USER_ROLE_LABELS, UserRole } from '@/types/database';
 import { canCreateForeigner } from '@/utils/permissions';
-import { SummaryCards } from '@/components/SummaryCards';
+import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,7 +36,7 @@ function ToastNotification({ message, onClose }: { message: string; onClose: () 
       </div>
       <div>
         <p className="text-sm font-bold">{message}</p>
-        <p className="text-xs text-slate-500 font-medium">Coming Soon: 2026年実装予定</p>
+        <p className="text-xs text-slate-500 font-medium">要望があり次第実装予定</p>
       </div>
       <button onClick={onClose} className="ml-2 p-1 text-slate-500 hover:text-white transition-colors rounded-lg">
         <X className="h-4 w-4" />
@@ -48,8 +48,6 @@ function ToastNotification({ message, onClose }: { message: string; onClose: () 
 // ─── Coming Soon Sidebar Items ───────────────────────────────────────────────
 const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage: string; badge?: number }[] = [
   { icon: UserCircle, label: '外国人管理・台帳', toastMessage: '高度な外国人台帳管理' },
-  // 「通知・期限アラート」はscrivenerは内諸管理画面と連動。それ以外のロールは Coming Soon
-  { icon: Bell, label: '通知・期限アラート', toastMessage: '自動期限監視アラート', badge: 12 },
 ];
 
 // ─── Scrivener専用: 問い合わせ受信箱サイドバー項目 ──────────────────────────
@@ -85,15 +83,15 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [mounted, setMounted] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // hq_admin専用: タブ選択状態 ('all' | 'hq_direct' | branchId)
-  const [activeTab, setActiveTab] = useState<string>('all');
-  const { data, stats, statsLoading, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab);
+  // activeTab: タブUI削除のため 'all' 固定
+  const [activeTab] = useState<string>('all');
+  // サマリーカードタブ選択状態
+  const [activeSummaryTab, setActiveSummaryTab] = useState<SummaryTab>('all');
+  const { data, stats, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab);
   // データ整合性チェックパネル（scrivener専用）
   const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
   // 組織ID → 表示名マップ（動的・APIから取得）
   const [organizationLabelMap, setOrganizationLabelMap] = useState<Record<string, string>>({});
-  // 登録済み組織のリスト（タブ表示の根拠。typeも保持しheadquartersを除外するため）
-  const [organizationsList, setOrganizationsList] = useState<Array<{ id: string; name: string; type: string }>>([]);
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -132,13 +130,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         const { fetchOrganizations } = await import('@/lib/api/adminClient');
         const orgs = await fetchOrganizations();
         const map: Record<string, string> = {};
-        const list: Array<{ id: string; name: string; type: string }> = [];
         for (const org of orgs) {
           map[org.id] = org.name;
-          list.push({ id: org.id, name: org.name, type: org.type });
         }
         setOrganizationLabelMap(map);
-        setOrganizationsList(list);
       } catch {
         // 取得失敗時はフォールバックとしてIDをそのまま表示
       }
@@ -172,12 +167,26 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const isHqAdmin = userRole === 'hq_admin';
   const displayedData = data; // useForeigners が既に activeTab でフィルタリングされたデータを返します
 
-  // 支部タブリスト: 支部・企業のみ（本部系を除外）
-  // 本部は外国人を管轄しないためタブに表示しない
-  // ※ Firestoreの実データは "headquarters"、型定義は "hq" のため両方を除外
-  const branchTabs = isHqAdmin
-    ? organizationsList.filter(org => org.type !== 'headquarters' && org.type !== 'hq')
-    : [];
+  // サマリータブによるフロントエンドフィルタリング
+  const PENDING_STATUSES = new Set(['準備中', '編集中', 'チェック中', '追加資料待機', '入管審査中', '差し戻し']);
+  const filteredData = (() => {
+    if (activeSummaryTab === 'all') return displayedData;
+    const now = new Date();
+    const threshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const todayStr = now.toISOString().slice(0, 10);
+    const thresholdStr = threshold.toISOString().slice(0, 10);
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (activeSummaryTab === 'expiring') {
+      return displayedData.filter(f => f.expiryDate >= todayStr && f.expiryDate <= thresholdStr);
+    }
+    if (activeSummaryTab === 'pending') {
+      return displayedData.filter(f => PENDING_STATUSES.has(f.status));
+    }
+    if (activeSummaryTab === 'completed') {
+      return displayedData.filter(f => f.status === '完了' && f.updatedAt?.slice(0, 7) === thisMonth);
+    }
+    return displayedData;
+  })();
 
   /** branchId → 表示名のマッピング（組織APIから動的取得） */
   const getBranchLabel = (branchId: string): string => {
@@ -210,11 +219,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
         {/* Navigation - Scrollable */}
         <nav className="flex-1 overflow-y-auto px-8 py-4 space-y-2 no-scrollbar">
-          <SidebarItem icon={LayoutDashboard} label="総合ダッシュボード" active />
-          {COMING_SOON_ITEMS
-            // scrivenerは「通知・期限アラート」を専用ポップアップで制御するため除外
-            .filter(item => !(userRole === 'scrivener' && item.label === '通知・期限アラート'))
-            .map((item) => (
+          {canCreateForeigner(userRole) && (
+            <SidebarItem icon={QrCode} label="新規申請" active onClick={() => setShowShareModal(true)} />
+          )}
+          {COMING_SOON_ITEMS.map((item) => (
             <SidebarItem
               key={item.label}
               icon={item.icon}
@@ -282,6 +290,24 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
         {/* Support & Logout - Fixed at bottom */}
         <div className="p-8 pt-4 border-t border-slate-50 space-y-4 bg-white">
+          {/* ユーザー情報 */}
+          <div className="flex items-center gap-3 px-1">
+            <div className="h-9 w-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
+              {userRole === 'scrivener' ? (
+                <Shield className="h-5 w-5 text-emerald-500" />
+              ) : (
+                <UserCircle className="h-5 w-5" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-slate-900 leading-tight truncate">{currentUser.displayName} 様</p>
+              {currentUser.displayName.replace(/\s+/g, '') !== roleLabel.replace(/\s+/g, '') && userRole !== 'branch_staff' && (
+                <p className={`text-xs font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
+                  {roleLabel}
+                </p>
+              )}
+            </div>
+          </div>
           {userRole !== 'scrivener' && (
             <button 
               onClick={() => setIsSupportModalOpen(true)}
@@ -326,57 +352,17 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col p-6 md:p-10 lg:p-14 max-w-[1600px] mx-auto w-full relative">
-        {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">管理概要</h1>
-            <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{statsLoading ? '-' : stats.total}名</span>の外国人を管理しています。</p>
+      <main className="flex-1 flex flex-col px-6 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8 lg:px-10 lg:pt-6 lg:pb-10 max-w-[1600px] mx-auto w-full relative">
+        {/* InquiryInbox (scrivenerのみ) */}
+        {userRole === 'scrivener' && (
+          <div className="flex justify-end mb-4">
+            <InquiryInbox
+              userRole={userRole}
+              isOpen={showInquiryInbox}
+              onClose={() => setShowInquiryInbox(false)}
+            />
           </div>
-          <div className="flex items-center gap-5">
-
-            {canCreateForeigner(userRole) && (
-              <button 
-                onClick={() => setShowShareModal(true)}
-                className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2"
-              >
-                <QrCode className="h-4 w-4" />
-                新規申請
-              </button>
-            )}
-
-            {/* お問い合わせ受信箱パネル (scrivenerのみ、サイドバーから引き出す) */}
-            {userRole === 'scrivener' && (
-              <InquiryInbox
-                userRole={userRole}
-                isOpen={showInquiryInbox}
-                onClose={() => setShowInquiryInbox(false)}
-              />
-            )}
-
-
-
-            {/* ユーザー情報（ロール表示） */}
-            <div className="flex items-center gap-4 bg-white p-2 pr-6 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 border border-slate-100">
-                {userRole === 'scrivener' ? (
-                  <Shield className="h-6 w-6 text-emerald-500" />
-                ) : (
-                  <UserCircle className="h-6 w-6" />
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-black text-slate-900 leading-tight">{currentUser.displayName} 様</p>
-                {/* 名前と役職名が実質的に同じ場合は役職バッジを隠す（二重表記防止） */}
-                {currentUser.displayName.replace(/\s+/g, '') !== roleLabel.replace(/\s+/g, '') && (
-                  <p className={`text-xs font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
-                    {roleLabel}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+        )}
 
         {/* Content */}
         {loading || isSeeding ? (
@@ -385,7 +371,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <p className="text-slate-500 font-bold text-sm">データを読み込み中...</p>
           </div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -395,6 +381,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 expiringSoon={stats.expiringSoon}
                 pending={stats.pending}
                 completed={stats.completed}
+                activeTab={activeSummaryTab}
+                onTabChange={setActiveSummaryTab}
               />
             </motion.div>
 
@@ -402,46 +390,14 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="min-h-[400px]"
             >
-              {/* hq_admin: タブバー */}
-              {isHqAdmin && (
-                <div className="flex mb-6 overflow-x-auto no-scrollbar">
-                  <div className="inline-flex bg-slate-100 rounded-2xl p-1 gap-1 shrink-0">
-                    {/* すべて（全件表示フィルター） */}
-                    <button
-                      onClick={() => setActiveTab('all')}
-                      className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${
-                        activeTab === 'all'
-                          ? 'bg-white text-violet-700 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-600'
-                      }`}
-                    >
-                      すべて
-                    </button>
-
-                    {/* 動的支部タブ（登録済み組織を根拠に表示・外国人数は無関係） */}
-                    {branchTabs.map(org => (
-                      <button
-                        key={org.id}
-                        onClick={() => setActiveTab(org.id)}
-                        className={`px-5 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 ${
-                          activeTab === org.id
-                            ? 'bg-white text-violet-700 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-600'
-                        }`}
-                      >
-                        {org.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <ForeignerList 
-                data={displayedData} 
+                data={filteredData} 
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
-                readonly={isHqAdmin && activeTab === 'all'}
-                showBranch={isHqAdmin && activeTab === 'all'}
+                readonly={isHqAdmin}
+                showBranch={isHqAdmin}
                 getBranchLabel={getBranchLabel}
                 userRole={userRole}
                 onUpdate={(updated) => setData(prev => prev.map(f => f.id === updated.id ? updated : f))}

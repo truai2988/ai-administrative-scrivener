@@ -1,57 +1,101 @@
 import React from 'react';
-import { AlertTriangle, FileText, CheckCircle } from 'lucide-react';
+import { AlertTriangle, FileText, CheckCircle, List } from 'lucide-react';
+
+export type SummaryTab = 'all' | 'expiring' | 'pending' | 'completed';
 
 interface SummaryCardsProps {
   expiringSoon: number;
   pending: number;
   completed: number;
+  activeTab: SummaryTab;
+  onTabChange: (tab: SummaryTab) => void;
 }
+
+const tabs: {
+  id: SummaryTab;
+  label: string;
+  icon: React.ElementType;
+  badgeKey?: keyof Pick<SummaryCardsProps, 'expiringSoon' | 'pending' | 'completed'>;
+  activeColor: string;
+  badgeColor: string;
+}[] = [
+  {
+    id: 'all',
+    label: '全件',
+    icon: List,
+    activeColor: 'bg-slate-800 text-white',
+    badgeColor: '',
+  },
+  {
+    id: 'expiring',
+    label: '期限切れ間近',
+    icon: AlertTriangle,
+    badgeKey: 'expiringSoon',
+    activeColor: 'bg-rose-600 text-white',
+    badgeColor: 'bg-rose-100 text-rose-600',
+  },
+  {
+    id: 'pending',
+    label: '進行中の申請',
+    icon: FileText,
+    badgeKey: 'pending',
+    activeColor: 'bg-amber-500 text-white',
+    badgeColor: 'bg-amber-100 text-amber-700',
+  },
+  {
+    id: 'completed',
+    label: '今月の完了',
+    icon: CheckCircle,
+    badgeKey: 'completed',
+    activeColor: 'bg-emerald-600 text-white',
+    badgeColor: 'bg-emerald-100 text-emerald-700',
+  },
+];
 
 export const SummaryCards: React.FC<SummaryCardsProps> = ({
   expiringSoon,
   pending,
   completed,
+  activeTab,
+  onTabChange,
 }) => {
-  const cards = [
-    {
-      title: '3ヶ月以内に期限切れ',
-      value: expiringSoon,
-      icon: AlertTriangle,
-      color: 'text-rose-600',
-      bg: 'bg-rose-50',
-    },
-    {
-      title: '進行中の申請案件',
-      value: pending,
-      icon: FileText,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-    },
-    {
-      title: '今月の完了数',
-      value: completed,
-      icon: CheckCircle,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
-    },
-  ];
+  const counts = { expiringSoon, pending, completed };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {cards.map((card, index) => (
-        <div
-          key={index}
-          className="bg-white px-6 py-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50 transition-all duration-300 flex items-center space-x-5 group"
-        >
-          <div className={`${card.bg} p-3.5 rounded-2xl group-hover:scale-110 transition-transform`}>
-            <card.icon className={`h-7 w-7 ${card.color}`} />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">{card.title}</p>
-            <p className="text-2xl font-black text-slate-900 tracking-tight">{card.value.toLocaleString()}</p>
-          </div>
-        </div>
-      ))}
+    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        const Icon = tab.icon;
+        const badgeValue = tab.badgeKey ? counts[tab.badgeKey] : undefined;
+
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm
+              whitespace-nowrap transition-all duration-200 shrink-0
+              ${isActive
+                ? `${tab.activeColor} shadow-md`
+                : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700 shadow-sm'
+              }
+            `}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span>{tab.label}</span>
+            {badgeValue !== undefined && (
+              <span
+                className={`
+                  text-xs font-black px-2 py-0.5 rounded-full min-w-5 text-center
+                  ${isActive ? 'bg-white/25 text-white' : tab.badgeColor}
+                `}
+              >
+                {badgeValue}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 };
