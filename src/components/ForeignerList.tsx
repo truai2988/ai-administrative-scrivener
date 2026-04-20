@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Clock, CheckSquare, Square, MinusSquare, FilePen, Mail, CheckCircle, XCircle, Sparkles, ChevronDown } from 'lucide-react';
+import { Clock, CheckSquare, Square, MinusSquare, FilePen, Mail, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import { UserRole } from '@/types/database';
 import { foreignerService } from '@/services/foreignerService';
 import { canRequestReview, canApproveOrReturn } from '@/utils/permissions';
@@ -26,18 +26,81 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
   const [filterBranch, setFilterBranch] = useState('');
   const [filterNationality, setFilterNationality] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
+  const [filterVisaType, setFilterVisaType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // 支部選択肢: hq_direct（本部直轄）は常に先頭に固定 + data から追加
-  const branchOptions = Array.from(new Set(['hq_direct', ...data.map(d => d.branchId).filter(Boolean) as string[]]));
-  const nationalityOptions = Array.from(new Set(data.map(d => d.nationality).filter(Boolean)));
-  const companyOptions = Array.from(new Set(data.map(d => d.company).filter(Boolean)));
+  const renderFilterHeader = (
+    filterKey: string,
+    title: string,
+    value: string,
+    setValue: (v: string) => void,
+    options: string[],
+    getLabel?: (v: string) => string
+  ) => {
+    const isOpen = openDropdown === filterKey;
+    return (
+      <div className="relative inline-flex items-center justify-center w-full">
+        <button
+          onClick={(e) => { e.stopPropagation(); setOpenDropdown(isOpen ? null : filterKey); }}
+          className={`flex items-center justify-center text-xs font-bold w-full hover:opacity-80 transition-opacity ${value ? 'text-indigo-600' : 'text-slate-400'}`}
+        >
+          {title} <span className="ml-1 opacity-70 text-[10px]">▼</span>
+        </button>
+        
+        {isOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={(e) => { e.stopPropagation(); setOpenDropdown(null); }} 
+            />
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 min-w-[140px] max-w-[240px] bg-white border border-slate-200 rounded-md shadow-xl z-50 max-h-[300px] overflow-y-auto text-left py-1">
+              <div 
+                className={`px-3 py-2.5 text-xs hover:bg-slate-50 cursor-pointer border-b border-slate-100 transition-colors ${value === '' ? 'bg-indigo-50/50 text-indigo-700 font-bold' : 'text-slate-700'}`}
+                onClick={(e) => { e.stopPropagation(); setValue(''); setOpenDropdown(null); }}
+              >
+                すべて
+              </div>
+              {options.map(opt => {
+                let label = getLabel ? getLabel(opt) : opt;
+                if (filterKey === 'branch' && opt === 'hq_direct') label = '本部直轄';
+                return (
+                  <div 
+                    key={opt}
+                    className={`px-3 py-2.5 text-xs hover:bg-slate-50 cursor-pointer pointer-events-auto break-all transition-colors ${value === opt ? 'bg-indigo-50/50 text-indigo-700 font-bold' : 'text-slate-700'}`}
+                    onClick={(e) => { e.stopPropagation(); setValue(opt); setOpenDropdown(null); }}
+                  >
+                    {label}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
-  const filteredData = data.filter((item) => {
-    if (filterBranch && item.branchId !== filterBranch) return false;
-    if (filterNationality && item.nationality !== filterNationality) return false;
-    if (filterCompany && item.company !== filterCompany) return false;
-    return true;
-  });
+  const { branchOptions, nationalityOptions, companyOptions, visaTypeOptions, statusOptions } = useMemo(() => {
+    return {
+      branchOptions: Array.from(new Set(['hq_direct', ...data.map(d => d.branchId).filter(Boolean) as string[]])),
+      nationalityOptions: Array.from(new Set(data.map(d => d.nationality).filter(Boolean) as string[])),
+      companyOptions: Array.from(new Set(data.map(d => d.company).filter(Boolean) as string[])),
+      visaTypeOptions: Array.from(new Set(data.map(d => d.visaType).filter(Boolean) as string[])),
+      statusOptions: Array.from(new Set(data.map(d => d.status).filter(Boolean) as string[]))
+    };
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    return data.filter((item) => {
+      if (filterBranch && item.branchId !== filterBranch) return false;
+      if (filterNationality && item.nationality !== filterNationality) return false;
+      if (filterCompany && item.company !== filterCompany) return false;
+      if (filterVisaType && item.visaType !== filterVisaType) return false;
+      if (filterStatus && item.status !== filterStatus) return false;
+      return true;
+    });
+  }, [data, filterBranch, filterNationality, filterCompany, filterVisaType, filterStatus]);
 
   const displayedData = filteredData.slice(0, 100);
 
@@ -72,75 +135,35 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
     onSelectionChange(next);
   };
 
+  const colName = readonly ? (showBranch ? 'w-[15%]' : 'w-[20%]') : (showBranch ? 'w-[13%]' : 'w-[16%]');
+  const colNat = readonly ? (showBranch ? 'w-[10%]' : 'w-[12%]') : (showBranch ? 'w-[7%]' : 'w-[8%]');
+  const colBranch = readonly ? 'w-[14%]' : 'w-[10%]';
+  const colComp = readonly ? (showBranch ? 'w-[16%]' : 'w-[20%]') : (showBranch ? 'w-[12%]' : 'w-[14%]');
+  const colVisa = readonly ? (showBranch ? 'w-[14%]' : 'w-[16%]') : (showBranch ? 'w-[10%]' : 'w-[12%]');
+  const colExp = readonly ? (showBranch ? 'w-[13%]' : 'w-[15%]') : (showBranch ? 'w-[9%]' : 'w-[10%]');
+  const colStat = readonly ? (showBranch ? 'w-[14%]' : 'w-[17%]') : (showBranch ? 'w-[11%]' : 'w-[12%]');
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <Clock className="h-5 w-5 text-indigo-500" />
-          管理対象者リスト
-          {isSelectable && selectedIds && selectedIds.size > 0 && (
-            <span className="ml-2 text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-100">
-              {selectedIds.size}名選択中
-            </span>
-          )}
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {/* 支部名 */}
-          {showBranch && (
-            <div className="relative">
-              <select
-                value={filterBranch}
-                onChange={(e) => setFilterBranch(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer min-w-[120px]"
-              >
-                <option value="">支部名: すべて</option>
-                {branchOptions.map(b => (
-                  <option key={b} value={b}>{getBranchLabel ? getBranchLabel(b!) : b}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-            </div>
-          )}
-          {/* 国籍 */}
-          <div className="relative">
-            <select
-              value={filterNationality}
-              onChange={(e) => setFilterNationality(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer min-w-[120px]"
-            >
-              <option value="">国籍: すべて</option>
-              {nationalityOptions.map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-          </div>
-          {/* 企業名 */}
-          <div className="relative">
-            <select
-              value={filterCompany}
-              onChange={(e) => setFilterCompany(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer min-w-[140px]"
-            >
-              <option value="">企業名: すべて</option>
-              {companyOptions.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-          </div>
-        </div>
+      <div className="px-6 py-4 border-b border-slate-50 flex items-center gap-2">
+        <Clock className="h-5 w-5 text-indigo-500" />
+        <h2 className="text-lg font-bold text-slate-800">管理対象者リスト</h2>
+        {isSelectable && selectedIds && selectedIds.size > 0 && (
+          <span className="ml-2 text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-100">
+            {selectedIds.size}名選択中
+          </span>
+        )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-x-auto min-h-[400px]">
+        <table className="w-full min-w-[1100px] text-left border-collapse table-fixed">
           <thead>
             <tr className="bg-slate-50/50">
               {isSelectable && (
-                <th className="px-4 py-4 w-10">
+                <th className="px-1 py-3 w-[4%] text-center align-middle">
                   <button
                     onClick={toggleAll}
-                    className="text-slate-400 hover:text-indigo-600 transition-colors"
+                    className="inline-flex items-center justify-center align-middle text-slate-400 hover:text-indigo-600 transition-colors mt-0.5"
                     title={allSelected ? '全選択解除' : '全選択'}
                   >
                     {allSelected ? (
@@ -153,15 +176,27 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   </button>
                 </th>
               )}
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">氏名 / 国籍</th>
+              <th className={`px-3 py-3 ${colName} text-center text-xs font-bold text-slate-400`}>氏名</th>
+              <th className={`px-2 py-3 ${colNat} text-center`}>
+                {renderFilterHeader('nationality', '国籍', filterNationality, setFilterNationality, nationalityOptions)}
+              </th>
               {showBranch && (
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">管轄支部</th>
+                <th className={`px-2 py-3 ${colBranch} text-center`}>
+                  {renderFilterHeader('branch', '管轄支部', filterBranch, setFilterBranch, branchOptions, getBranchLabel)}
+                </th>
               )}
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">所属 / 在留資格</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">在留期限</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">進捗ステータス</th>
+              <th className={`px-2 py-3 ${colComp} text-center`}>
+                {renderFilterHeader('company', '所属企業', filterCompany, setFilterCompany, companyOptions)}
+              </th>
+              <th className={`px-2 py-3 ${colVisa} text-center`}>
+                {renderFilterHeader('visa', '在留資格', filterVisaType, setFilterVisaType, visaTypeOptions)}
+              </th>
+              <th className={`px-3 py-3 ${colExp} text-center text-xs font-bold text-slate-400`}>在留期限</th>
+              <th className={`px-2 py-3 ${colStat} text-center`}>
+                {renderFilterHeader('status', '進捗ステータス', filterStatus, setFilterStatus, statusOptions)}
+              </th>
               {!readonly && (
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">操作</th>
+                <th className={`px-2 py-3 ${showBranch ? 'w-[21%]' : 'w-[25%]'} text-center text-xs font-bold text-slate-400 uppercase tracking-wider`}>操作</th>
               )}
             </tr>
           </thead>
@@ -229,10 +264,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   className={`group transition-colors ${isChecked ? 'bg-teal-50/30' : ''}`}
                 >
                   {isSelectable && (
-                    <td className="px-4 py-4">
+                    <td className="px-1 py-3 text-center align-middle">
                       <button
                         onClick={(e) => toggleOne(e, person.id)}
-                        className="text-slate-400 hover:text-teal-600 transition-colors"
+                        className="inline-flex items-center justify-center align-middle text-slate-400 hover:text-teal-600 transition-colors mt-0.5"
                       >
                         {isChecked ? (
                           <CheckSquare className="h-5 w-5 text-teal-600" />
@@ -242,41 +277,36 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                       </button>
                     </td>
                   )}
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        {person.name}
-                      </span>
-                      <span className="text-xs text-slate-400">{person.nationality}</span>
-                    </div>
+                  <td className="px-3 py-3 text-left">
+                    <span className="text-xs font-bold text-slate-900">{person.name}</span>
+                  </td>
+                  <td className="px-2 py-3 text-center">
+                    <span className="text-xs text-slate-600">{person.nationality}</span>
                   </td>
                   {showBranch && (
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-700">
+                    <td className="px-2 py-3 text-center">
+                      <span className="text-xs font-medium text-slate-700">
                         {getBranchLabel && person.branchId ? getBranchLabel(person.branchId) : person.branchId || '未所属'}
                       </span>
                     </td>
                   )}
-                   <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-700">{person.company || '未所属'}</span>
-                      <span className="text-xs text-slate-400 line-clamp-1">{person.visaType || '−'}</span>
-                    </div>
+                  <td className="px-2 py-3 text-center">
+                    <span className="text-xs font-medium text-slate-700">{person.company || '未所属'}</span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className={`flex flex-col ${isUrgent ? 'text-rose-600 font-bold' : 'text-slate-700 font-medium'}`}>
-                      <span className="text-sm">{person.expiryDate.replace(/-/g, '/')}</span>
-                      <span className="text-xs opacity-70">
-                        {daysLeft > 0 ? `${daysLeft}日以内` : '期限切れ'}
-                      </span>
-                    </div>
+                  <td className="px-2 py-3 text-center">
+                    <span className="text-xs text-slate-600">{person.visaType || '−'}</span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-2 py-3 text-center">
+                    <span className={`text-xs ${isUrgent ? 'text-rose-600 font-bold' : 'text-slate-700 font-medium'}`}>
+                      {person.expiryDate.replace(/-/g, '/')}
+                    </span>
+                  </td>
+                  <td className="px-2 py-3 text-center">
                     <StatusBadge status={person.status} />
                   </td>
                   {!readonly && (
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2.5">
+                    <td className="px-2 py-3 whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
                         {userRole === 'scrivener' && (
                           <>
                             <ExcelDownloadButton foreigner={person} variant="icon" />
