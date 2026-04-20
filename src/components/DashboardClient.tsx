@@ -83,8 +83,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [mounted, setMounted] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // activeTab: タブUI削除のため 'all' 固定
-  const [activeTab] = useState<string>('all');
+  // activeTab: タブUI削除済み。useForeignersへ 'all' を固定で渡す
+  const activeTab = 'all';
   // サマリーカードタブ選択状態
   const [activeSummaryTab, setActiveSummaryTab] = useState<SummaryTab>('all');
   const { data, stats, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab);
@@ -119,7 +119,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     setMounted(true);
   }, []);
 
-  // 組織一覧を取得してタブリストと表示名マップを構築
+  // 組織一覧を取得して表示名マップを構築（getBranchLabel で使用）
   useEffect(() => {
     if (!currentUser) return;
     const roles = ['scrivener', 'hq_admin'];
