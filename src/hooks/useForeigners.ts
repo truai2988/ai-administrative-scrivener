@@ -24,7 +24,9 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       };
     }
 
-    setLoading(true);
+    Promise.resolve().then(() => {
+      if (isSubscribed) setLoading(true);
+    });
 
     try {
       const unsubscribe = foreignerService.subscribeForeignersByRole(
@@ -47,8 +49,12 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       };
     } catch (err) {
       if (isSubscribed) {
-        setError(err instanceof Error ? err : new Error('Unknown error in useForeigners'));
-        setLoading(false);
+        Promise.resolve().then(() => {
+          if (isSubscribed) {
+            setError(err instanceof Error ? err : new Error('Unknown error in useForeigners'));
+            setLoading(false);
+          }
+        });
       }
       return () => {
         isSubscribed = false;
