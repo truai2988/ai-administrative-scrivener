@@ -392,7 +392,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <SummaryCards
-                total={stats.total}
                 expiringSoon={stats.expiringSoon}
                 pending={stats.pending}
                 completed={stats.completed}
