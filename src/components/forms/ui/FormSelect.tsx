@@ -14,11 +14,12 @@ interface FormSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> 
 }
 
 export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
-  ({ options, placeholder = '選択してください', error, className = '', ...props }, ref) => {
+  ({ options, placeholder = '選択してください', error, className = '', value, ...props }, ref) => {
     return (
       <select
         ref={ref}
         className={`form-input form-select ${error ? 'form-input--error' : ''} ${className}`}
+        value={value === null ? '' : value}
         {...props}
       >
         <option value="">{placeholder}</option>

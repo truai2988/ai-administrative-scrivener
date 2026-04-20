@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useForeigners } from '@/hooks/useForeigners';
@@ -60,12 +60,12 @@ const ROLE_BADGE_STYLES: Record<string, string> = {
 export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[] }) {
   const { currentUser, loading: authLoading, logout } = useAuth();
   const router = useRouter();
-  const { data, loading, setData } = useForeigners(currentUser, initialData);
   const [mounted, setMounted] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // hq_admin専用: タブ選択状態 ('all' | 'hq_direct' | branchId)
   const [activeTab, setActiveTab] = useState<string>('all');
+  const { data, stats, statsLoading, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab);
   // データ整合性チェックパネル（scrivener専用）
   const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
   // 組織ID → 表示名マップ（動的・APIから取得）
@@ -145,24 +145,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
   // hq_admin のみ有効なフィルター適用
   const isHqAdmin = userRole === 'hq_admin';
-  const displayedData = useMemo(() => {
-    if (!isHqAdmin) return data;
-    if (activeTab !== 'all') return data.filter(f => f.branchId === activeTab);
-    return data;
-  }, [data, isHqAdmin, activeTab]);
-
-  // サマリー計算
-  const { total, expiringSoon, pending, completed } = useMemo(() => {
-    const total = displayedData.length;
-    const expiringSoon = displayedData.filter((p) => {
-      const days = Math.ceil((new Date(p.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-      return days < 90 && days > 0;
-    }).length;
-    const pending = displayedData.filter((p) => p.status === 'チェック中' || p.status === '準備中' || p.status === '編集中' || p.status === '差し戻し').length;
-    const completed = displayedData.filter(p => p.status === '申請済').length;
-    
-    return { total, expiringSoon, pending, completed };
-  }, [displayedData]);
+  const displayedData = data; // useForeigners が既に activeTab でフィルタリングされたデータを返します
 
   // 支部タブリスト: 支部・企業のみ（本部系を除外）
   // 本部は外国人を管轄しないためタブに表示しない
@@ -305,7 +288,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">管理概要</h1>
-            <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{loading ? '-' : data.length}名</span>の外国人を管理しています。</p>
+            <p className="text-slate-500 font-medium">現在、<span className="text-indigo-600 font-bold">{statsLoading ? '-' : stats.total}名</span>の外国人を管理しています。</p>
           </div>
           <div className="flex items-center gap-5">
 
@@ -357,10 +340,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <SummaryCards
-                total={total}
-                expiringSoon={expiringSoon}
-                pending={pending}
-                completed={completed}
+                total={stats.total}
+                expiringSoon={stats.expiringSoon}
+                pending={stats.pending}
+                completed={stats.completed}
               />
             </motion.div>
 
@@ -383,9 +366,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                       }`}
                     >
                       すべて
-                      <span className="ml-1.5 text-[10px] font-black px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded-full">
-                        {data.length}
-                      </span>
                     </button>
 
                     {/* 動的支部タブ（登録済み組織を根拠に表示・外国人数は無関係） */}
@@ -400,11 +380,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                         }`}
                       >
                         {org.name}
-                        <span className={`ml-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                          activeTab === org.id ? 'bg-violet-100 text-violet-600' : 'bg-slate-200 text-slate-500'
-                        }`}>
-                          {data.filter(f => f.branchId === org.id).length}
-                        </span>
                       </button>
                     ))}
                   </div>
@@ -420,6 +395,19 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 userRole={userRole}
                 onUpdate={(updated) => setData(prev => prev.map(f => f.id === updated.id ? updated : f))}
               />
+              
+              {hasMore && (
+                <div className="flex justify-center mt-8 pb-8">
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="px-6 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl shadow-sm hover:shadow hover:border-slate-300 disabled:opacity-50 transition-all flex items-center gap-2 active:scale-95"
+                  >
+                    {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {loadingMore ? '読み込み中...' : 'さらに読み込む'}
+                  </button>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
