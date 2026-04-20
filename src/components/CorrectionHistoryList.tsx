@@ -118,7 +118,7 @@ export const CorrectionHistoryList: React.FC<CorrectionHistoryListProps> = ({ fo
                 >
                   <div className="p-5 space-y-4 bg-white">
                     <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
-                      <p className="text-[10px] font-bold text-amber-600/70 mb-1 flex items-center gap-1">
+                      <p className="text-xs font-bold text-amber-600/70 mb-1 flex items-center gap-1">
                         <FileText className="w-3 h-3" /> 修正理由
                       </p>
                       <p className="text-sm font-medium text-amber-900 leading-relaxed whitespace-pre-wrap">
@@ -128,12 +128,12 @@ export const CorrectionHistoryList: React.FC<CorrectionHistoryListProps> = ({ fo
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {Object.entries(history.diff || {}).map(([key, changes]) => (
                         <div key={key} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                          <p className="text-[10px] font-bold text-slate-400 mb-1">{DIFF_LABEL[key] || key}</p>
+                          <p className="text-xs font-bold text-slate-400 mb-1">{DIFF_LABEL[key] || key}</p>
                           <div className="flex items-center gap-2">
                             <p className="text-xs font-medium text-slate-500 line-through truncate max-w-[100px]" title={String(changes.old || '未登録')}>
                               {String(changes.old || '未登録')}
                             </p>
-                            <span className="text-[10px] text-slate-300">→</span>
+                            <span className="text-xs text-slate-300">→</span>
                             <p className="text-sm font-bold text-slate-700 truncate max-w-[120px]" title={String(changes.new || '未登録')}>
                               {String(changes.new || '未登録')}
                             </p>

@@ -290,7 +290,7 @@ export default function ForeignersNewPage() {
                               <Upload size={12} />
                               <span>ドロップ or クリック</span>
                             </div>
-                            <span className="text-[10px] text-slate-600 bg-slate-700 px-2 py-0.5 rounded-md">JPG / PNG</span>
+                            <span className="text-xs text-slate-600 bg-slate-700 px-2 py-0.5 rounded-md">JPG / PNG</span>
                           </div>
                         )}
 

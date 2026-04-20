@@ -50,7 +50,7 @@ export const StepProgress: React.FC<StepProgressProps> = ({ currentStep, totalSt
                   </span>
                 )}
               </motion.div>
-              <span className={`absolute -bottom-6 text-[10px] font-bold whitespace-nowrap tracking-tighter ${
+              <span className={`absolute -bottom-6 text-xs font-bold whitespace-nowrap tracking-tighter ${
                 isActive ? 'text-indigo-600' : 'text-slate-400'
               }`}>
                 {step}

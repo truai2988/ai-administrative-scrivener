@@ -36,7 +36,7 @@ function ToastNotification({ message, onClose }: { message: string; onClose: () 
       </div>
       <div>
         <p className="text-sm font-bold">{message}</p>
-        <p className="text-[11px] text-slate-400 font-medium">Coming Soon: 2026年実装予定</p>
+        <p className="text-xs text-slate-500 font-medium">Coming Soon: 2026年実装予定</p>
       </div>
       <button onClick={onClose} className="ml-2 p-1 text-slate-500 hover:text-white transition-colors rounded-lg">
         <X className="h-4 w-4" />
@@ -58,7 +58,7 @@ function ScrivenerInboxItem({ onOpen, userRole }: { onOpen: () => void; userRole
   return (
     <button
       onClick={onOpen}
-      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 text-slate-400 hover:bg-slate-50 hover:text-slate-900 font-medium"
+      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium"
     >
       <Bell className="h-5 w-5 shrink-0" />
       <span className="text-sm">通知</span>
@@ -202,7 +202,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               <span className="text-xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-600 to-violet-600 tracking-tight">
                 Noctiluca
               </span>
-              <p className="text-[10px] font-bold text-slate-300 tracking-widest uppercase">AI Labor Management</p>
+              <p className="text-xs font-bold text-slate-500 tracking-widest uppercase">AI Labor Management</p>
             </div>
           </div>
         </div>
@@ -271,7 +271,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span className="flex-1 text-left">データ整合性チェック</span>
                 {mismatchCount > 0 && (
-                  <span className="px-2 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-full">
+                  <span className="px-2 py-0.5 bg-rose-500 text-white text-xs font-black rounded-full">
                     {mismatchCount}
                   </span>
                 )}
@@ -316,7 +316,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                   }
                 }}
                 title="デモデータ一括投入"
-                className="p-2.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-95"
+                className="p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-95"
               >
                 <Database className="h-5 w-5" />
               </button>
@@ -358,7 +358,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
             {/* ユーザー情報（ロール表示） */}
             <div className="flex items-center gap-4 bg-white p-2 pr-6 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-100">
+              <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 border border-slate-100">
                 {userRole === 'scrivener' ? (
                   <Shield className="h-6 w-6 text-emerald-500" />
                 ) : (
@@ -369,7 +369,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 <p className="text-xs font-black text-slate-900 leading-tight">{currentUser.displayName} 様</p>
                 {/* 名前と役職名が実質的に同じ場合は役職バッジを隠す（二重表記防止） */}
                 {currentUser.displayName.replace(/\s+/g, '') !== roleLabel.replace(/\s+/g, '') && (
-                  <p className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
+                  <p className={`text-xs font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
                     {roleLabel}
                   </p>
                 )}
@@ -414,7 +414,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                       className={`px-5 py-2 text-sm font-bold rounded-xl transition-all ${
                         activeTab === 'all'
                           ? 'bg-white text-violet-700 shadow-sm'
-                          : 'text-slate-400 hover:text-slate-600'
+                          : 'text-slate-500 hover:text-slate-600'
                       }`}
                     >
                       すべて
@@ -428,7 +428,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                         className={`px-5 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 ${
                           activeTab === org.id
                             ? 'bg-white text-violet-700 shadow-sm'
-                            : 'text-slate-400 hover:text-slate-600'
+                            : 'text-slate-500 hover:text-slate-600'
                         }`}
                       >
                         {org.name}
@@ -496,10 +496,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                       </div>
                       <div>
                         <h2 className="text-base font-black text-slate-900">データ整合性チェック</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">ステータスの不整合を検出します</p>
+                        <p className="text-xs text-slate-500 mt-0.5">ステータスの不整合を検出します</p>
                       </div>
                     </div>
-                    <button onClick={() => setShowIntegrityPanel(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
+                    <button onClick={() => setShowIntegrityPanel(false)} className="p-2 text-slate-500 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
                       <X className="h-5 w-5" />
                     </button>
                   </div>
@@ -512,7 +512,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                           <Shield className="h-7 w-7 text-emerald-500" />
                         </div>
                         <p className="font-bold text-slate-700">不整合なし</p>
-                        <p className="text-sm text-slate-400 mt-1">すべてのデータは整合しています</p>
+                        <p className="text-sm text-slate-500 mt-1">すべてのデータは整合しています</p>
                       </div>
                     ) : (
                       mismatches.map(f => {
@@ -522,7 +522,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                           <div key={f.id} className="flex items-center justify-between gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl">
                             <div className="min-w-0">
                               <p className="text-sm font-black text-slate-900 truncate">{f.name}</p>
-                              <p className="text-[11px] text-rose-600 font-bold mt-0.5">
+                              <p className="text-xs text-rose-600 font-bold mt-0.5">
                                 {f.status} → {expectedStatus} に修復必要
                               </p>
                             </div>
@@ -548,7 +548,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
                   {/* Footer */}
                   <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                       {mismatches.length > 0 ? `${mismatches.length}件の不整合を検出` : '問題なし'}
                     </p>
                     <button onClick={() => setShowIntegrityPanel(false)} className="text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
@@ -590,7 +590,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                   </div>
                   <button 
                     onClick={() => setShowShareModal(false)}
-                    className="p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-900 rounded-full transition-colors"
+                    className="p-2 text-slate-500 hover:bg-slate-50 hover:text-slate-900 rounded-full transition-colors"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -680,10 +680,10 @@ function SidebarItem({
 }) {
   const content = (
     <>
-      <Icon className={`h-5 w-5 ${active ? 'text-white' : 'text-slate-300'}`} />
+      <Icon className={`h-5 w-5 ${active ? 'text-white' : 'text-slate-500'}`} />
       <span className="text-sm">{label}</span>
       {badge && (
-        <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${
+        <span className={`ml-auto text-xs font-black px-2 py-0.5 rounded-full ${
           active ? 'bg-indigo-500 text-white' : 'bg-rose-50 text-rose-500'
         }`}>
           {badge}
@@ -695,7 +695,7 @@ function SidebarItem({
   const className = `w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
     active 
       ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-100' 
-      : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900 font-medium'
+      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
   }`;
 
   if (href) {

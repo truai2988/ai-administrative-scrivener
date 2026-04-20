@@ -78,7 +78,7 @@ export const PhotoUploadZone: React.FC<PhotoUploadZoneProps> = ({
         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
           顔写真（証明写真）
         </label>
-        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
+        <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
           <Camera className="w-2.5 h-2.5" />
           JPEG 50KB以下に自動圧縮
         </span>
@@ -131,7 +131,7 @@ export const PhotoUploadZone: React.FC<PhotoUploadZoneProps> = ({
                 className="absolute inset-0 flex flex-col items-center justify-center bg-white/90"
               >
                 <Loader2 className="w-8 h-8 text-amber-500 animate-spin mb-2" />
-                <p className="text-[10px] font-bold text-amber-700">圧縮中...</p>
+                <p className="text-xs font-bold text-amber-700">圧縮中...</p>
                 <div className="w-16 bg-amber-100 rounded-full h-1 mt-2 overflow-hidden">
                   <motion.div
                     className="h-full bg-amber-500 rounded-full"
@@ -175,9 +175,9 @@ export const PhotoUploadZone: React.FC<PhotoUploadZoneProps> = ({
                 <div className="p-2 bg-white rounded-xl shadow-sm mb-2">
                   <Camera className="w-6 h-6 text-amber-500" />
                 </div>
-                <p className="text-[10px] font-bold text-slate-500">タップして</p>
-                <p className="text-[10px] font-bold text-slate-500">アップロード</p>
-                <p className="text-[8px] text-slate-300 mt-1">40×30mm</p>
+                <p className="text-xs font-bold text-slate-500">タップして</p>
+                <p className="text-xs font-bold text-slate-500">アップロード</p>
+                <p className="text-xs text-slate-300 mt-1">40×30mm</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -231,7 +231,7 @@ export const PhotoUploadZone: React.FC<PhotoUploadZoneProps> = ({
                 </div>
                 <div className={`font-bold ${isUnderLimit ? 'text-emerald-600' : 'text-amber-600'}`}>
                   圧縮前: {formatFileSize(compressionResult.originalSize)} ➔ 圧縮後: {formatFileSize(compressionResult.compressedSize)}
-                  <span className="ml-1.5 text-[10px] opacity-70">
+                  <span className="ml-1.5 text-xs opacity-70">
                     ({Math.round((1 - compressionResult.compressedSize / compressionResult.originalSize) * 100)}% 削減)
                   </span>
                 </div>

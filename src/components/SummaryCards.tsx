@@ -1,27 +1,18 @@
 import React from 'react';
-import { Users, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
+import { AlertTriangle, FileText, CheckCircle } from 'lucide-react';
 
 interface SummaryCardsProps {
-  total: number;
   expiringSoon: number;
   pending: number;
   completed: number;
 }
 
 export const SummaryCards: React.FC<SummaryCardsProps> = ({
-  total,
   expiringSoon,
   pending,
   completed,
 }) => {
   const cards = [
-    {
-      title: '全管理人数',
-      value: total,
-      icon: Users,
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-50',
-    },
     {
       title: '3ヶ月以内に期限切れ',
       value: expiringSoon,
@@ -46,7 +37,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {cards.map((card, index) => (
         <div
           key={index}
@@ -56,8 +47,8 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
             <card.icon className={`h-7 w-7 ${card.color}`} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{card.title}</p>
-            <p className="text-2xl font-black text-slate-900 tracking-tight">{card.value.toLocaleString()}<span className="text-xs font-bold text-slate-300 ml-1">名</span></p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">{card.title}</p>
+            <p className="text-2xl font-black text-slate-900 tracking-tight">{card.value.toLocaleString()}</p>
           </div>
         </div>
       ))}

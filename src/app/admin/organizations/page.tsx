@@ -438,7 +438,7 @@ export default function AdminOrganizationsPage() {
                               <div className="flex items-center gap-2">
                                 <p className="text-sm font-bold text-slate-800">{org.name}</p>
                                 {orgUsers.length > 0 && (
-                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full">
+                                  <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-full">
                                     {orgUsers.length} アカウント
                                   </span>
                                 )}
@@ -514,7 +514,7 @@ export default function AdminOrganizationsPage() {
                                             <div className="flex items-center gap-2">
                                               <p className="text-sm font-bold text-slate-700">{usr.displayName}</p>
                                               {isSelf && (
-                                                <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded-full border border-sky-200">
+                                                <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-xs font-bold rounded-full border border-sky-200">
                                                   あなた
                                                 </span>
                                               )}
@@ -523,7 +523,7 @@ export default function AdminOrganizationsPage() {
                                           </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <span className="px-2 py-1 rounded-md text-[10px] font-bold border border-slate-200 text-slate-500">
+                                          <span className="px-2 py-1 rounded-md text-xs font-bold border border-slate-200 text-slate-500">
                                             {USER_ROLE_LABELS[usr.role] || usr.role}
                                           </span>
                                           {/* 編集・削除ボタン: 管理権限のみ表示 */}
@@ -604,7 +604,7 @@ export default function AdminOrganizationsPage() {
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-bold text-slate-800">{usr.displayName}</p>
                             {isSelf && (
-                              <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded-full border border-sky-200">
+                              <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-xs font-bold rounded-full border border-sky-200">
                                 あなた
                               </span>
                             )}
@@ -833,7 +833,7 @@ export default function AdminOrganizationsPage() {
                     ))}
                   </select>
                   {currentUser?.id === editUser.id && (
-                     <p className="text-[10px] text-rose-500 font-bold mt-1.5 ml-1">※自分自身の権限（ロール）は変更できません。</p>
+                     <p className="text-xs text-rose-500 font-bold mt-1.5 ml-1">※自分自身の権限（ロール）は変更できません。</p>
                   )}
                 </div>
 

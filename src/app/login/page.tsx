@@ -76,17 +76,17 @@ export default function LoginPage() {
           
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-3">
-               <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm text-white text-[9px] font-bold rounded-full border border-white/20 tracking-wider uppercase">
+               <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm text-white text-xs font-bold rounded-full border border-white/20 tracking-wider uppercase">
                  Noctiluca Demo
                </span>
-               <span className="px-2 py-0.5 bg-emerald-500/40 backdrop-blur-sm text-white text-[9px] font-bold rounded-full border border-white/20 tracking-wider">
+               <span className="px-2 py-0.5 bg-emerald-500/40 backdrop-blur-sm text-white text-xs font-bold rounded-full border border-white/20 tracking-wider">
                  行政書士
                </span>
             </div>
             <h2 className="text-[13px] md:text-[14px] font-black text-white leading-snug mb-2 tracking-tight">
               行政監査は「書類の有無」から、<br />「プロセスの正当性とデータの完全な整合性」へ。
             </h2>
-            <p className="text-[9px] md:text-[10px] text-indigo-100 font-medium">
+            <p className="text-xs md:text-xs text-indigo-100 font-medium">
               法改正リスクをゼロにする、AI労務管理システムへようこそ
             </p>
           </div>
@@ -115,7 +115,7 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
                   メールアドレス
                 </label>
                 <div className="relative">
@@ -135,7 +135,7 @@ export default function LoginPage() {
 
               {/* Password */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 ml-1">
                   パスワード
                 </label>
                 <div className="relative">
@@ -175,7 +175,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="bg-slate-50/50 border-t border-slate-100 px-8 py-4">
-            <p className="text-[10px] text-slate-400 text-center font-medium leading-relaxed">
+            <p className="text-xs text-slate-400 text-center font-medium leading-relaxed">
               アクセス権限の設定はシステム管理者にお問い合わせください。
               <br />
               不正アクセスは法律により罰せられます。

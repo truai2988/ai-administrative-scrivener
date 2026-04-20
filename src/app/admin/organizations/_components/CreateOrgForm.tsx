@@ -82,7 +82,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* 組織名 */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   組織名 <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
@@ -100,7 +100,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
 
               {/* 組織種別 */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   組織種別 <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
@@ -120,7 +120,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
 
               {/* 住所 */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   住所
                 </label>
                 <div className="relative">
@@ -137,7 +137,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
 
               {/* 電話番号 */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   電話番号
                 </label>
                 <div className="relative">

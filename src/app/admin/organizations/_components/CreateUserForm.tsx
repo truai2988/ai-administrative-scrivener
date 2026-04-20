@@ -123,7 +123,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* 表示名 */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   表示名 <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
@@ -141,7 +141,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
 
               {/* ロール */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   ロール <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
@@ -166,7 +166,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
 
               {/* メールアドレス */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   メールアドレス <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
@@ -184,7 +184,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
 
               {/* パスワード */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   初期パスワード <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
@@ -210,7 +210,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
 
               {/* 所属組織 */}
               <div className="sm:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   所属組織 <span className="text-rose-400">*</span>
                   <span className="ml-2 normal-case text-slate-400 font-normal">
                     （ロールに合わせた組織のみ表示）

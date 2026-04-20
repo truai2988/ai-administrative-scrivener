@@ -223,7 +223,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   <td className="px-6 py-4">
                     <div className={`flex flex-col ${isUrgent ? 'text-rose-600 font-bold' : 'text-slate-700 font-medium'}`}>
                       <span className="text-sm">{person.expiryDate.replace(/-/g, '/')}</span>
-                      <span className="text-[10px] opacity-70">
+                      <span className="text-xs opacity-70">
                         {daysLeft > 0 ? `${daysLeft}日以内` : '期限切れ'}
                       </span>
                     </div>
@@ -315,7 +315,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
       </div>
       
       {filteredData.length > 100 && (
-        <div className="p-4 text-center bg-slate-50/30 text-[10px] font-medium text-slate-400">
+        <div className="p-4 text-center bg-slate-50/30 text-xs font-medium text-slate-400">
           全 {filteredData.length} 件中 100 件を表示中。検索条件で絞り込んでください。
         </div>
       )}

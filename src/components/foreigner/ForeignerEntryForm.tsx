@@ -234,7 +234,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
                     />
                   </div>
                   {isOverTotalLimit && (
-                    <p className="text-[10px] text-rose-600 font-bold mt-2">
+                    <p className="text-xs text-rose-600 font-bold mt-2">
                       【警告】合計サイズが25MBを超えています。一部のファイルを削除、または画質を下げて再度アップロードしてください。
                     </p>
                   )}

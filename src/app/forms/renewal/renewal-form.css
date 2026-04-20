@@ -138,7 +138,7 @@
 
 .form-header-badge {
   display: inline-block;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -160,7 +160,7 @@
 }
 
 .form-header-subtitle {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin: 0;
   white-space: nowrap;
@@ -169,10 +169,10 @@
 /* ─── タブナビゲーション ────────────────────────────────── */
 .tab-nav {
   display: flex;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(15, 23, 42, 0.4); /* Tabs get a slightly darker background */
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-top: none;
-  border-bottom: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15); /* Distinct bottom boundary */
 }
 
 .tab-btn {
@@ -188,6 +188,7 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* Overlap the container's bottom border */
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -218,9 +219,9 @@
 
 /* ─── タブパネル ─────────────────────────────────────────── */
 .tab-panel {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.02); /* Slightly lighter background than nav */
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: none;
+  border-top: none; /* Relies on tab-nav's bottom border */
   min-height: 400px;
 }
 
@@ -337,13 +338,13 @@
 }
 
 .form-hint {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #475569;
   margin: 0;
 }
 
 .form-error {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #f87171;
   margin: 0;
   display: flex;
@@ -784,7 +785,7 @@
   color: #34d399;
   border: 1px solid rgba(52, 211, 153, 0.3);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -821,7 +822,7 @@
 }
 
 .dev-switcher__label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #fbbf24;
   letter-spacing: 0.05em;
@@ -905,13 +906,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.3rem 0.75rem;
-  font-size: 0.78rem;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #94a3b8;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 0.5rem;
+  border-radius: 0.6rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1004,7 +1005,7 @@
   align-items: center;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1028,7 +1029,7 @@
   gap: 0.25rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   margin-left: 0.25rem;
@@ -1066,7 +1067,7 @@
   gap: 0.3rem;
   padding: 0.3rem 0.75rem;
   border-radius: 8px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   background: rgba(251, 191, 36, 0.1);
@@ -1089,7 +1090,7 @@
   margin-left: 0.4rem;
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
   background: rgba(251, 191, 36, 0.12);
   border: 1px solid rgba(251, 191, 36, 0.25);
@@ -1219,7 +1220,7 @@
   background: rgba(56, 189, 248, 0.08);
   border: 1px solid rgba(56, 189, 248, 0.2);
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #38bdf8;
   letter-spacing: 0.04em;
@@ -1390,7 +1391,7 @@
 
 /* ─── スロット説明 */
 .doc-slot-note {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #475569;
   line-height: 1.5;
   max-width: 200px;
@@ -1411,7 +1412,7 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: #64748b;
   max-width: 180px;
   overflow: hidden;
@@ -1429,7 +1430,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #475569;
   margin-top: 0.25rem;
 }
@@ -1440,7 +1441,7 @@
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 4px;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   color: #64748b;
   letter-spacing: 0.05em;
 }
@@ -1452,7 +1453,7 @@
   gap: 0.3rem;
   padding: 0.3rem 0.7rem;
   margin-top: 0.25rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #64748b;
   background: rgba(255, 255, 255, 0.04);
@@ -1527,7 +1528,7 @@
 }
 
 .shared-file-uploader__total-size {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin-left: auto;
 }
@@ -1541,7 +1542,7 @@
 }
 
 .shared-file-uploader__hints-label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #64748b;
   white-space: nowrap;
@@ -1561,7 +1562,7 @@
   background: rgba(56, 189, 248, 0.06);
   border: 1px solid rgba(56, 189, 248, 0.18);
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: #7dd3fc;
   cursor: pointer;
@@ -1693,7 +1694,7 @@
 
 /* ─── フッター注記 */
 .shared-file-uploader__footer-note {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: #334155;
   margin: 0;
   text-align: right;
@@ -1910,7 +1911,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.4rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: #475569;
 }
 
@@ -1921,7 +1922,7 @@
   border: 1px solid rgba(56, 189, 248, 0.25);
   border-radius: 4px;
   color: #38bdf8;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1968,7 +1969,7 @@
   }
 
   .shared-file-uploader__hint-chip {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
 }
 
@@ -1995,14 +1996,14 @@
 }
 
 .shared-file-uploader__global-gauge-label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #94a3b8;
   letter-spacing: 0.03em;
 }
 
 .shared-file-uploader__global-gauge-value {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #38bdf8;
   font-variant-numeric: tabular-nums;
@@ -2040,14 +2041,14 @@
 }
 
 .shared-file-uploader__global-gauge-remaining {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin: 0;
   text-align: right;
 }
 
 .shared-file-uploader__format-note {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin: 0;
   padding: 0.25rem 0;
@@ -2059,7 +2060,7 @@
 }
 
 .file-dropzone__remaining {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: #475569;
   margin: 0.15rem 0 0;
 }
@@ -2075,42 +2076,33 @@
   gap: 0.45rem;
   padding: 0.55rem 1.1rem;
   font-size: 0.82rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-  border: 1px solid rgba(139, 92, 246, 0.5);
+  font-weight: 600;
+  color: #c4b5fd;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 0.6rem;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
   flex-shrink: 0;
-  position: relative;
-  overflow: hidden;
-}
-.ai-check-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
-  pointer-events: none;
 }
 .ai-check-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.5);
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.7);
+  color: #fff;
 }
 .ai-check-btn:disabled { opacity: 0.75; cursor: not-allowed; }
-.ai-check-btn--loading { animation: pulse-glow 1.5s ease-in-out infinite; }
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 2px 12px rgba(99,102,241,0.35); }
-  50%       { box-shadow: 0 2px 24px rgba(99,102,241,0.6); }
+.ai-check-btn--loading { animation: pulse-glow-border 1.5s ease-in-out infinite; }
+@keyframes pulse-glow-border {
+  0%, 100% { border-color: rgba(139, 92, 246, 0.4); box-shadow: none; }
+  50%       { border-color: rgba(139, 92, 246, 0.8); box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
 }
 
 /* ボタン件数バッジ */
 .ai-check-btn-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 1.25rem; height: 1.25rem; padding: 0 0.25rem;
-  border-radius: 999px; font-size: 0.7rem; font-weight: 800; line-height: 1;
+  border-radius: 999px; font-size: 0.75rem; font-weight: 800; line-height: 1;
 }
 .ai-check-btn-badge--critical { background: #f87171; color: #fff; }
 .ai-check-btn-badge--warning  { background: #fbbf24; color: #1e293b; }
@@ -2263,14 +2255,14 @@
 .ai-diag-group         { display: flex; flex-direction: column; gap: 0.6rem; }
 .ai-diag-group-header  {
   display: flex; align-items: center; gap: 0.4rem;
-  font-size: 0.72rem; font-weight: 700; color: #64748b;
+  font-size: 0.75rem; font-weight: 700; color: #64748b;
   letter-spacing: 0.08em; text-transform: uppercase;
   padding-bottom: 0.4rem;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .ai-diag-group-icon    { color: #475569; }
 .ai-diag-group-count   {
-  margin-left: auto; font-size: 0.68rem;
+  margin-left: auto; font-size: 0.75rem;
   background: rgba(255,255,255,0.06); padding: 0.1rem 0.4rem;
   border-radius: 999px; color: #475569;
 }
@@ -2287,11 +2279,11 @@
   display: flex; align-items: center; gap: 0.4rem;
 }
 .ai-diag-item-level {
-  font-size: 0.7rem; font-weight: 800;
+  font-size: 0.75rem; font-weight: 800;
   letter-spacing: 0.06em; text-transform: uppercase;
 }
 .ai-diag-item-field {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-family: 'Fira Code', 'Consolas', monospace;
   color: #64748b;
   background: rgba(255,255,255,0.04);
@@ -2310,7 +2302,7 @@
   border-top: 1px solid rgba(255,255,255,0.05);
   flex-shrink: 0;
 }
-.ai-diag-footer p { font-size: 0.7rem; color: #334155; line-height: 1.6; margin: 0; }
+.ai-diag-footer p { font-size: 0.75rem; color: #334155; line-height: 1.6; margin: 0; }
 
 /* context-headerのflex対応 */
 .applicant-context-header { flex-wrap: wrap; gap: 0.75rem; }
