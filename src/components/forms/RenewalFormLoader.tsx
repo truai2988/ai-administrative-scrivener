@@ -120,8 +120,12 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
   // ─── 担当者割り当ての初期値を決定 ────────────────────────────────────────
   // 既存レコードがある場合 → Firestoreに保存済みの値を使用（手動上書きを尊重）
   // 新規作成の場合（record === null） → 申請種別テンプレートを解決して自動セット
-  const initialAssignments: TabAssignments = record?.formData?.assignments
-    ? (record.formData.assignments as TabAssignments)
+  // 空オブジェクト {} の場合は未設定とみなし、テンプレートを適用する
+  const storedAssignments = record?.formData?.assignments as Record<string, any> | undefined;
+  const hasValidAssignments = storedAssignments && Object.keys(storedAssignments).length > 0;
+
+  const initialAssignments: TabAssignments = hasValidAssignments
+    ? (storedAssignments as TabAssignments)
     : resolveTemplate('renewal', undefined, templatesRecord);
 
   return (

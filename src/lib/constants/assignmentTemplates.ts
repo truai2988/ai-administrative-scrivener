@@ -113,7 +113,7 @@ export function isTemplateDefault(
   const tabIds: TabId[] = ['foreigner', 'employer', 'simultaneous'];
 
   return tabIds.every((tabId) => {
-    return (assignments[tabId] ?? undefined) === (templateAssignments[tabId] ?? undefined);
+    return (assignments[tabId] || '') === (templateAssignments[tabId] || '');
   });
 }
 

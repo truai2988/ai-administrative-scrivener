@@ -218,5 +218,17 @@ service cloud.firestore {
       // 書き込みは認証済みユーザー（現在はダミーを含むため広め、本来は isScrivener() || isHqAdmin() とする）
       allow write: if isAuthenticated();
     }
+
+    // -------------------------------------------------------------------------
+    // /inquiries コレクション
+    // サポートへの問い合わせ
+    // -------------------------------------------------------------------------
+    match /inquiries/{inquiryId} {
+      // 管理側または自身が作成した問い合わせのみ読み取りを許可
+      allow read: if isAuthenticated() && (isScrivener() || resource.data.userId == request.auth.uid);
+      // 作成・更新はServer Actionで行うため基本はクライアント側書き込み不可
+      // （※リアルタイムでステータス変更する場合は更新もServer Actionで行う）
+      allow write: if false;
+    }
   }
 }

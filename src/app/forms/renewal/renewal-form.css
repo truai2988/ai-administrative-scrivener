@@ -7,10 +7,16 @@
 .renewal-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  padding: 2rem 1rem 4rem;
+  padding: 0 0 4rem; /* スマホでは全画面表示（左右余白なし） */
   display: flex;
   align-items: flex-start;
   justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .renewal-page {
+    padding: 0 1rem 4rem; /* デスクトップでは左右に余白を確保しつつ、上部は密着(top: 0)させる */
+  }
 }
 
 .renewal-form {
@@ -21,21 +27,20 @@
   gap: 0;
 }
 
-/* ─── 対象者コンテキストヘッダー ─────────────────────────── */
 .applicant-context-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 2rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
   background: rgba(15, 23, 42, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-top: none;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .applicant-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2rem;
+  height: 2rem;
   background: rgba(56, 189, 248, 0.1);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.2);
@@ -44,17 +49,17 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .applicant-info {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.1rem;
 }
 
 .applicant-name {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #f1f5f9;
 }
@@ -63,7 +68,14 @@
   font-size: 0.8rem;
   font-weight: 400;
   color: #94a3b8;
-  margin-left: 0.25rem;
+}
+
+.applicant-context-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .applicant-type {
@@ -72,42 +84,86 @@
   font-weight: 500;
 }
 
-/* ─── フォームヘッダー ───────────────────────────────────── */
+/* ─── フォームトップ固定ラッパー ─────────────────────────── */
+.renewal-form-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  /* スクロール時のガタつき防止 */
+  transform: translateZ(0);
+  will-change: transform;
+  
+  /* 下にスクロールした際に透けすぎないよう、やや濃いめに */
+  background: rgba(10, 18, 36, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  border-radius: 0; /* スマホでは画面に密着するため角丸なし */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+
+/* ─── フォームヘッダー ─────────────────────────── */
 .form-header {
-  text-align: center;
-  padding: 2.5rem 2rem 2rem;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 0.6rem 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: none;
-  border-radius: 1rem 1rem 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: none; /* 上部密着のため削除 */
+  border-left: none;
+  border-right: none;
+}
+
+
+.form-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.form-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.form-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .form-header-badge {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #38bdf8;
   background: rgba(56, 189, 248, 0.1);
   border: 1px solid rgba(56, 189, 248, 0.25);
   border-radius: 2rem;
-  padding: 0.2rem 0.8rem;
-  margin-bottom: 0.75rem;
+  padding: 0.15rem 0.65rem;
+  white-space: nowrap;
 }
 
 .form-header-title {
-  font-size: 1.75rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #f1f5f9;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.4rem;
+  letter-spacing: -0.01em;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .form-header-subtitle {
-  font-size: 0.875rem;
+  font-size: 0.72rem;
   color: #64748b;
   margin: 0;
+  white-space: nowrap;
 }
 
 /* ─── タブナビゲーション ────────────────────────────────── */
@@ -125,8 +181,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  font-size: 0.9rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: #64748b;
   background: transparent;
@@ -165,7 +221,6 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-top: none;
-  border-bottom: none;
   min-height: 400px;
 }
 
@@ -742,9 +797,14 @@
 }
 
 .btn-save {
-  min-width: 6rem;
+  min-width: 5rem;
 }
 
+/* ヘッダー内の小さいボタン */
+.btn-nav-sm {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+}
 
 
 /* ─── テスト用ユーザー切り替えバー ─────────────────────────────────────────── */
@@ -838,7 +898,7 @@
 
 /* ─── 担当者割り当てパネル ──────────────────────────────────────────────────── */
 .tab-assignment-panel {
-  margin-bottom: 0.5rem;
+  position: relative;
 }
 
 .tab-assignment-toggle {
@@ -862,12 +922,18 @@
 }
 
 .tab-assignment-body {
-  margin-top: 0.5rem;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 100;
+  width: 360px;
+  max-width: calc(100vw - 2rem);
   padding: 1rem;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 0.75rem;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
 }
 
 .tab-assignment-desc {
@@ -884,20 +950,35 @@
 }
 
 .tab-assignment-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  align-items: center;
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
 }
 
 .tab-assignment-tab-label {
-  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #e2e8f0;
+}
+
+.tab-assignment-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
 }
 
 .tab-assignment-select {
-  padding: 0.35rem 0.6rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
   font-size: 0.82rem;
   background: rgba(30, 41, 59, 0.8);
   border: 1px solid rgba(148, 163, 184, 0.25);
@@ -913,6 +994,7 @@
 }
 
 .tab-assignment-status {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
 }
@@ -2002,7 +2084,6 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
-  margin-left: auto;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;

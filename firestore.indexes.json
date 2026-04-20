@@ -15,6 +15,14 @@
         { "fieldPath": "branchId",  "order": "ASCENDING" },
         { "fieldPath": "expiryDate", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "inquiries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",  "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

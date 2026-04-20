@@ -13,7 +13,7 @@
  * このフックを使うコンポーネントはボタンのレンダリングのみに集中できる。
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import { renewalApplicationService } from '@/services/renewalApplicationService';
@@ -85,6 +85,34 @@ export function useRenewalFormSubmit({
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // マウント時1回のみ
+
+  // ─── 担当者割り当てのオートセーブ ───────────────────────────────────────────
+  const lastAssignmentsRef = useRef<TabAssignments>(assignments);
+
+  useEffect(() => {
+    if (!savedRecordId) return;
+
+    // JSON.stringifyで簡易等価チェック（値が本当に変わったか判定）
+    const isChanged = JSON.stringify(lastAssignmentsRef.current) !== JSON.stringify(assignments);
+    if (!isChanged) return;
+
+    lastAssignmentsRef.current = assignments;
+
+    const autoSaveAssignments = async () => {
+      try {
+        const { db } = await import('@/lib/firebase/client');
+        const { doc, updateDoc } = await import('firebase/firestore');
+        const docRef = doc(db, 'renewal_applications', savedRecordId);
+        await updateDoc(docRef, { 'formData.assignments': assignments });
+        // UX上頻繁に出ると煩わしいため、成功通知は省略
+      } catch (err) {
+        console.error('[assignments自動保存エラー]', err);
+        showToast('error', '担当者割り当ての自動保存に失敗しました');
+      }
+    };
+
+    autoSaveAssignments();
+  }, [assignments, savedRecordId, showToast]);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(

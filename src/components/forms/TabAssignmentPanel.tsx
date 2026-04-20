@@ -26,7 +26,7 @@ const TAB_LABELS: Record<TabId, string> = {
 const TAB_IDS: TabId[] = ['foreigner', 'employer', 'simultaneous'];
 
 export function TabAssignmentPanel() {
-  const { isScrivener, assignments, assignUser, templatesRecord } = useSectionPermission();
+  const { isScrivener, assignments, assignUser, assignAllUsers, templatesRecord } = useSectionPermission();
   const [isOpen, setIsOpen] = useState(false);
 
   // 現在のassignmentsがテンプレートのデフォルト値と一致しているか
@@ -35,11 +35,17 @@ export function TabAssignmentPanel() {
   // テンプレートに戻す処理
   const handleResetToTemplate = useCallback(() => {
     const templateAssignments = resolveTemplate('renewal', undefined, templatesRecord);
-    // 全タブをテンプレートの値に戻す
+    
+    // テンプレートの値を元に新しいオブジェクトを構築し、一括でセットする
+    const newAssignments: Partial<Record<TabId, string>> = {};
     TAB_IDS.forEach((tabId) => {
-      assignUser(tabId, templateAssignments[tabId] ?? '');
+      const templateVal = templateAssignments[tabId];
+      if (templateVal) {
+        newAssignments[tabId] = templateVal;
+      }
     });
-  }, [assignUser, templatesRecord]);
+    assignAllUsers(newAssignments);
+  }, [assignAllUsers, templatesRecord]);
 
   // 行政書士以外には表示しない
   if (!isScrivener) return null;
@@ -53,7 +59,8 @@ export function TabAssignmentPanel() {
         aria-expanded={isOpen}
       >
         <UserCog size={15} />
-        <span>担当者割り当て設定</span>
+        <span className="hidden sm:inline">担当者割り当て設定</span>
+        <span className="sm:hidden">担当設定</span>
 
         {/* 自動設定 / 手動変更 バッジ */}
         {isDefault ? (
@@ -93,8 +100,8 @@ export function TabAssignmentPanel() {
 
           <div className="tab-assignment-rows">
             {TAB_IDS.map((tabId) => {
-              const templateValue = resolveTemplate('renewal', undefined, templatesRecord)[tabId];
-              const currentValue = assignments[tabId];
+              const templateValue = resolveTemplate('renewal', undefined, templatesRecord)[tabId] || '';
+              const currentValue = assignments[tabId] || '';
               const isTabModified = currentValue !== templateValue;
 
               return (
@@ -109,28 +116,30 @@ export function TabAssignmentPanel() {
                       <span className="tab-assignment-tab-modified">変更済</span>
                     )}
                   </label>
-                  <select
-                    id={`assign-${tabId}`}
-                    className="tab-assignment-select"
-                    value={assignments[tabId] ?? ''}
-                    onChange={(e) => assignUser(tabId, e.target.value)}
-                  >
-                    <option value="">担当者なし（行政書士のみ）</option>
-                    {/* ダミーの担当者リスト。将来はFirestoreのusersコレクションから動的に取得 */}
-                    {TEST_USERS.filter((u) => !u.isAdmin).map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.displayName}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="tab-assignment-status">
-                    {assignments[tabId] ? (
-                      <span className="badge badge--assigned">
-                        {TEST_USERS.find((u) => u.id === assignments[tabId])?.displayName ?? assignments[tabId]}
-                      </span>
-                    ) : (
-                      <span className="badge badge--unassigned">未割り当て</span>
-                    )}
+                  <div className="tab-assignment-controls">
+                    <select
+                      id={`assign-${tabId}`}
+                      className="tab-assignment-select"
+                      value={assignments[tabId] ?? ''}
+                      onChange={(e) => assignUser(tabId, e.target.value)}
+                    >
+                      <option value="">担当者なし（行政書士のみ）</option>
+                      {/* ダミーの担当者リスト。将来はFirestoreのusersコレクションから動的に取得 */}
+                      {TEST_USERS.filter((u) => !u.isAdmin).map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.displayName}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="tab-assignment-status">
+                      {assignments[tabId] ? (
+                        <span className="badge badge--assigned">
+                          {TEST_USERS.find((u) => u.id === assignments[tabId])?.displayName ?? assignments[tabId]}
+                        </span>
+                      ) : (
+                        <span className="badge badge--unassigned">未割り当て</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

@@ -33,6 +33,8 @@ interface SectionPermissionContextType {
   assignments: TabAssignments;
   /** 担当者を割り当てる（行政書士専用） */
   assignUser: (tabId: TabId, userId: string) => void;
+  /** 全タブの担当者をまとめて割り当てる */
+  assignAllUsers: (newAssignments: TabAssignments) => void;
   /** 担当者割り当てUI（TabAssignmentPanel）を表示・操作できるか（scrivener専用） */
   isScrivener: boolean;
   /** DBから取得した最新のテンプレート設定 */
@@ -43,6 +45,7 @@ const SectionPermissionContext = createContext<SectionPermissionContextType>({
   isEditable: () => true,
   assignments: {},
   assignUser: () => {},
+  assignAllUsers: () => {},
   isScrivener: true,
   templatesRecord: DEFAULT_ASSIGNMENT_TEMPLATES,
 });
@@ -107,9 +110,17 @@ export function SectionPermissionProvider({
     [assignments, onAssignmentsChange]
   );
 
+  const assignAllUsers = useCallback(
+    (newAssignments: TabAssignments) => {
+      setAssignments(newAssignments);
+      onAssignmentsChange?.(newAssignments);
+    },
+    [onAssignmentsChange]
+  );
+
   const value = useMemo(
-    () => ({ isEditable, assignments, assignUser, isScrivener, templatesRecord }),
-    [isEditable, assignments, assignUser, isScrivener, templatesRecord]
+    () => ({ isEditable, assignments, assignUser, assignAllUsers, isScrivener, templatesRecord }),
+    [isEditable, assignments, assignUser, assignAllUsers, isScrivener, templatesRecord]
   );
 
   return (

@@ -16,7 +16,7 @@ import {
   type TabId,
   type TabAssignments,
 } from '@/lib/schemas/renewalApplicationSchema';
-import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
+import { resolveTemplate, type ApplicationKind, type TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 import { ForeignerInfoSection }           from './sections/ForeignerInfoSection';
 import { EmployerInfoSection }            from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
@@ -214,7 +214,6 @@ function RenewalApplicationFormInner({
 
   /**
    * 現在選択中のタブが表示可能タブリストから外れた場合、最初のタブにフォールバック。
-   * useEffect + setState の組み合わせは cascading renders を招くため
    * useMemo で直接解決する（effectiveTab を実際のレンダリングに使用）。
    */
   const effectiveTab = useMemo<TabId>(() => {
@@ -222,6 +221,14 @@ function RenewalApplicationFormInner({
     if (visibleTabs.some(t => t.id === activeTab)) return activeTab;
     return visibleTabs[0].id;
   }, [visibleTabs, activeTab]);
+
+  // ヘッダーボタンで共用するタブ行移情報
+  const activeIndex = useMemo(
+    () => visibleTabs.findIndex(t => t.id === effectiveTab),
+    [visibleTabs, effectiveTab]
+  );
+  const prevTab = activeIndex > 0 ? visibleTabs[activeIndex - 1] : null;
+  const nextTab = activeIndex < visibleTabs.length - 1 ? visibleTabs[activeIndex + 1] : null;
 
   // DEFAULT_VALUES と initialValues を mergeWithDefaults でディープマージ
   const mergedDefaultValues = useMemo(
@@ -268,100 +275,136 @@ function RenewalApplicationFormInner({
       <FormProvider {...methods}>
         <form noValidate className="renewal-form">
 
-          {/* ─── ヘッダー ─────────────────────────────────────────────── */}
-          {!hideHeader && (
-            <div className="form-header">
-              <div className="form-header-badge">出入国在留管理庁 様式</div>
-              <h1 className="form-header-title">在留期間更新許可申請書</h1>
-              <p className="form-header-subtitle">
-                別記第29号の15様式（特定技能）
-                {savedRecordId && (
-                  <span className="form-saved-badge">✓ 保存済み</span>
-                )}
-              </p>
-            </div>
-          )}
-
-          {/* ─── 対象者コンテキストヘッダー ────────────────────────────── */}
-          <div className="applicant-context-header">
-            <div className="applicant-avatar">
-              {applicantName.charAt(0)}
-            </div>
-            <div className="applicant-info">
-              <div className="applicant-name">
-                {applicantName} <span className="applicant-suffix">様の申請データ</span>
+          {/* ─── 上部固定エリア（ヘッダー・対象者情報・タブを束ねる） ──────────────── */}
+          <div className="renewal-form-sticky-top">
+            {/* ─── ヘッダー（ボタン統合） ──────────────────────── */}
+            {!hideHeader && (
+              <div className="form-header">
+                <div className="form-header-main">
+                  <div className="form-header-left">
+                    <span className="form-header-badge">出入国在留管理庁 様式</span>
+                    <h1 className="form-header-title">在留期間更新許可申請書</h1>
+                    <p className="form-header-subtitle">
+                      別記第29号の15様式（特定技能）
+                      {savedRecordId && (
+                        <span className="form-saved-badge">✓ 保存済み</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="form-header-actions">
+                    {prevTab && (
+                      <button type="button" className="btn-outline btn-nav-sm" onClick={() => setActiveTab(prevTab.id)} disabled={isBusy}>
+                        <ChevronLeft size={15} /> {prevTab.label}へ
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn-outline btn-save btn-nav-sm"
+                      onClick={() => handleSaveOnly(methods.getValues())}
+                      disabled={isBusy}
+                      id="btn-save-only"
+                      title="入力途中の内容を下書き保存します"
+                    >
+                      {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+                      {isSaving ? '保存中...' : '保存'}
+                    </button>
+                    {nextTab && (
+                      <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
+                        {nextTab.label}へ <ChevronRight size={15} />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="applicant-type">在留期間更新許可申請（特定技能）</div>
-            </div>
+            )}
 
-            {/* ─── AI診断ボタン ─── */}
-            <button
-              type="button"
-              id="btn-ai-check"
-              className={`ai-check-btn ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
-              onClick={() => aiDiag.runCheck(methods.getValues())}
-              disabled={aiDiag.status === 'loading'}
-              title="入力内容・整合性・法的リスクをAIが診断します"
-            >
-              {aiDiag.status === 'loading' ? (
-                <Loader2 size={16} className="spin" />
-              ) : (
-                <Sparkles size={16} />
-              )}
-              <span>
-                {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
-              </span>
-              {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
-                <span className="ai-check-btn-badge ai-check-btn-badge--critical">
-                  {aiDiag.counts.critical}
-                </span>
-              )}
-              {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
-                <span className="ai-check-btn-badge ai-check-btn-badge--warning">
-                  {aiDiag.counts.warning}
-                </span>
-              )}
-            </button>
-          </div>
+            {/* ─── 対象者コンテキストヘッダー ────────────────────────────── */}
+            <div className="applicant-context-header">
+              <div className="applicant-avatar">
+                {applicantName.charAt(0)}
+              </div>
+              <div className="applicant-info">
+                <div className="applicant-name">
+                  {applicantName} <span className="applicant-suffix">様の申請データ</span>
+                </div>
+                <div className="applicant-type">在留期間更新許可申請（特定技能）</div>
+              </div>
 
-          {/* ─── タブナビゲーション ────────────────────────────────────── */}
-          <div className="tab-nav" role="tablist">
-            {visibleTabs.map((tab) => {
-              const Icon     = tab.icon;
-              const isActive = effectiveTab === tab.id;
-              const canEdit  = isEditable(tab.id);
-              const hasError =
-                tab.id === 'foreigner'  ? hasForeignerErrors
-                : tab.id === 'employer' ? hasEmployerErrors
-                : hasSimultaneousErrors;
-
-              return (
+              <div className="applicant-context-actions">
+                {/* ─── 担当者割り当てパネル ─── */}
+                <TabAssignmentPanel />
+                
+                {/* ─── AI診断ボタン ─── */}
                 <button
-                  key={tab.id}
                   type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  id={`tab-${tab.id}`}
-                  className={[
-                    'tab-btn',
-                    isActive ? 'tab-btn--active'   : '',
-                    hasError ? 'tab-btn--error'    : '',
-                    !canEdit ? 'tab-btn--readonly' : '',
-                  ].filter(Boolean).join(' ')}
-                  onClick={() => setActiveTab(tab.id)}
+                  id="btn-ai-check"
+                  className={`ai-check-btn ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
+                  onClick={() => aiDiag.runCheck(methods.getValues())}
+                  disabled={aiDiag.status === 'loading'}
+                  title="入力内容・整合性・法的リスクをAIが診断します"
                 >
-                  <Icon size={18} />
-                  <span>{tab.label}</span>
-                  {hasError && (
-                    <AlertCircle size={14} className="tab-error-icon" />
+                  {aiDiag.status === 'loading' ? (
+                    <Loader2 size={16} className="spin" />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                  <span className="hidden sm:inline">
+                    {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
+                  </span>
+                  <span className="sm:hidden">
+                    {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
+                  </span>
+                  {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
+                    <span className="ai-check-btn-badge ai-check-btn-badge--critical">
+                      {aiDiag.counts.critical}
+                    </span>
+                  )}
+                  {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
+                    <span className="ai-check-btn-badge ai-check-btn-badge--warning">
+                      {aiDiag.counts.warning}
+                    </span>
                   )}
                 </button>
-              );
-            })}
+              </div>
+            </div>
+
+            {/* ─── タブナビゲーション ────────────────────────────────────── */}
+            <div className="tab-nav" role="tablist">
+              {visibleTabs.map((tab) => {
+                const Icon     = tab.icon;
+                const isActive = effectiveTab === tab.id;
+                const canEdit  = isEditable(tab.id);
+                const hasError =
+                  tab.id === 'foreigner'  ? hasForeignerErrors
+                  : tab.id === 'employer' ? hasEmployerErrors
+                  : hasSimultaneousErrors;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    id={`tab-${tab.id}`}
+                    className={[
+                      'tab-btn',
+                      isActive ? 'tab-btn--active'   : '',
+                      hasError ? 'tab-btn--error'    : '',
+                      !canEdit ? 'tab-btn--readonly' : '',
+                    ].filter(Boolean).join(' ')}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    <Icon size={18} />
+                    <span>{tab.label}</span>
+                    {hasError && (
+                      <AlertCircle size={14} className="tab-error-icon" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* ─── 担当者割り当てパネル ──────────────────────────────────── */}
-          <TabAssignmentPanel />
 
           {/* ─── セクション ───────────────────────────────────────────── */}
           {(() => {
@@ -407,47 +450,6 @@ function RenewalApplicationFormInner({
             );
           })()}
 
-          {/* ─── ナビゲーション & アクションバー ──────────────────────── */}
-          <div className="form-nav">
-            {(() => {
-              const activeIndex = visibleTabs.findIndex(t => t.id === effectiveTab);
-              const prevTab = activeIndex > 0 ? visibleTabs[activeIndex - 1] : null;
-              const nextTab = activeIndex < visibleTabs.length - 1 ? visibleTabs[activeIndex + 1] : null;
-
-              return (
-                <div className={prevTab ? 'form-nav-both' : 'form-nav-right'}>
-                  {prevTab && (
-                    <button type="button" className="btn-outline" onClick={() => setActiveTab(prevTab.id)} disabled={isBusy}>
-                      <ChevronLeft size={18} /> {prevTab.label}へ戻る
-                    </button>
-                  )}
-
-                  <div className="form-action-bar">
-                    {/* ① 保存（全タブ常時表示） */}
-                    <button
-                      type="button"
-                      className="btn-outline btn-save"
-                      onClick={() => handleSaveOnly(methods.getValues())}
-                      disabled={isBusy}
-                      id="btn-save-only"
-                      title="入力途中の内容を下書き保存します"
-                    >
-                      {isSaving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-                      {isSaving ? '保存中...' : '保存'}
-                    </button>
-
-                    {/* ② 次のタブへ */}
-                    {nextTab && (
-                      <button type="button" className="btn-secondary" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
-                        {nextTab.label}へ <ChevronRight size={18} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-
         </form>
       </FormProvider>
 
@@ -464,7 +466,6 @@ function RenewalApplicationFormInner({
   );
 }
 
-// ─── 公開エクスポート: Provider でラップ ─────────────────────────────────────────────
 export function RenewalApplicationForm({
   onSubmit,
   recordId,
@@ -479,14 +480,15 @@ export function RenewalApplicationForm({
   // 認証情報を SectionPermissionProvider に渡す
   const userRole = currentUser?.role ?? 'branch_staff';
 
+  // 新規作成時（recordIdがなく、initialAssignmentsが明示されていない場合）はテンプレートの初期値を適用する
+  const effectiveInitialAssignments =
+    initialAssignments ?? (recordId ? {} : resolveTemplate('renewal', undefined, templatesRecord));
+
   return (
     <SectionPermissionProvider
       currentUserRole={userRole}
-      initialAssignments={initialAssignments}
+      initialAssignments={effectiveInitialAssignments}
       templatesRecord={templatesRecord}
-      onAssignmentsChange={(a) => {
-        console.debug('[assignments変更]', a);
-      }}
     >
       <RenewalApplicationFormInner
         onSubmit={onSubmit}

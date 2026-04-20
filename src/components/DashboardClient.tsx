@@ -11,8 +11,10 @@ import { SummaryCards } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, AlertTriangle, FilePen } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, AlertTriangle, FilePen, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
+import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
 
 // ─── Toast Message Component ─────────────────────────────────────────────────
 function ToastNotification({ message, onClose }: { message: string; onClose: () => void }) {
@@ -46,8 +48,28 @@ function ToastNotification({ message, onClose }: { message: string; onClose: () 
 // ─── Coming Soon Sidebar Items ───────────────────────────────────────────────
 const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage: string; badge?: number }[] = [
   { icon: UserCircle, label: '外国人管理・台帳', toastMessage: '高度な外国人台帳管理' },
+  // 「通知・期限アラート」はscrivenerは内諸管理画面と連動。それ以外のロールは Coming Soon
   { icon: Bell, label: '通知・期限アラート', toastMessage: '自動期限監視アラート', badge: 12 },
 ];
+
+// ─── Scrivener専用: 問い合わせ受信箱サイドバー項目 ──────────────────────────
+function ScrivenerInboxItem({ onOpen, userRole }: { onOpen: () => void; userRole: string }) {
+  const unreadCount = useInquiryUnreadCount(userRole);
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 text-slate-400 hover:bg-slate-50 hover:text-slate-900 font-medium"
+    >
+      <Bell className="h-5 w-5 shrink-0" />
+      <span className="text-sm">通知</span>
+      {unreadCount > 0 && (
+        <span className="ml-auto text-xs font-black px-2 py-0.5 rounded-full bg-rose-50 text-rose-500 animate-pulse">
+          {unreadCount}
+        </span>
+      )}
+    </button>
+  );
+}
 
 // ─── Role Badge Colors ───────────────────────────────────────────────────────
 const ROLE_BADGE_STYLES: Record<string, string> = {
@@ -75,9 +97,12 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // お問い合わせ受信笱パネルの開閉状態 (scrivenerのみ)
+  const [showInquiryInbox, setShowInquiryInbox] = useState(false);
 
   // 共有モーダル用のステート
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareToken, setShareToken] = useState('dummy-token-123');
 
@@ -186,7 +211,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         {/* Navigation - Scrollable */}
         <nav className="flex-1 overflow-y-auto px-8 py-4 space-y-2 no-scrollbar">
           <SidebarItem icon={LayoutDashboard} label="総合ダッシュボード" active />
-          {COMING_SOON_ITEMS.map((item) => (
+          {COMING_SOON_ITEMS
+            // scrivenerは「通知・期限アラート」を専用ポップアップで制御するため除外
+            .filter(item => !(userRole === 'scrivener' && item.label === '通知・期限アラート'))
+            .map((item) => (
             <SidebarItem
               key={item.label}
               icon={item.icon}
@@ -195,6 +223,11 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               onClick={() => showComingSoon(item.toastMessage)}
             />
           ))}
+
+          {/* 通知・問い合わせ受信笱 (scrivenerのみ) */}
+          {userRole === 'scrivener' && (
+            <ScrivenerInboxItem onOpen={() => setShowInquiryInbox(true)} userRole={userRole} />
+          )}
 
           {/* アサイン設定（scrivener用） */}
           {userRole === 'scrivener' && (
@@ -249,10 +282,20 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
         {/* Support & Logout - Fixed at bottom */}
         <div className="p-8 pt-4 border-t border-slate-50 space-y-4 bg-white">
-          <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100/50">
-            <p className="text-xs font-bold text-indigo-600 mb-1">サポート窓口</p>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-bold">Coming Soon: 2026年実装予定</p>
-          </div>
+          {userRole !== 'scrivener' && (
+            <button 
+              onClick={() => setIsSupportModalOpen(true)}
+              className="w-full bg-indigo-50 hover:bg-indigo-100 rounded-2xl p-4 border border-indigo-100/50 text-left transition-colors flex items-center justify-between group"
+            >
+              <div>
+                <p className="text-xs font-bold text-indigo-700 mb-1">サポート窓口</p>
+                <p className="text-xs text-slate-500 font-medium">システムに関するご要望・お問い合わせ</p>
+              </div>
+              <div className="bg-white p-2 text-indigo-500 rounded-full shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+            </button>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <SidebarItem icon={LogOut} label="ログアウト" onClick={handleLogout} />
@@ -300,6 +343,15 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 <QrCode className="h-4 w-4" />
                 新規申請
               </button>
+            )}
+
+            {/* お問い合わせ受信箱パネル (scrivenerのみ、サイドバーから引き出す) */}
+            {userRole === 'scrivener' && (
+              <InquiryInbox
+                userRole={userRole}
+                isOpen={showInquiryInbox}
+                onClose={() => setShowInquiryInbox(false)}
+              />
             )}
 
 
@@ -606,6 +658,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           )}
         </AnimatePresence>
       </main>
+      <SupportInquiryModal isOpen={isSupportModalOpen} onClose={() => setIsSupportModalOpen(false)} />
     </div>
   );
 }

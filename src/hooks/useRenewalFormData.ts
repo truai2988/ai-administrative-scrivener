@@ -53,16 +53,6 @@ export function useRenewalFormData(foreignerId: string): FormLoadPhase {
         ]);
 
         if (record) {
-          // ─── デバッグログ ─────────────────────────────────────────
-          console.group('[useRenewalFormData] レコード読み込み確認');
-          console.log('record.id:', record.id);
-          console.log('record.attachments (ルート):', JSON.stringify(record.attachments, null, 2));
-          console.log('record.formData?.attachments (formData内):', JSON.stringify(record.formData?.attachments, null, 2));
-          console.groupEnd();
-          // ──────────────────────────────────────────────────────────
-
-          // useFileUpload は attachments をドキュメントルートに保存しているため、
-          // フォーム初期値 (formData) に root の attachments をマージする
           if (record.attachments && record.formData) {
             record.formData.attachments = record.attachments;
           }
