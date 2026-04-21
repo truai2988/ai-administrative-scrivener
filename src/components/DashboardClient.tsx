@@ -585,17 +585,31 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                     </div>
 
                     {/* ─── 職員代理入力 ─── */}
-                    <div className="mt-4"></div>
-                    <button
-                      onClick={() => {
-                        setShowShareModal(false);
-                        window.open('/forms/renewal', '_blank');
-                      }}
-                      className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 rounded-xl transition-colors mt-2"
-                    >
-                      <FilePen className="h-4 w-4" />
-                      職員が代わって申請書を作成する
-                    </button>
+                    <div className="mt-4 w-full">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center mb-2">職員が代わって申請書を作成</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setShowShareModal(false);
+                            window.open('/forms/renewal', '_blank');
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 rounded-xl transition-colors"
+                        >
+                          <FilePen className="h-4 w-4 shrink-0" />
+                          期間更新
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowShareModal(false);
+                            window.open('/forms/change-of-status/new', '_blank');
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold text-teal-600 hover:text-teal-800 hover:bg-teal-50 border border-teal-100 rounded-xl transition-colors"
+                        >
+                          <FilePen className="h-4 w-4 shrink-0" />
+                          資格変更
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>

@@ -9,13 +9,13 @@ export default function NewChangeOfStatusApplicationPage() {
   const router = useRouter();
 
   return (
-    <div className="renewal-page max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
+    <main className="renewal-page">
       <ChangeOfStatusForm 
         onSubmit={() => {
           // 保存後のリダイレクトや遷移処理があればここに記述する
           router.push('/dashboard');
         }}
       />
-    </div>
+    </main>
   );
 }

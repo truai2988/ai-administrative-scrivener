@@ -337,14 +337,53 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
 
                         <div className="w-px h-6 bg-slate-200 mx-1"></div>
 
-                        <button
-                          onClick={handleEdit}
-                          title="申請書を編集・新規作成"
-                          className="flex items-center gap-1.5 px-3 py-2 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm"
-                        >
-                          <FilePen className="w-3.5 h-3.5" />
-                          編集
-                        </button>
+                        <div className="relative inline-block text-left">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdown(openDropdown === `edit-${person.id}` ? null : `edit-${person.id}`);
+                            }}
+                            title="申請書を作成・編集"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm"
+                          >
+                            <FilePen className="w-3.5 h-3.5" />
+                            書類作成
+                          </button>
+
+                          {openDropdown === `edit-${person.id}` && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdown(null);
+                                }}
+                              />
+                              <div className="absolute right-0 top-[calc(100%+0.5rem)] w-max bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDropdown(null);
+                                    window.open(`/forms/renewal/${person.id}`, '_blank');
+                                  }}
+                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
+                                >
+                                  期間更新許可申請
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDropdown(null);
+                                    window.open(`/forms/change-of-status/new?foreignerId=${person.id}`, '_blank');
+                                  }}
+                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
+                                >
+                                  在留資格変更許可申請
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                         
                         {showRequestReviewBtn && (
                           <button
