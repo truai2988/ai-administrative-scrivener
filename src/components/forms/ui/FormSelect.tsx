@@ -20,6 +20,7 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
         ref={ref}
         className={`form-input form-select ${error ? 'form-input--error' : ''} ${className}`}
         value={value === null ? '' : value}
+        suppressHydrationWarning
         {...props}
       >
         <option value="">{placeholder}</option>

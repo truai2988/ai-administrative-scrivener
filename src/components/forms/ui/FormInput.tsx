@@ -12,6 +12,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
       <input
         ref={ref}
         className={`form-input ${error ? 'form-input--error' : ''} ${className}`}
+        suppressHydrationWarning
         {...props}
       />
     );

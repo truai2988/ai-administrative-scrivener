@@ -13,6 +13,7 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
         ref={ref}
         rows={rows}
         className={`form-input form-textarea ${error ? 'form-input--error' : ''} ${className}`}
+        suppressHydrationWarning
         {...props}
       />
     );

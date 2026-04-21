@@ -51,6 +51,7 @@ export function FormRadioGroup({
             checked={value === opt.value}
             onChange={() => onChange?.(opt.value)}
             className="form-radio-input"
+            suppressHydrationWarning
           />
           <span className="form-radio-text">{opt.label}</span>
         </label>
