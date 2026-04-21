@@ -17,11 +17,11 @@ export function ReEntryPermitSubForm() {
   });
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both">
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 pb-4 gap-4">
+    <div className="subsection">
+      <div className="subsection-header-row">
         <div>
-          <h4 className="text-md font-semibold text-slate-800">再入国許可申請</h4>
-          <p className="text-xs text-slate-500 mt-1">日本を出国し再び入国する場合に必要な許可です。</p>
+          <h3 className="subsection-title">再入国許可申請</h3>
+          <p className="subsection-desc">日本を出国し再び入国する場合に必要な許可です。</p>
         </div>
         
         <div className="w-full md:w-auto">
@@ -46,8 +46,8 @@ export function ReEntryPermitSubForm() {
 
       {applyForReEntry === true && (
         <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 space-y-4">
-            <h5 className="text-sm font-semibold text-blue-800 border-b border-blue-200/50 pb-2">渡航予定</h5>
+          <div className="cert-block">
+            <h4 className="cert-block-label">渡航予定</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField label="出国予定年月日" error={simultaneousError?.reEntryPermit?.departureDatePrimary?.message} className="text-xs">
@@ -110,8 +110,8 @@ export function ReEntryPermitSubForm() {
             </FormField>
           </div>
           
-          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4">
-            <h5 className="text-sm font-semibold text-slate-700">注意事項等の確認</h5>
+          <div className="cert-block">
+            <h4 className="cert-block-label">注意事項等の確認</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField label="犯罪を理由とする処分を受けたことの有無" error={simultaneousError?.reEntryPermit?.hasCriminalRecord?.message} className="text-xs">
@@ -155,6 +155,6 @@ export function ReEntryPermitSubForm() {
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

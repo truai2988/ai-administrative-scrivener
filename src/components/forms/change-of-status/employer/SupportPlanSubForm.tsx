@@ -18,9 +18,9 @@ export function SupportPlanSubForm() {
   });
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
+    <div className="subsection">
       <div className="border-b border-slate-50 pb-2">
-        <h4 className="text-md font-semibold text-slate-800">⑤ 1号特定技能外国人支援計画等</h4>
+        <h3 className="subsection-title">⑤ 1号特定技能外国人支援計画等</h3>
       </div>
 
       <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
@@ -47,7 +47,7 @@ export function SupportPlanSubForm() {
       {delegateSupportEntirely === true ? (
         // 全部委託する場合：登録支援機関の情報を表示
         <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
-          <h5 className="text-sm font-semibold text-slate-700 border-l-4 border-blue-500 pl-2">登録支援機関に関する情報</h5>
+          <h4 className="cert-block-label">登録支援機関に関する情報</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FormField label="氏名又は名称" required error={empError?.supportAgency?.name?.message} className="md:col-span-2">
               <FormInput {...register('employerInfo.supportAgency.name')} placeholder="例: 一般社団法人〇〇支援機構" />
@@ -73,7 +73,7 @@ export function SupportPlanSubForm() {
       ) : delegateSupportEntirely === false ? (
         // 自社で支援する場合：支援責任者・担当者の情報を表示
         <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
-          <h5 className="text-sm font-semibold text-slate-700 border-l-4 border-green-500 pl-2">自社支援における体制確認（受入れ機関内部）</h5>
+          <h4 className="cert-block-label">自社支援における体制確認（受入れ機関内部）</h4>
           
           <div className="bg-white p-4 border border-slate-200 rounded-lg space-y-4">
             <h6 className="text-sm font-medium text-slate-800">支援責任者</h6>
@@ -122,6 +122,6 @@ export function SupportPlanSubForm() {
           </div>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }

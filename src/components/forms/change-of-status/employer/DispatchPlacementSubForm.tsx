@@ -19,8 +19,8 @@ export function DispatchPlacementSubForm() {
   // トグル時のハンドラー（閉じた時に値をリセットするかは業務要件によるが、今回はUIの開閉のみとする）
   
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
-      <h4 className="text-md font-semibold text-slate-800 border-b border-slate-50 pb-2">③ 派遣先・引受先等の機関（該当する場合のみ）</h4>
+    <div className="subsection">
+      <h3 className="subsection-title">③ 派遣先・引受先等の機関（該当する場合のみ）</h3>
       
       {/* 派遣先 */}
       <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -115,6 +115,6 @@ export function DispatchPlacementSubForm() {
         )}
       </div>
 
-    </section>
+    </div>
   );
 }

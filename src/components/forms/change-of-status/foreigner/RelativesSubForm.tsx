@@ -29,11 +29,11 @@ export function RelativesSubForm() {
   const relativesErrors = errors.foreignerInfo?.relatives;
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300 fill-mode-both">
-      <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+    <div className="subsection">
+      <div className="subsection-header-row">
         <div>
-          <h4 className="text-md font-semibold text-slate-800">⑥ 在日親族（父・母・配偶者・子・兄弟姉妹など）及び同居者</h4>
-          <p className="text-xs text-slate-500 mt-1">※滞在予定の親族も含む</p>
+          <h3 className="subsection-title">⑥ 在日親族（父・母・配偶者・子・兄弟姉妹など）及び同居者</h3>
+          <p className="subsection-desc">※滞在予定の親族も含む</p>
         </div>
         <button
           type="button"
@@ -55,14 +55,14 @@ export function RelativesSubForm() {
       
       <div className="space-y-6">
         {fields.length === 0 ? (
-          <div className="text-center py-8 text-sm text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+          <div className="empty-list-hint">
             「追加」ボタンから在日親族情報を登録してください。
           </div>
         ) : (
           fields.map((field, index) => {
             const error = relativesErrors?.[index];
             return (
-              <div key={field.id} className="relative bg-slate-50 p-4 pt-6 rounded-lg border border-slate-200 space-y-4">
+              <div key={field.id} className="cert-block">
                 <button
                   type="button"
                   onClick={() => remove(index)}
@@ -72,7 +72,7 @@ export function RelativesSubForm() {
                   <Trash2 className="w-4 h-4" />
                 </button>
                 
-                <h5 className="text-sm font-medium text-slate-700 block md:hidden mb-4 border-b border-slate-200 pb-2">親族 {index + 1}</h5>
+                <h4 className="cert-block-label">親族 {index + 1}</h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormField label="続柄" required error={error?.relationship?.message}>
@@ -129,6 +129,6 @@ export function RelativesSubForm() {
           })
         )}
       </div>
-    </section>
+    </div>
   );
 }

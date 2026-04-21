@@ -17,11 +17,11 @@ export function ActivityOutsideStatusSubForm() {
   });
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 pb-4 gap-4">
+    <div className="subsection">
+      <div className="subsection-header-row">
         <div>
-          <h4 className="text-md font-semibold text-slate-800">資格外活動許可申請</h4>
-          <p className="text-xs text-slate-500 mt-1">現在の在留資格で認められた活動以外（アルバイト等）を行う場合に申請します。</p>
+          <h3 className="subsection-title">資格外活動許可申請</h3>
+          <p className="subsection-desc">現在の在留資格で認められた活動以外（アルバイト等）を行う場合に申請します。</p>
         </div>
         
         <div className="w-full md:w-auto">
@@ -54,8 +54,8 @@ export function ActivityOutsideStatusSubForm() {
             />
           </FormField>
 
-          <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 space-y-4">
-            <h5 className="text-sm font-semibold text-indigo-800 border-b border-indigo-200/50 pb-2">他に従事しようとする活動</h5>
+          <div className="cert-block">
+            <h4 className="cert-block-label">他に従事しようとする活動</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FormField label="職務内容" error={simultaneousError?.activityOutsideStatus?.newActivityJob1?.message} className="md:col-span-2 text-xs">
@@ -124,8 +124,8 @@ export function ActivityOutsideStatusSubForm() {
             </div>
           </div>
           
-          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4">
-            <h5 className="text-sm font-semibold text-slate-700">勤務先（アルバイト先等）</h5>
+          <div className="cert-block">
+            <h4 className="cert-block-label">勤務先（アルバイト先等）</h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FormField label="名称" error={simultaneousError?.activityOutsideStatus?.workplaceName1?.message} className="md:col-span-2 text-xs">
@@ -187,6 +187,6 @@ export function ActivityOutsideStatusSubForm() {
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

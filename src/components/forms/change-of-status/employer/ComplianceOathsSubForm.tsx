@@ -88,14 +88,14 @@ export function ComplianceOathsSubForm() {
   );
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">
+    <div className="subsection">
       <div className="border-b border-slate-50 pb-2">
-        <h4 className="text-md font-semibold text-slate-800">④ 特定技能所属機関の欠格事由・誓約等</h4>
-        <p className="text-xs text-slate-500 mt-1">該当する場合は詳細を記載してください。</p>
+        <h3 className="subsection-title">④ 特定技能所属機関の欠格事由・誓約等</h3>
+        <p className="subsection-desc">該当する場合は詳細を記載してください。</p>
       </div>
       
       {/* 欠格事由グループ (Gridを用いたスッキリとしたレイアウト) */}
-      <h5 className="text-sm font-semibold text-slate-700 mt-6 border-l-4 border-slate-400 pl-2">欠格事由の確認</h5>
+      <h4 className="cert-block-label">欠格事由の確認</h4>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <DisqualificationItem name="employerInfo.complianceOaths.hadLaborLawPenalty" label="(11) 労働・社会保険・租税法令違反による罰則等" error={oathsError?.hadLaborLawPenalty} />
         <DisqualificationItem name="employerInfo.complianceOaths.hadInvoluntaryDismissal" label="(12) 非自発的離職者の発生" error={oathsError?.hadInvoluntaryDismissal} />
@@ -107,7 +107,7 @@ export function ComplianceOathsSubForm() {
         <DisqualificationItem name="employerInfo.complianceOaths.wasOfficerOfRevokedEntity" label="(18) 認定取消し法人の役員であった" error={oathsError?.wasOfficerOfRevokedEntity} />
       </div>
 
-      <h5 className="text-sm font-semibold text-slate-700 mt-8 border-l-4 border-slate-400 pl-2">法令遵守・体制に関する誓約</h5>
+      <h4 className="cert-block-label">法令遵守・体制に関する誓約</h4>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <OathItem name="employerInfo.complianceOaths.keepsActivityRecords" label="(23) 書類（活動内容等）の1年以上の保存・保管体制の有無" error={oathsError?.keepsActivityRecords} />
         <OathItem name="employerInfo.complianceOaths.allowsTemporaryReturn" label="(7) 一時帰国を希望した場合に有給休暇を取得させる体制" error={oathsError?.allowsTemporaryReturn} />
@@ -117,6 +117,6 @@ export function ComplianceOathsSubForm() {
         <OathItem name="employerInfo.complianceOaths.hasContractContinuationSystem" label="(30) 継続して雇用契約を履行する体制の有無" error={oathsError?.hasContractContinuationSystem} />
         <OathItem name="employerInfo.complianceOaths.paysWageByTransfer" label="(31) 報酬を預貯金口座への振込等により適正に支払うこと" error={oathsError?.paysWageByTransfer} />
       </div>
-    </section>
+    </div>
   );
 }

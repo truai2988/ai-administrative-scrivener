@@ -17,8 +17,8 @@ export function CompanyProfileSubForm() {
   });
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
-      <h4 className="text-md font-semibold text-slate-800 border-b border-slate-50 pb-2">① 所属機関（雇用主）の基本情報</h4>
+    <div className="subsection">
+      <h3 className="subsection-title">① 所属機関（雇用主）の基本情報</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="法人等名（氏名又は名称）" required error={empError?.companyNameJa?.message} className="md:col-span-2">
@@ -77,8 +77,8 @@ export function CompanyProfileSubForm() {
         </FormField>
       </div>
 
-      <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-4">
-        <h5 className="text-sm font-medium text-slate-700">所在地</h5>
+      <div className="cert-block">
+        <h4 className="cert-block-label">所在地</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FormField label="郵便番号" required error={empError?.companyZipCode?.message}>
             <FormInput
@@ -151,6 +151,6 @@ export function CompanyProfileSubForm() {
           />
         </FormField>
       </div>
-    </section>
+    </div>
   );
 }

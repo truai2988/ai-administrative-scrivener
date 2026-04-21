@@ -11,13 +11,13 @@ export function PassportStatusSubForm() {
   const infoError = errors.foreignerInfo;
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100 fill-mode-both">
-      <h4 className="text-md font-semibold text-slate-800 border-b border-slate-50 pb-2">③ 旅券・在留資格等の状況</h4>
+    <div className="subsection">
+      <h3 className="subsection-title">③ 旅券・在留資格等の状況</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* パスポート情報 */}
         <div className="space-y-4">
-          <h5 className="text-sm font-medium text-slate-700">旅券（パスポート）</h5>
+          <h4 className="cert-block-label">旅券（パスポート）</h4>
           <FormField label="旅券番号" required error={infoError?.passportNumber?.message}>
             <FormInput
               {...register('foreignerInfo.passportNumber')}
@@ -36,7 +36,7 @@ export function PassportStatusSubForm() {
 
         {/* 現在の在留状態 */}
         <div className="space-y-4">
-          <h5 className="text-sm font-medium text-slate-700">現在の在留状態</h5>
+          <h4 className="cert-block-label">現在の在留状態</h4>
           <FormField label="現に有する在留資格" required error={infoError?.currentResidenceStatus?.message}>
             <FormInput
               {...register('foreignerInfo.currentResidenceStatus')}
@@ -71,6 +71,6 @@ export function PassportStatusSubForm() {
           />
         </FormField>
       </div>
-    </section>
+    </div>
   );
 }

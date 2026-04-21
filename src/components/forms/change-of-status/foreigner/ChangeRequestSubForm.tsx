@@ -11,8 +11,8 @@ export function ChangeRequestSubForm() {
   const infoError = errors.foreignerInfo;
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">
-      <h4 className="text-md font-semibold text-slate-800 border-b border-slate-50 pb-2">④ 変更の希望・理由</h4>
+    <div className="subsection">
+      <h3 className="subsection-title">④ 変更の希望・理由</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="希望する在留資格" required error={infoError?.desiredResidenceStatus?.message}>
@@ -39,6 +39,6 @@ export function ChangeRequestSubForm() {
           />
         </FormField>
       </div>
-    </section>
+    </div>
   );
 }

@@ -17,11 +17,11 @@ export function EmploymentContractSubForm() {
   });
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-75 fill-mode-both">
-      <h4 className="text-md font-semibold text-slate-800 border-b border-slate-50 pb-2">② 雇用契約・報酬等の内容</h4>
+    <div className="subsection">
+      <h3 className="subsection-title">② 雇用契約・報酬等の内容</h3>
       
-      <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-4">
-        <h5 className="text-sm font-medium text-slate-700">雇用契約期間</h5>
+      <div className="cert-block">
+        <h4 className="cert-block-label">雇用契約期間</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField label="始期" required error={empError?.contractStartDate?.message}>
             <FormInput
@@ -87,8 +87,8 @@ export function EmploymentContractSubForm() {
         </FormField>
       </div>
 
-      <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-4">
-        <h5 className="text-sm font-medium text-slate-700">報酬額（基本給・諸手当含む）</h5>
+      <div className="cert-block">
+        <h4 className="cert-block-label">報酬額（基本給・諸手当含む）</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FormField label="月額報酬（円）" required error={empError?.monthlySalary?.message}>
             <FormInput
@@ -187,6 +187,6 @@ export function EmploymentContractSubForm() {
           </FormField>
         )}
       </div>
-    </section>
+    </div>
   );
 }

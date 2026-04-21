@@ -19,8 +19,8 @@ export function CriminalRecordSubForm() {
   const infoError = errors.foreignerInfo;
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both">
-      <h4 className="text-md font-semibold text-slate-800 border-b border-slate-50 pb-2">⑤ 犯罪歴等</h4>
+    <div className="subsection">
+      <h3 className="subsection-title">⑤ 犯罪歴等</h3>
       
       <div className="space-y-6">
         <FormField label="犯罪を理由とする処分を受けたことの有無" required error={infoError?.criminalRecord?.message}>
@@ -55,6 +55,6 @@ export function CriminalRecordSubForm() {
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

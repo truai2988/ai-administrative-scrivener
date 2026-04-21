@@ -17,11 +17,11 @@ export function AuthEmploymentCertSubForm() {
   });
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both">
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 pb-4 gap-4">
+    <div className="subsection">
+      <div className="subsection-header-row">
         <div>
-          <h4 className="text-md font-semibold text-slate-800">就労資格証明書交付申請</h4>
-          <p className="text-xs text-slate-500 mt-1">転職活動時など、就労可能な資格を有することを証明する書類が必要な場合に申請します。</p>
+          <h3 className="subsection-title">就労資格証明書交付申請</h3>
+          <p className="subsection-desc">転職活動時など、就労可能な資格を有することを証明する書類が必要な場合に申請します。</p>
         </div>
         
         <div className="w-full md:w-auto">
@@ -81,6 +81,6 @@ export function AuthEmploymentCertSubForm() {
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

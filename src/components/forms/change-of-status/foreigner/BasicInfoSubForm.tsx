@@ -12,8 +12,8 @@ export function BasicInfoSubForm() {
   const infoError = errors.foreignerInfo;
 
   return (
-    <section className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
-      <h4 className="text-md font-semibold text-slate-800 border-b border-slate-50 pb-2">① 基本属性</h4>
+    <div className="subsection">
+      <h3 className="subsection-title">① 基本属性</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="国籍・地域" required error={infoError?.nationality?.message}>
@@ -111,6 +111,6 @@ export function BasicInfoSubForm() {
           />
         </FormField>
       </div>
-    </section>
+    </div>
   );
 }
