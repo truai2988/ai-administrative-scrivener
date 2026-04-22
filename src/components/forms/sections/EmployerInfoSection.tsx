@@ -267,6 +267,44 @@ export function EmployerInfoSection({
               error={!!emp?.mainJobType}
             />
           </FormField>
+
+          <FormField
+            label="従事する業務の区分"
+            hint="複数ある場合はカンマ(,)区切り"
+            error={emp?.jobCategories?.message}
+          >
+            <Controller
+              name="employerInfo.jobCategories"
+              control={control}
+              render={({ field }) => (
+                <FormInput
+                  value={field.value?.join(',') || ''}
+                  onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                  placeholder="例: 機械加工, 仕上げ"
+                  error={!!emp?.jobCategories}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField
+            label="他の職種"
+            hint="複数ある場合はカンマ(,)区切り"
+            error={emp?.otherJobTypes?.message}
+          >
+            <Controller
+              name="employerInfo.otherJobTypes"
+              control={control}
+              render={({ field }) => (
+                <FormInput
+                  value={field.value?.join(',') || ''}
+                  onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                  placeholder="例: 洗浄, 梱包"
+                  error={!!emp?.otherJobTypes}
+                />
+              )}
+            />
+          </FormField>
         </div>
       </div>
 
@@ -344,6 +382,19 @@ export function EmployerInfoSection({
               {...register('employerInfo.monthlySalary', { valueAsNumber: true })}
               placeholder="例: 180000"
               error={!!emp?.monthlySalary}
+            />
+          </FormField>
+
+          <FormField
+            label="同等業務の日本人の月額報酬（円）"
+            required
+            error={emp?.japaneseMonthlySalary?.message}
+          >
+            <FormInput
+              type="number"
+              {...register('employerInfo.japaneseMonthlySalary', { valueAsNumber: true })}
+              placeholder="例: 180000"
+              error={!!emp?.japaneseMonthlySalary}
             />
           </FormField>
 
@@ -750,6 +801,82 @@ export function EmployerInfoSection({
             );
           })}
         </div>
+
+        <h4 className="text-sm font-bold text-slate-700 mt-6 mb-4">派遣・労災等の特記事項</h4>
+        <div className="disqualify-block" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+            <Controller
+              name="employerInfo.dispatchQualification.applies"
+              control={control}
+              render={({ field }) => (
+                <CheckboxRow
+                  id="dispatchQual-applies"
+                  label="(27) 派遣機関要件のいずれかに該当"
+                  checked={field.value as boolean}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            {watch('employerInfo.dispatchQualification.applies') && (
+              <div style={{ paddingLeft: '1.75rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <Controller
+                  name="employerInfo.dispatchQualification.doesSpecificIndustryBusiness"
+                  control={control}
+                  render={({ field }) => <CheckboxRow id="dq-1" label="特定産業分野業務を実施している" checked={!!field.value} onChange={field.onChange} />}
+                />
+                {watch('employerInfo.dispatchQualification.doesSpecificIndustryBusiness') && (
+                   <FormInput {...register('employerInfo.dispatchQualification.doesSpecificIndustryBusinessDetail')} placeholder="詳細" />
+                )}
+                
+                <Controller
+                  name="employerInfo.dispatchQualification.publicBodyCapitalMajority"
+                  control={control}
+                  render={({ field }) => <CheckboxRow id="dq-2" label="地方公共団体等が資本金過半数出資" checked={!!field.value} onChange={field.onChange} />}
+                />
+                
+                <Controller
+                  name="employerInfo.dispatchQualification.publicBodyManagementInvolvement"
+                  control={control}
+                  render={({ field }) => <CheckboxRow id="dq-3" label="地方公共団体等が業務執行に実質関与" checked={!!field.value} onChange={field.onChange} />}
+                />
+
+                <Controller
+                  name="employerInfo.dispatchQualification.isAgricultureSpecialZoneEntity"
+                  control={control}
+                  render={({ field }) => <CheckboxRow id="dq-4" label="農業特区機関" checked={!!field.value} onChange={field.onChange} />}
+                />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+            <Controller
+              name="employerInfo.dispatchDestinationDisqualification.applies"
+              control={control}
+              render={({ field }) => <CheckboxRow id="dispatchDestDisq" label="(28) 派遣先が欠格事由に該当する" checked={!!field.value} onChange={field.onChange} />}
+            />
+            {watch('employerInfo.dispatchDestinationDisqualification.applies') && (
+              <div style={{ paddingLeft: '1.75rem', marginTop: '0.25rem' }}>
+                <FormTextarea {...register('employerInfo.dispatchDestinationDisqualification.detail')} placeholder="詳細な理由・経緯" rows={2} />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+            <Controller
+              name="employerInfo.hasWorkersCompMeasures.applies"
+              control={control}
+              render={({ field }) => <CheckboxRow id="workersComp" label="(29) 労災保険加入等の措置を講じている" checked={!!field.value} onChange={field.onChange} />}
+            />
+            {watch('employerInfo.hasWorkersCompMeasures.applies') && (
+               <div style={{ paddingLeft: '1.75rem', marginTop: '0.25rem' }}>
+                 <FormTextarea {...register('employerInfo.hasWorkersCompMeasures.detail')} placeholder="詳細な措置内容" rows={2} />
+               </div>
+            )}
+          </div>
+          
+        </div>
       </div>
 
       {/* ─── ⑧ 1号特定技能外国人支援計画 ─────────────────────────────────────── */}
@@ -913,6 +1040,105 @@ export function EmployerInfoSection({
               error={!!emp?.supportPersonnel?.officerTitle}
             />
           </FormField>
+        </div>
+      </div>
+
+      {/* ─── 支援業務の実施要件・体制（委託しない場合等） ───────────────────────── */}
+      <div className="subsection">
+        <h3 className="subsection-title">支援業務の実施要件等</h3>
+        <p className="subsection-desc">自社で支援を実施する場合（一部委託の場合を含む）等の確認事項です。</p>
+        <div className="disqualify-block" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+            <Controller
+              name="employerInfo.qualifiedForSupportWork"
+              control={control}
+              render={({ field }) => (
+                <CheckboxRow
+                  id="qualifiedSupport"
+                  label="(35) 支援業務実施要件（適合するものにチェック）"
+                  checked={!!field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+            {watch('employerInfo.qualifiedForSupportWork') && (
+              <div style={{ paddingLeft: '1.75rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <Controller
+                  name="employerInfo.supportWorkQualification1"
+                  control={control}
+                  render={({ field }) => <CheckboxRow id="q-1" label="過去2年間の中長期在留者の適正な受入れ実績がある" checked={!!field.value} onChange={field.onChange} />}
+                />
+                <Controller
+                  name="employerInfo.supportWorkQualification2"
+                  control={control}
+                  render={({ field }) => <CheckboxRow id="q-2" label="過去2年間に報酬を得て生活相談等に従事した経験がある" checked={!!field.value} onChange={field.onChange} />}
+                />
+                <Controller
+                  name="employerInfo.supportWorkQualification3"
+                  control={control}
+                  render={({ field }) => <CheckboxRow id="q-3" label="その他支援を適正に実施できる事情がある" checked={!!field.value} onChange={field.onChange} />}
+                />
+                {watch('employerInfo.supportWorkQualification3') && (
+                  <FormInput {...register('employerInfo.supportWorkQualification3Detail')} placeholder="詳細な事情を記入" />
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+             <Controller
+               name="employerInfo.hasForeignLanguageSupportCapability"
+               control={control}
+               render={({ field }) => <CheckboxRow id="langCap" label="(36) 外国人が十分理解できる言語での支援体制がある" checked={!!field.value} onChange={field.onChange} />}
+             />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+             <Controller
+               name="employerInfo.keepsSupportRecords"
+               control={control}
+               render={({ field }) => <CheckboxRow id="keepRec" label="(37) 支援状況書類を作成し、1年以上保存する" checked={!!field.value} onChange={field.onChange} />}
+             />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+             <Controller
+               name="employerInfo.supportersNeutral"
+               control={control}
+               render={({ field }) => <CheckboxRow id="neut" label="(38) 支援責任者・担当者が中立な立場で支援を実施できる" checked={!!field.value} onChange={field.onChange} />}
+             />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+             <Controller
+               name="employerInfo.hadSupportNeglect.applies"
+               control={control}
+               render={({ field }) => <CheckboxRow id="neglect" label="(39) 【該当注意】過去5年間に支援計画に基づく支援を怠り、指導を受けた" checked={!!field.value} onChange={field.onChange} />}
+             />
+             {watch('employerInfo.hadSupportNeglect.applies') && (
+                <div style={{ paddingLeft: '1.75rem', marginTop: '0.25rem' }}>
+                  <FormTextarea {...register('employerInfo.hadSupportNeglect.detail')} placeholder="詳細な理由・経緯" rows={2} />
+                </div>
+             )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+             <Controller
+               name="employerInfo.hasRegularMeetingCapability"
+               control={control}
+               render={({ field }) => <CheckboxRow id="meet" label="(40) 定期面談を適正に実施する体制がある" checked={!!field.value} onChange={field.onChange} />}
+             />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem', background: 'rgba(0,0,0,0.015)', borderRadius: '0.375rem' }}>
+             <Controller
+               name="employerInfo.meetsSpecificIndustrySupportStandards"
+               control={control}
+               render={({ field }) => <CheckboxRow id="indSupStd" label="(41) 特定産業分野固有の支援基準に適合している" checked={!!field.value} onChange={field.onChange} />}
+             />
+          </div>
+
         </div>
       </div>
 

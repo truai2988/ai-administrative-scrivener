@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Sparkles,
+  AlertCircle, Save, Loader2, Sparkles, Download
 } from 'lucide-react';
 import { AiDiagnosticPanel } from './AiDiagnosticPanel';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
@@ -32,6 +32,8 @@ import { useRenewalFormSubmit } from '@/hooks/useRenewalFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateTotalSize } from '@/lib/utils/fileUtils';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
+
+import { downloadRenewalCsvSimultaneous } from '@/utils/renewalCsvGeneratorSim';
 
 // ─── タブ定義 ─────────────────────────────────────────────────────────────────
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
@@ -204,6 +206,7 @@ function RenewalApplicationFormInner({
   hideHeader,
 }: Omit<RenewalApplicationFormProps, 'initialAssignments' | 'templatesRecord'>) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const { toasts, dismiss } = useToast();
   const { isEditable, assignments } = useSectionPermission();
 
@@ -308,6 +311,69 @@ function RenewalApplicationFormInner({
                       {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
                       {isSaving ? '保存中...' : '保存'}
                     </button>
+
+                    <div className="relative inline-block text-left">
+                      <button
+                        type="button"
+                        className="btn-outline btn-nav-sm flex items-center gap-1"
+                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                      >
+                        <Download size={14} /> <span className="hidden sm:inline">CSV出力</span>
+                      </button>
+                      
+                      {showDownloadMenu && (
+                        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden flex flex-col">
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                            onClick={async () => {
+                              const csvGenModule = await import('@/lib/csvGenerator');
+                              const data = methods.getValues();
+                              const { basicCsv } = csvGenModule.generateApplicationCsvs(data);
+                              const url = window.URL.createObjectURL(basicCsv);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = '申請情報入力(在留期間更新許可申請)_1.csv';
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              setShowDownloadMenu(false);
+                            }}
+                          >
+                            <User size={14} /> 基本情報 (在留期間更新)
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                            onClick={async () => {
+                              const csvGenModule = await import('@/lib/csvGenerator');
+                              const data = methods.getValues();
+                              const { specificSkillCsv } = csvGenModule.generateApplicationCsvs(data);
+                              const url = window.URL.createObjectURL(specificSkillCsv);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = '申請情報入力(区分V)_1.csv';
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              setShowDownloadMenu(false);
+                            }}
+                          >
+                            <Building2 size={14} /> 所属機関等 (区分V)
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            onClick={() => {
+                              const data = methods.getValues('simultaneousApplication');
+                              downloadRenewalCsvSimultaneous(data);
+                              setShowDownloadMenu(false);
+                            }}
+                          >
+                            <FileStack size={14} /> 同時申請用
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     {nextTab && (
                       <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
                         {nextTab.label}へ <ChevronRight size={15} />

@@ -168,6 +168,12 @@ export const foreignerInfoSchema = z
     effortsToTransferSkills: z.boolean().optional().describe('sheet2:AH 技能移転に努めることの有無'),
     meetsSpecificIndustryStandards: z.boolean().optional().describe('sheet2:AI 特定産業分野固有基準への適合'),
 
+    wasInvoluntarilySeparated: z.boolean().optional().describe('非自発的離職'),
+    hasMissingPersonOccurred: z.boolean().optional().describe('行方不明者の発生の有無'),
+    notDisqualified: z.boolean().optional().describe('欠格事由の非該当'),
+    applicantDeclarationTrue: z.boolean().optional().describe('本人申告の真正'),
+    agentDeliveryInfo: z.enum(['1', '2']).optional().describe('代理人等交付情報提供'),
+
     hasRelatives: z.boolean().describe('sheet1:AC 在日親族・同居者の有無'),
     relatives: z.array(relativeSchema),
 

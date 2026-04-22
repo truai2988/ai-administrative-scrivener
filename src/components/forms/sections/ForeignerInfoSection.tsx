@@ -410,15 +410,51 @@ export function ForeignerInfoSection({
         <h3 className="subsection-title">居住地・連絡先</h3>
         <div className="form-grid form-grid--2">
           <FormField
-            label="日本における居住地"
-            required
-            hint="都道府県〜マンション名まで"
-            error={info?.japanAddress?.message}
+            label="郵便番号"
+            hint="7桁・ハイフンなし"
+            error={info?.japanZipCode?.message}
           >
             <FormInput
-              {...register('foreignerInfo.japanAddress')}
-              placeholder="例: 〇〇県〇〇市〇〇町1-2-3 〇〇マンション101号"
-              error={!!info?.japanAddress}
+              {...register('foreignerInfo.japanZipCode')}
+              placeholder="1000001"
+              maxLength={7}
+              error={!!info?.japanZipCode}
+            />
+          </FormField>
+
+          <FormField
+            label="都道府県"
+            required
+            error={info?.japanPrefecture?.message}
+          >
+            <FormInput
+              {...register('foreignerInfo.japanPrefecture')}
+              placeholder="例: 東京都"
+              error={!!info?.japanPrefecture}
+            />
+          </FormField>
+
+          <FormField
+            label="市区町村"
+            required
+            error={info?.japanCity?.message}
+          >
+            <FormInput
+              {...register('foreignerInfo.japanCity')}
+              placeholder="例: 港区"
+              error={!!info?.japanCity}
+            />
+          </FormField>
+
+          <FormField
+            label="町名丁目番地号等"
+            required
+            error={info?.japanAddressLines?.message}
+          >
+            <FormInput
+              {...register('foreignerInfo.japanAddressLines')}
+              placeholder="例: 芝公園1-1-1"
+              error={!!info?.japanAddressLines}
             />
           </FormField>
 
@@ -460,6 +496,19 @@ export function ForeignerInfoSection({
               error={!!info?.mobileNumber}
             />
           </FormField>
+
+          <FormField
+            label="メールアドレス"
+            hint="任意"
+            error={info?.email?.message}
+          >
+            <FormInput
+              type="email"
+              {...register('foreignerInfo.email')}
+              placeholder="例: email@example.com"
+              error={!!info?.email}
+            />
+          </FormField>
         </div>
       </div>
 
@@ -485,6 +534,25 @@ export function ForeignerInfoSection({
               type="date"
               {...register('foreignerInfo.passportExpiryDate')}
               error={!!info?.passportExpiryDate}
+            />
+          </FormField>
+        </div>
+
+        <div className="form-grid form-grid--2 mt-4">
+          <FormField label="EDカード番号（英字部分）" error={info?.edNumberAlpha?.message}>
+            <FormInput
+              {...register('foreignerInfo.edNumberAlpha')}
+              placeholder="例: AB"
+              maxLength={2}
+              error={!!info?.edNumberAlpha}
+            />
+          </FormField>
+
+          <FormField label="EDカード番号（数字部分）" error={info?.edNumberNumeric?.message}>
+            <FormInput
+              {...register('foreignerInfo.edNumberNumeric')}
+              placeholder="例: 12345678"
+              error={!!info?.edNumberNumeric}
             />
           </FormField>
         </div>
@@ -668,6 +736,25 @@ export function ForeignerInfoSection({
       <div className="subsection">
         <h3 className="subsection-title">特定技能に関する事項</h3>
 
+        <div className="form-grid form-grid--2 mb-4">
+          <FormField label="特定技能1号 通算年数" error={info?.totalSpecificSkillStayYears?.message}>
+            <FormInput
+              type="number"
+              {...register('foreignerInfo.totalSpecificSkillStayYears', { valueAsNumber: true })}
+              placeholder="0"
+              error={!!info?.totalSpecificSkillStayYears}
+            />
+          </FormField>
+          <FormField label="通算月数" error={info?.totalSpecificSkillStayMonths?.message}>
+            <FormInput
+              type="number"
+              {...register('foreignerInfo.totalSpecificSkillStayMonths', { valueAsNumber: true })}
+              placeholder="0"
+              error={!!info?.totalSpecificSkillStayMonths}
+            />
+          </FormField>
+        </div>
+
         <FormField
           label="特定技能の区分"
           required
@@ -742,6 +829,25 @@ export function ForeignerInfoSection({
                 </FormField>
               </>
             )}
+
+            <FormField label="その他の技能証明" error={info?.otherSkillCert?.message}>
+              <Controller
+                name="foreignerInfo.otherSkillCert"
+                control={control}
+                render={({ field }) => (
+                  <FormRadioGroup
+                    name="foreignerInfo.otherSkillCert"
+                    options={[
+                      { value: 'false', label: '無' },
+                      { value: 'true', label: '有' },
+                    ]}
+                    value={String(field.value ?? '')}
+                    onChange={(v) => field.onChange(v === 'true')}
+                    error={!!info?.otherSkillCert}
+                  />
+                )}
+              />
+            </FormField>
           </div>
 
           {/* 技能実習2号良好修了記録（technical_intern 選択時のみ展開） */}
@@ -854,6 +960,25 @@ export function ForeignerInfoSection({
                 </FormField>
               </>
             )}
+
+            <FormField label="その他の言語証明" error={info?.otherLanguageCert?.message}>
+              <Controller
+                name="foreignerInfo.otherLanguageCert"
+                control={control}
+                render={({ field }) => (
+                  <FormRadioGroup
+                    name="foreignerInfo.otherLanguageCert"
+                    options={[
+                      { value: 'false', label: '無' },
+                      { value: 'true', label: '有' },
+                    ]}
+                    value={String(field.value ?? '')}
+                    onChange={(v) => field.onChange(v === 'true')}
+                    error={!!info?.otherLanguageCert}
+                  />
+                )}
+              />
+            </FormField>
           </div>
         </div>
       </div>
@@ -1271,6 +1396,261 @@ export function ForeignerInfoSection({
             </div>
           </div>
         )}
+      </div>
+
+      {/* ─── ⑪ 【特定技能特有】手続・処理情報 ───────────────────────────────────── */}
+      <div className="subsection">
+        <h3 className="subsection-title">手続・処理情報</h3>
+        <p className="text-xs text-slate-500 mb-4">申請人の状況について該当するものを選択してください。</p>
+        <div className="form-grid form-grid--2">
+          <FormField label="本国等の手続遵守" error={info?.followsHomeCountryProcedures?.message}>
+            <Controller
+              name="foreignerInfo.followsHomeCountryProcedures"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.followsHomeCountryProcedures"
+                  options={[
+                    { value: 'true', label: 'はい（手続をした）' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.followsHomeCountryProcedures}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="本邦で定期的に負担する費用への合意" error={info?.agreesToLocalCosts?.message}>
+            <Controller
+              name="foreignerInfo.agreesToLocalCosts"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.agreesToLocalCosts"
+                  options={[
+                    { value: 'true', label: 'はい' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.agreesToLocalCosts}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="技能移転に努めることへの合意" error={info?.effortsToTransferSkills?.message}>
+            <Controller
+              name="foreignerInfo.effortsToTransferSkills"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.effortsToTransferSkills"
+                  options={[
+                    { value: 'true', label: 'はい' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.effortsToTransferSkills}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="特定産業分野固有基準への適合" error={info?.meetsSpecificIndustryStandards?.message}>
+            <Controller
+              name="foreignerInfo.meetsSpecificIndustryStandards"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.meetsSpecificIndustryStandards"
+                  options={[
+                    { value: 'true', label: 'はい' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.meetsSpecificIndustryStandards}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="非自発的離職" error={info?.wasInvoluntarilySeparated?.message}>
+            <Controller
+              name="foreignerInfo.wasInvoluntarilySeparated"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.wasInvoluntarilySeparated"
+                  options={[
+                    { value: 'true', label: 'はい' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.wasInvoluntarilySeparated}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="行方不明者の発生の有無" error={info?.hasMissingPersonOccurred?.message}>
+            <Controller
+              name="foreignerInfo.hasMissingPersonOccurred"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.hasMissingPersonOccurred"
+                  options={[
+                    { value: 'true', label: 'はい' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.hasMissingPersonOccurred}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="欠格事由の非該当" error={info?.notDisqualified?.message}>
+            <Controller
+              name="foreignerInfo.notDisqualified"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.notDisqualified"
+                  options={[
+                    { value: 'true', label: 'はい' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.notDisqualified}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="本人申告の真正" error={info?.applicantDeclarationTrue?.message}>
+            <Controller
+              name="foreignerInfo.applicantDeclarationTrue"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.applicantDeclarationTrue"
+                  options={[
+                    { value: 'true', label: 'はい' },
+                    { value: 'false', label: 'いいえ' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.applicantDeclarationTrue}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="在留カード受領方法" error={info?.residenceCardReceiptMethod?.message}>
+            <Controller
+              name="foreignerInfo.residenceCardReceiptMethod"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.residenceCardReceiptMethod"
+                  options={[
+                    { value: '1', label: '窓口' },
+                    { value: '2', label: '郵送' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v)}
+                  error={!!info?.residenceCardReceiptMethod}
+                />
+              )}
+            />
+          </FormField>
+
+          <FormField label="代理人等交付情報提供" error={info?.agentDeliveryInfo?.message}>
+            <Controller
+              name="foreignerInfo.agentDeliveryInfo"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.agentDeliveryInfo"
+                  options={[
+                    { value: '1', label: '提供する' },
+                    { value: '2', label: '提供しない' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v)}
+                  error={!!info?.agentDeliveryInfo}
+                />
+              )}
+            />
+          </FormField>
+        </div>
+
+        <h4 className="text-sm font-bold text-slate-700 mt-6 mb-4">申請受理・通知情報</h4>
+        <div className="form-grid form-grid--2">
+          <FormField label="申請対象者の住居地" error={info?.applicantResidencePlace?.message}>
+            <FormInput
+              {...register('foreignerInfo.applicantResidencePlace')}
+              placeholder="例: 東京都港区..."
+              error={!!info?.applicantResidencePlace}
+            />
+          </FormField>
+
+          <FormField label="受領官署" error={info?.receivingOffice?.message}>
+            <FormInput
+              {...register('foreignerInfo.receivingOffice')}
+              placeholder="例: 東京出入国在留管理局"
+              error={!!info?.receivingOffice}
+            />
+          </FormField>
+
+          <FormField label="通知送信用メールアドレス" error={info?.notificationEmail?.message}>
+            <FormInput
+              type="email"
+              {...register('foreignerInfo.notificationEmail')}
+              placeholder="例: notify@example.com"
+              error={!!info?.notificationEmail}
+            />
+          </FormField>
+
+          <FormField label="申請意思の確認" required error={info?.checkIntent?.message}>
+            <Controller
+              name="foreignerInfo.checkIntent"
+              control={control}
+              render={({ field }) => (
+                <FormRadioGroup
+                  name="foreignerInfo.checkIntent"
+                  options={[
+                    { value: 'true', label: '確認済み' },
+                    { value: 'false', label: '未確認' },
+                  ]}
+                  value={String(field.value ?? '')}
+                  onChange={(v) => field.onChange(v === 'true')}
+                  error={!!info?.checkIntent}
+                />
+              )}
+            />
+          </FormField>
+        </div>
+
+        <div className="mt-4">
+          <FormField label="フリー欄 (自由記述)" error={info?.freeFormat?.message}>
+            <FormTextarea
+              {...register('foreignerInfo.freeFormat')}
+              rows={3}
+              placeholder="必要に応じてその他連絡事項を記入してください"
+              error={!!info?.freeFormat}
+            />
+          </FormField>
+        </div>
       </div>
 
       </fieldset>
