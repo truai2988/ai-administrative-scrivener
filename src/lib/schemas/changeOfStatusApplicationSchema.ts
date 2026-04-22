@@ -300,36 +300,40 @@ const dispatchQualificationSchema = z.object({
   isAgricultureSpecialZoneEntity: z.boolean().optional(),
 });
 
-// ─── 1号特定技能外国人支援計画（14項目）────────────────────────────────
+// ─── 1号特定技能外国人支援計画（16項目）────────────────────────────────
 export const supportPlanSchema = z.object({
-  // (1) 出入国時送迎
-  airportPickup: z.boolean().describe('(1)出入国時の港・飛行場への送迎'),
-  // (2) 住居確保支援
-  housingSupport: z.boolean().describe('(2)適切な住居確保支援'),
-  // (3) 金融機関・生活契約支援
-  financialContractSupport: z.boolean().describe('(3)金融機関口座・携帯等生活契約支援'),
-  // (4) 生活情報提供（外国語）
-  lifeInfoProvision: z.boolean().describe('(4)生活一般情報の外国語提供'),
-  // (5) 行政手続き同行
-  adminProcedureEscort: z.boolean().describe('(5)行政機関手続きへの同行等'),
-  // (6) 日本語学習機会提供
-  japaneseLanguageLearning: z.boolean().describe('(6)日本語学習機会の提供'),
-  // (7) 相談・苦情対応（外国語）
-  complaintSupport: z.boolean().describe('(7)外国語による相談・苦情対応'),
-  // (8) 日本人との交流促進
-  interculturalExchange: z.boolean().describe('(8)外国人と日本人の交流促進'),
-  // (9) 転職支援
-  jobChangeSupport: z.boolean().describe('(9)本人起因でない契約解除時の転職支援'),
-  // (10) 定期面談・問題通報
-  regularInterviewAndReport: z.boolean().describe('(10)定期面談の実施と問題発生時の関係機関通報'),
-  // (11) 支援計画の書面交付
-  writtenPlanProvision: z.boolean().describe('(11)支援計画の外国語書面交付'),
-  // (12) 特定産業分野固有事項の記載
-  specificIndustryItems: z.boolean().optional().describe('(12)特定産業分野固有事項の記載'),
-  // (13) 支援の実施可能性
-  implementationCapability: z.boolean().describe('(13)支援実施体制の適切性'),
-  // (14) 支援計画の告示適合
-  meetsRegulationStandards: z.boolean().optional().describe('(14)支援計画の告示基準適合'),
+  // (1) 事前ガイダンスの提供
+  preGuidanceProvision: z.boolean().describe('(1)事前ガイダンスの提供（雇用に関する事項等の多言語情報提供）'),
+  // (2) 事前ガイダンスの対面・テレビ電話実施
+  preGuidanceInPerson: z.boolean().describe('(2)事前ガイダンスを対面又はテレビ電話装置等により実施'),
+  // (3) 出入国時送迎
+  airportPickup: z.boolean().describe('(3)出入国時の港・飛行場への送迎'),
+  // (4) 住居確保支援
+  housingSupport: z.boolean().describe('(4)適切な住居確保支援'),
+  // (5) 金融機関・生活契約支援
+  financialContractSupport: z.boolean().describe('(5)金融機関口座・携帯等生活契約支援'),
+  // (6) 生活情報提供（外国語）
+  lifeInfoProvision: z.boolean().describe('(6)生活一般情報の外国語提供'),
+  // (7) 行政手続き同行
+  adminProcedureEscort: z.boolean().describe('(7)行政機関手続きへの同行等'),
+  // (8) 日本語学習機会提供
+  japaneseLanguageLearning: z.boolean().describe('(8)日本語学習機会の提供'),
+  // (9) 相談・苦情対応（外国語）
+  complaintSupport: z.boolean().describe('(9)外国語による相談・苦情対応'),
+  // (10) 日本人との交流促進
+  interculturalExchange: z.boolean().describe('(10)外国人と日本人の交流促進'),
+  // (11) 転職支援
+  jobChangeSupport: z.boolean().describe('(11)本人起因でない契約解除時の転職支援'),
+  // (12) 定期面談・問題通報
+  regularInterviewAndReport: z.boolean().describe('(12)定期面談の実施と問題発生時の関係機関通報'),
+  // (13) 支援計画の書面交付
+  writtenPlanProvision: z.boolean().describe('(13)支援計画の外国語書面交付'),
+  // (14) 特定産業分野固有事項の記載
+  specificIndustryItems: z.boolean().optional().describe('(14)特定産業分野固有事項の記載'),
+  // (15) 支援の実施可能性
+  implementationCapability: z.boolean().describe('(15)支援実施体制の適切性'),
+  // (16) 支援計画の告示適合
+  meetsRegulationStandards: z.boolean().optional().describe('(16)支援計画の告示基準適合'),
 });
 
 // ─── 登録支援機関スキーマ ────────────────────────────────────────────────

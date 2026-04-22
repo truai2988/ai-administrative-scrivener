@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Sparkles,
+  AlertCircle, Save, Loader2, Download
 } from 'lucide-react';
 import {
   changeOfStatusApplicationSchema,
@@ -20,6 +20,10 @@ import { ToastContainer, useToast } from '@/components/ui/Toast';
 import { useChangeOfStatusFormSubmit } from '@/hooks/useChangeOfStatusFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
 import { mergeWithDefaults } from '@/lib/utils/formUtils';
+
+import { downloadChangeOfStatusCsv1 } from '@/utils/changeOfStatusCsvGenerator1';
+import { downloadChangeOfStatusCsvU } from '@/utils/changeOfStatusCsvGeneratorU';
+import { downloadChangeOfStatusCsvSimultaneous } from '@/utils/changeOfStatusCsvGeneratorSim';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
   { id: 'foreigner',    label: '外国人本人情報',     icon: User },
@@ -181,6 +185,7 @@ export function ChangeOfStatusForm({
   hideHeader,
 }: ChangeOfStatusFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const { toasts, dismiss } = useToast();
   const { currentUser } = useAuth();
 
@@ -196,12 +201,14 @@ export function ChangeOfStatusForm({
   const nextTab = activeIndex < visibleTabs.length - 1 ? visibleTabs[activeIndex + 1] : null;
 
   const mergedDefaultValues = useMemo(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     () => mergeWithDefaults(initialValues, DEFAULT_VALUES as any),
     [initialValues]
   );
 
   const methods = useForm<ChangeOfStatusApplicationFormData>({
     resolver: zodResolver(changeOfStatusApplicationSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     defaultValues: mergedDefaultValues as any,
     mode: 'onBlur',
   });
@@ -213,6 +220,7 @@ export function ChangeOfStatusForm({
   const applicantName = nameKanji || nameEn || '名称未入力';
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     reset(mergedDefaultValues as any);
   }, [mergedDefaultValues, reset]);
 
@@ -262,8 +270,56 @@ export function ChangeOfStatusForm({
                       title="入力途中の内容を下書き保存します"
                     >
                       {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-                      {isSaving ? '保存中...' : '保存'}
+                      <span className="hidden sm:inline">{isSaving ? '保存中...' : '下書き保存'}</span>
                     </button>
+
+                    <div className="relative inline-block text-left">
+                      <button
+                        type="button"
+                        className="btn-outline btn-nav-sm flex items-center gap-1"
+                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                      >
+                        <Download size={14} /> <span className="hidden sm:inline">CSV出力</span>
+                      </button>
+                      
+                      {showDownloadMenu && (
+                        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden flex flex-col">
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                            onClick={() => {
+                              const data = methods.getValues('foreignerInfo');
+                              downloadChangeOfStatusCsv1(data);
+                              setShowDownloadMenu(false);
+                            }}
+                          >
+                            <User size={14} /> 基本情報 (在留資格変更)
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                            onClick={() => {
+                              const data = methods.getValues();
+                              downloadChangeOfStatusCsvU(data);
+                              setShowDownloadMenu(false);
+                            }}
+                          >
+                            <Building2 size={14} /> 所属機関等 (区分U)
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            onClick={() => {
+                              const data = methods.getValues('simultaneousApplication');
+                              downloadChangeOfStatusCsvSimultaneous(data);
+                              setShowDownloadMenu(false);
+                            }}
+                          >
+                            <FileStack size={14} /> 同時申請用
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     {nextTab && (
                       <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
                         {nextTab.label}へ <ChevronRight size={15} />
