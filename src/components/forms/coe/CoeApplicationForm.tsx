@@ -3,11 +3,13 @@
 import React, { useState } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, ChevronRight, ChevronLeft, User, Building2, UserCircle2, Briefcase, FileText } from 'lucide-react';
+import { Loader2, Save, ChevronRight, ChevronLeft, User, Building2, UserCircle2, Briefcase, FileText, Download } from 'lucide-react';
 import {
   coeApplicationSchema,
   type CoeApplicationFormData,
 } from '@/lib/schemas/coeApplicationSchema';
+import { useCoeFormSubmit } from '@/hooks/useCoeFormSubmit';
+import { useToast, ToastContainer } from '@/components/ui/Toast';
 
 import { IdentityInfoSubForm } from './sections/IdentityInfoSubForm';
 import { ApplicantSpecificInfoSubForm } from './sections/ApplicantSpecificInfoSubForm';
@@ -123,16 +125,19 @@ const DEFAULT_VALUES: Partial<CoeApplicationFormData> = {
 
 interface CoeApplicationFormProps {
   initialValues?: Partial<CoeApplicationFormData>;
-  onSubmit?: (data: CoeApplicationFormData) => void;
-  isSaving?: boolean;
+  recordId?: string;
+  foreignerId?: string;
+  organizationId?: string;
 }
 
 export function CoeApplicationForm({
   initialValues,
-  onSubmit,
-  isSaving = false,
+  recordId,
+  foreignerId,
+  organizationId,
 }: CoeApplicationFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('identity');
+  const { toasts, dismiss } = useToast();
 
   const methods = useForm<CoeApplicationFormData>({
     resolver: zodResolver(coeApplicationSchema),
@@ -140,7 +145,23 @@ export function CoeApplicationForm({
     mode: 'onBlur',
   });
 
-  const { handleSubmit, formState: { errors } } = methods;
+  const { formState: { errors }, control, getValues } = methods;
+
+  const {
+    isSaving,
+    isExporting,
+    isAutoSaving,
+    isBusy,
+    savedRecordId,
+    handleSaveOnly,
+    handleSaveAndExport,
+  } = useCoeFormSubmit({
+    recordId,
+    foreignerId,
+    organizationId,
+    control,
+    getValues,
+  });
 
   const activeIndex = TABS.findIndex(t => t.id === activeTab);
   const prevTab = activeIndex > 0 ? TABS[activeIndex - 1] : null;
@@ -151,38 +172,64 @@ export function CoeApplicationForm({
   const applicantName = nameKanji || nameEn || '名称未入力';
 
   return (
-    <FormProvider {...methods}>
-      <form onSubmit={handleSubmit((data) => onSubmit?.(data))} className="renewal-form" noValidate>
-        {/* Header and Tabs */}
-        <div className="renewal-form-sticky-top">
-          <div className="form-header">
-            <div className="form-header-main">
-              <div className="form-header-left">
-                <span className="form-header-badge">出入国在留管理庁 様式</span>
-                <h1 className="form-header-title">在留資格認定証明書交付申請書</h1>
-              </div>
-              <div className="form-header-actions">
-                {prevTab && (
-                  <button type="button" className="btn-outline btn-nav-sm" onClick={() => setActiveTab(prevTab.id)}>
-                    <ChevronLeft size={15} /> {prevTab.label}へ
+    <>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <FormProvider {...methods}>
+        <form onSubmit={(e) => e.preventDefault()} className="renewal-form" noValidate>
+          {/* Header and Tabs */}
+          <div className="renewal-form-sticky-top">
+            <div className="form-header">
+              <div className="form-header-main">
+                <div className="form-header-left">
+                  <span className="form-header-badge">出入国在留管理庁 様式</span>
+                  <h1 className="form-header-title">在留資格認定証明書交付申請書</h1>
+                  <p className="form-header-subtitle flex items-center mt-1 min-h-5">
+                    {isAutoSaving ? (
+                      <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1">
+                        <Loader2 size={12} className="spin" /> 自動保存中...
+                      </span>
+                    ) : savedRecordId ? (
+                      <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1">
+                        ✓ 保存済み
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+                <div className="form-header-actions">
+                  {prevTab && (
+                    <button type="button" className="btn-outline btn-nav-sm" onClick={() => setActiveTab(prevTab.id)} disabled={isBusy}>
+                      <ChevronLeft size={15} /> {prevTab.label}へ
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-outline btn-save btn-nav-sm"
+                    onClick={() => handleSaveOnly(getValues())}
+                    disabled={isBusy}
+                    id="btn-save-only"
+                    title="入力途中の内容を下書き保存します"
+                  >
+                    {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+                    {isSaving ? '保存中...' : '保存'}
                   </button>
-                )}
-                <button
-                  type="submit"
-                  className="btn-outline btn-save btn-nav-sm"
-                  disabled={isSaving}
-                >
-                  {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-                  保存＆CSVダウンロード
-                </button>
-                {nextTab && (
-                  <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)}>
-                    {nextTab.label}へ <ChevronRight size={15} />
+                  <button
+                    type="button"
+                    className="btn-outline btn-nav-sm flex items-center gap-1"
+                    onClick={() => handleSaveAndExport(getValues())}
+                    disabled={isBusy}
+                    title="保存してCSV形式で出力します"
+                  >
+                    {isExporting ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
+                    <span className="hidden sm:inline">{isExporting ? '出力中...' : 'CSV出力'}</span>
                   </button>
-                )}
+                  {nextTab && (
+                    <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
+                      {nextTab.label}へ <ChevronRight size={15} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
           <div className="applicant-context-header">
             <div className="applicant-avatar">
@@ -235,5 +282,6 @@ export function CoeApplicationForm({
         </div>
       </form>
     </FormProvider>
+    </>
   );
 }

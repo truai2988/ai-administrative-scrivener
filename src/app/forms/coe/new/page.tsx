@@ -4,17 +4,10 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import '../../renewal/renewal-form.css';
 import { CoeApplicationForm } from '@/components/forms/coe/CoeApplicationForm';
-import { useCoeFormSubmit } from '@/hooks/useCoeFormSubmit';
 import { ArrowLeft } from 'lucide-react';
 
 export default function NewCoeApplicationPage() {
   const router = useRouter();
-  
-  const { handleSaveAndExport, isExporting } = useCoeFormSubmit({
-    onSuccess: (id) => {
-      console.log('Saved with ID:', id);
-    }
-  });
 
   return (
     <main className="renewal-page">
@@ -27,10 +20,7 @@ export default function NewCoeApplicationPage() {
           戻る
         </button>
       </div>
-      <CoeApplicationForm
-        onSubmit={handleSaveAndExport}
-        isSaving={isExporting}
-      />
+      <CoeApplicationForm />
     </main>
   );
 }

@@ -3,9 +3,18 @@
 /**
  * useChangeOfStatusFormSubmit.ts
  * 在留資格変更許可申請フォームの保存・エクスポートロジックをカプセル化するカスタムフック
+ *
+ * 責務:
+ *   1. Firebase への保存処理（新規作成 / 更新自動判定）
+ *   2. CSV のダウンロード処理
+ *   3. ローディング状態（isSaving, isExporting）の管理
+ *   4. 成功 / エラー Toast の表示
+ *
+ * このフックを使うコンポーネントはボタンのレンダリングのみに集中できる。
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useWatch, type Control, type UseFormGetValues } from 'react-hook-form';
 import type { TabAssignments } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { changeOfStatusApplicationService } from '@/services/changeOfStatusApplicationService';
@@ -13,10 +22,19 @@ import { downloadImmigrationCSV } from '@/lib/utils/csvMapper';
 import { useToast } from '@/components/ui/Toast';
 
 interface UseChangeOfStatusFormSubmitOptions {
+  /** 既存レコードのID（編集時のみ）。未指定なら新規作成 */
   recordId?: string;
+  /** 紐付ける外国人ドキュメントID */
   foreignerId?: string;
+  /** 所属する組織のID */
   organizationId?: string;
-  assignments: TabAssignments;
+  /** タブごとの担当者割り当て（SectionPermissionContextから渡す） */
+  assignments?: TabAssignments;
+  /** react-hook-form の control（特定のフィールドを監視するため） */
+  control?: Control<ChangeOfStatusApplicationFormData>;
+  /** react-hook-form の getValues（オートセーブ時に現在の全体フォームデータを取得するため） */
+  getValues?: UseFormGetValues<ChangeOfStatusApplicationFormData>;
+  /** 保存完了後の外部コールバック（省略可） */
   onSubmit?: (data: ChangeOfStatusApplicationFormData) => void | Promise<void>;
 }
 
@@ -24,9 +42,15 @@ interface UseChangeOfStatusFormSubmitReturn {
   isSaving: boolean;
   isExporting: boolean;
   isBusy: boolean;
+  /** 先行保存中フラグ（マウント直後の draft 作成中） */
   isCreatingDraft: boolean;
+  /** オートセーブ（Debounce処理）中フラグ */
+  isAutoSaving: boolean;
+  /** 保存のみ実行するハンドラ（handleSubmit に渡す） */
   handleSaveOnly: (data: ChangeOfStatusApplicationFormData) => Promise<void>;
+  /** 保存 + CSV出力を実行するハンドラ（handleSubmit に渡す） */
   handleSaveAndExport: (data: ChangeOfStatusApplicationFormData) => Promise<void>;
+  /** 現在保存されているレコードのID（初回保存後に更新される） */
   savedRecordId: string | undefined;
 }
 
@@ -35,15 +59,20 @@ export function useChangeOfStatusFormSubmit({
   foreignerId,
   organizationId,
   assignments,
+  control,
+  getValues,
   onSubmit,
-}: UseChangeOfStatusFormSubmitOptions): UseChangeOfStatusFormSubmitReturn {
-  const [isSaving,        setIsSaving]        = useState(false);
-  const [isExporting,     setIsExporting]     = useState(false);
+}: UseChangeOfStatusFormSubmitOptions = {}): UseChangeOfStatusFormSubmitReturn {
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
-  const [savedRecordId,   setSavedRecordId]   = useState<string | undefined>(recordId);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [savedRecordId, setSavedRecordId] = useState<string | undefined>(recordId);
   const { show: showToast } = useToast();
 
+  // ─── 1. 先行保存: マウント直後に applicationId を確定させる ─────────────────
   useEffect(() => {
+    // すでに recordId がある場合（編集時）はスキップ
     if (recordId) return;
 
     let cancelled = false;
@@ -56,6 +85,7 @@ export function useChangeOfStatusFormSubmit({
       .catch((err) => {
         if (!cancelled) {
           console.error('[先行保存エラー]', err);
+          // 失敗しても操作は続行可能（警告のみ）
         }
       })
       .finally(() => {
@@ -64,36 +94,62 @@ export function useChangeOfStatusFormSubmit({
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // マウント時1回のみ
 
-  const lastAssignmentsRef = useRef<TabAssignments>(assignments);
+  // ─── 2. オートセーブ機能: 特定フィールドの変更監視とDebounce保存 ────────────
+  // 担当者割り当て（assignments）フィールドを監視する
+  const watchedAssignments = useWatch({
+    control,
+    name: 'assignments',
+    disabled: !control,
+  });
+
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstMountForWatch = useRef(true);
 
   useEffect(() => {
-    if (!savedRecordId) return;
+    // 初回マウント時や必要な引数が揃っていない場合はスキップ
+    if (isFirstMountForWatch.current) {
+      isFirstMountForWatch.current = false;
+      return;
+    }
 
-    const isChanged = JSON.stringify(lastAssignmentsRef.current) !== JSON.stringify(assignments);
-    if (!isChanged) return;
+    if (!savedRecordId || !getValues) return;
 
-    lastAssignmentsRef.current = assignments;
+    // 前回のタイマーをクリア（Debounce）
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
 
-    const autoSaveAssignments = async () => {
+    // 1500ms 後に自動保存を実行
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsAutoSaving(true);
       try {
-        const { db } = await import('@/lib/firebase/client');
-        const { doc, updateDoc } = await import('firebase/firestore');
-        const docRef = doc(db, 'change_of_status_applications', savedRecordId);
-        await updateDoc(docRef, { 'formData.assignments': assignments });
+        // 現在の最新フォームデータを取得
+        const currentData = getValues();
+        // コンテキストから渡された assignments を優先してマージ
+        const dataWithAssignments = { ...currentData, assignments: assignments || currentData.assignments };
+        await changeOfStatusApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
+        // UX上頻繁に出ると煩わしいため、成功通知は省略
       } catch (err) {
-        console.error('[assignments自動保存エラー]', err);
-        showToast('error', '担当者割り当ての自動保存に失敗しました');
+        console.error('[オートセーブエラー]', err);
+        showToast('error', '自動保存に失敗しました');
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 1500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
     };
+  }, [watchedAssignments, assignments, savedRecordId, foreignerId, organizationId, getValues, showToast]);
 
-    autoSaveAssignments();
-  }, [assignments, savedRecordId, showToast]);
-
+  // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(
     async (data: ChangeOfStatusApplicationFormData): Promise<string> => {
-      const dataWithAssignments = { ...data, assignments };
+      const dataWithAssignments = { ...data, assignments: assignments || data.assignments };
       const id = await changeOfStatusApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
       if (onSubmit) await onSubmit(dataWithAssignments);
@@ -102,6 +158,7 @@ export function useChangeOfStatusFormSubmit({
     [savedRecordId, foreignerId, organizationId, assignments, onSubmit]
   );
 
+  // ─── ① 保存のみ ──────────────────────────────────────────────────────────
   const handleSaveOnly = useCallback(
     async (data: ChangeOfStatusApplicationFormData) => {
       setIsSaving(true);
@@ -118,12 +175,13 @@ export function useChangeOfStatusFormSubmit({
     [saveToFirebase, showToast]
   );
 
+  // ─── ② 保存 + CSV出力 ────────────────────────────────────────────────────
   const handleSaveAndExport = useCallback(
     async (data: ChangeOfStatusApplicationFormData) => {
       setIsExporting(true);
       try {
         await saveToFirebase(data);
-        await downloadImmigrationCSV(data as any); // csvMapper depends on unified schema or specifics, this is fine
+        await downloadImmigrationCSV(data as unknown as import('@/lib/schemas/renewalApplicationSchema').RenewalApplicationFormData);
         showToast('success', '保存してCSVを出力しました');
       } catch (err) {
         console.error('[保存&CSV出力エラー]', err);
@@ -140,6 +198,7 @@ export function useChangeOfStatusFormSubmit({
     isExporting,
     isBusy: isSaving || isExporting,
     isCreatingDraft,
+    isAutoSaving,
     handleSaveOnly,
     handleSaveAndExport,
     savedRecordId,

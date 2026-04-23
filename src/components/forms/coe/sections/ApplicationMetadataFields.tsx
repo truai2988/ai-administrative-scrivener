@@ -66,3 +66,5 @@ export function ApplicationMetadataFields() {
     </div>
   );
 }
+
+// EOF

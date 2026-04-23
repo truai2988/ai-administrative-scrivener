@@ -259,12 +259,19 @@ function RenewalApplicationFormInner({
 
   // 保存・エクスポートロジックはカスタムフックに委譲
   const { currentUser } = useAuth();
-  const { isSaving, isBusy, handleSaveOnly, savedRecordId } =
-    useRenewalFormSubmit({
+  const {
+    isSaving,
+    isAutoSaving,
+    isBusy,
+    savedRecordId,
+    handleSaveOnly,
+  } = useRenewalFormSubmit({
       recordId,
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
       assignments,
+      control: methods.control,
+      getValues: methods.getValues,
       onSubmit
     });
 
@@ -287,11 +294,17 @@ function RenewalApplicationFormInner({
                   <div className="form-header-left">
                     <span className="form-header-badge">出入国在留管理庁 様式</span>
                     <h1 className="form-header-title">在留期間更新許可申請書</h1>
-                    <p className="form-header-subtitle">
+                    <p className="form-header-subtitle flex items-center mt-1 min-h-5">
                       別記第29号の15様式（特定技能）
-                      {savedRecordId && (
-                        <span className="form-saved-badge">✓ 保存済み</span>
-                      )}
+                      {isAutoSaving ? (
+                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1 ml-2">
+                          <Loader2 size={12} className="spin" /> 自動保存中...
+                        </span>
+                      ) : savedRecordId ? (
+                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
+                          ✓ 保存済み
+                        </span>
+                      ) : null}
                     </p>
                   </div>
                   <div className="form-header-actions">

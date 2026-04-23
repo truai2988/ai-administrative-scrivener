@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Download
+  AlertCircle, Save, Loader2, Download, Sparkles
 } from 'lucide-react';
 import {
   changeOfStatusApplicationSchema,
@@ -224,12 +224,14 @@ export function ChangeOfStatusForm({
     reset(mergedDefaultValues as any);
   }, [mergedDefaultValues, reset]);
 
-  const { isSaving, isBusy, handleSaveOnly, savedRecordId } =
+  const { isSaving, isAutoSaving, isBusy, handleSaveOnly, savedRecordId } =
     useChangeOfStatusFormSubmit({
       recordId,
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
       assignments: { foreigner: '', employer: '', simultaneous: '' },
+      control: methods.control,
+      getValues: methods.getValues,
       onSubmit
     });
 
@@ -249,11 +251,17 @@ export function ChangeOfStatusForm({
                   <div className="form-header-left">
                     <span className="form-header-badge">出入国在留管理庁 様式</span>
                     <h1 className="form-header-title">在留資格変更許可申請書</h1>
-                    <p className="form-header-subtitle">
+                    <p className="form-header-subtitle flex items-center mt-1 min-h-5">
                       別記第29号の14様式（特定技能）
-                      {savedRecordId && (
-                        <span className="form-saved-badge">✓ 保存済み</span>
-                      )}
+                      {isAutoSaving ? (
+                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1 ml-2">
+                          <Loader2 size={12} className="spin" /> 自動保存中...
+                        </span>
+                      ) : savedRecordId ? (
+                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
+                          <Sparkles size={12} /> 保存済み
+                        </span>
+                      ) : null}
                     </p>
                   </div>
                   <div className="form-header-actions">

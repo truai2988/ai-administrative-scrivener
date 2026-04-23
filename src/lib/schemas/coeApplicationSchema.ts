@@ -202,6 +202,8 @@ export const employerInfoSchema = z.object({
 });
 
 // ─── COE申請フォーム全体スキーマ (COE Application Schema) ───────────────────────────
+export const tabAssignmentsSchema = z.record(z.string(), z.string());
+
 export const coeApplicationSchema = z.object({
   identityInfo: identityInfoSchema,
   applicantSpecificInfo: applicantSpecificInfoSchema.optional(),
@@ -213,7 +215,13 @@ export const coeApplicationSchema = z.object({
   residenceCardReceiptMethod: z.enum(['1', '2']).describe('在留カードの受領方法 (1:窓口, 2:郵送)'),
   checkIntent: z.enum(['1', '2']).describe('申請意思の確認 (1:確認済, 2:未確認)'),
   freeFormat: z.string().max(120).optional().describe('フリー欄'),
+
+  /** タブごとの担当者割り当て（tabId → userId） */
+  assignments: tabAssignmentsSchema.optional(),
 });
+
+export type TabId = 'identity' | 'applicant' | 'employer' | 'representative' | 'metadata';
+export type TabAssignments = Partial<Record<TabId, string>>;
 
 export type CoeApplicationFormData = z.infer<typeof coeApplicationSchema>;
 export type IdentityInfo = z.infer<typeof identityInfoSchema>;

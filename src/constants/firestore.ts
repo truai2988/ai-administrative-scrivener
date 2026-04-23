@@ -6,6 +6,7 @@ export const COLLECTIONS = {
   FOREIGNERS: 'foreigners',
   RENEWAL_APPLICATIONS: 'renewal_applications',
   CHANGE_OF_STATUS_APPLICATIONS: 'change_of_status_applications',
+  COE_APPLICATIONS: 'coe_applications',
   BRANCHES: 'branches',
   USERS: 'users',
 } as const;

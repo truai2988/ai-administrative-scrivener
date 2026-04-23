@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useWatch, type Control, type UseFormGetValues } from 'react-hook-form';
 import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import { renewalApplicationService } from '@/services/renewalApplicationService';
@@ -28,7 +29,11 @@ interface UseRenewalFormSubmitOptions {
   /** 所属する組織のID */
   organizationId?: string;
   /** タブごとの担当者割り当て（SectionPermissionContextから渡す） */
-  assignments: TabAssignments;
+  assignments?: TabAssignments;
+  /** react-hook-form の control（特定のフィールドを監視するため） */
+  control?: Control<RenewalApplicationFormData>;
+  /** react-hook-form の getValues（オートセーブ時に現在の全体フォームデータを取得するため） */
+  getValues?: UseFormGetValues<RenewalApplicationFormData>;
   /** 保存完了後の外部コールバック（省略可） */
   onSubmit?: (data: RenewalApplicationFormData) => void | Promise<void>;
 }
@@ -39,6 +44,8 @@ interface UseRenewalFormSubmitReturn {
   isBusy: boolean;
   /** 先行保存中フラグ（マウント直後の draft 作成中） */
   isCreatingDraft: boolean;
+  /** オートセーブ（Debounce処理）中フラグ */
+  isAutoSaving: boolean;
   /** 保存のみ実行するハンドラ（handleSubmit に渡す） */
   handleSaveOnly: (data: RenewalApplicationFormData) => Promise<void>;
   /** 保存 + CSV出力を実行するハンドラ（handleSubmit に渡す） */
@@ -52,15 +59,18 @@ export function useRenewalFormSubmit({
   foreignerId,
   organizationId,
   assignments,
+  control,
+  getValues,
   onSubmit,
-}: UseRenewalFormSubmitOptions): UseRenewalFormSubmitReturn {
-  const [isSaving,        setIsSaving]        = useState(false);
-  const [isExporting,     setIsExporting]     = useState(false);
+}: UseRenewalFormSubmitOptions = {}): UseRenewalFormSubmitReturn {
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
-  const [savedRecordId,   setSavedRecordId]   = useState<string | undefined>(recordId);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [savedRecordId, setSavedRecordId] = useState<string | undefined>(recordId);
   const { show: showToast } = useToast();
 
-  // ─── 先行保存: マウント直後に applicationId を確定させる ─────────────────
+  // ─── 1. 先行保存: マウント直後に applicationId を確定させる ─────────────────
   useEffect(() => {
     // すでに recordId がある場合（編集時）はスキップ
     if (recordId) return;
@@ -86,38 +96,60 @@ export function useRenewalFormSubmit({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // マウント時1回のみ
 
-  // ─── 担当者割り当てのオートセーブ ───────────────────────────────────────────
-  const lastAssignmentsRef = useRef<TabAssignments>(assignments);
+  // ─── 2. オートセーブ機能: 特定フィールドの変更監視とDebounce保存 ────────────
+  // 担当者割り当て（assignments）フィールドを監視する
+  const watchedAssignments = useWatch({
+    control,
+    name: 'assignments',
+    disabled: !control,
+  });
+
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstMountForWatch = useRef(true);
 
   useEffect(() => {
-    if (!savedRecordId) return;
+    // 初回マウント時や必要な引数が揃っていない場合はスキップ
+    if (isFirstMountForWatch.current) {
+      isFirstMountForWatch.current = false;
+      return;
+    }
 
-    // JSON.stringifyで簡易等価チェック（値が本当に変わったか判定）
-    const isChanged = JSON.stringify(lastAssignmentsRef.current) !== JSON.stringify(assignments);
-    if (!isChanged) return;
+    if (!savedRecordId || !getValues) return;
 
-    lastAssignmentsRef.current = assignments;
+    // 前回のタイマーをクリア（Debounce）
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
 
-    const autoSaveAssignments = async () => {
+    // 1500ms 後に自動保存を実行
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsAutoSaving(true);
       try {
-        const { db } = await import('@/lib/firebase/client');
-        const { doc, updateDoc } = await import('firebase/firestore');
-        const docRef = doc(db, 'renewal_applications', savedRecordId);
-        await updateDoc(docRef, { 'formData.assignments': assignments });
+        // 現在の最新フォームデータを取得
+        const currentData = getValues();
+        // コンテキストから渡された assignments を優先してマージ
+        const dataWithAssignments = { ...currentData, assignments: assignments || currentData.assignments };
+        await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
         // UX上頻繁に出ると煩わしいため、成功通知は省略
       } catch (err) {
-        console.error('[assignments自動保存エラー]', err);
-        showToast('error', '担当者割り当ての自動保存に失敗しました');
+        console.error('[オートセーブエラー]', err);
+        showToast('error', '自動保存に失敗しました');
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 1500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
     };
-
-    autoSaveAssignments();
-  }, [assignments, savedRecordId, showToast]);
+  }, [watchedAssignments, assignments, savedRecordId, foreignerId, organizationId, getValues, showToast]);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(
     async (data: RenewalApplicationFormData): Promise<string> => {
-      const dataWithAssignments = { ...data, assignments };
+      const dataWithAssignments = { ...data, assignments: assignments || data.assignments };
       const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
       if (onSubmit) await onSubmit(dataWithAssignments);
@@ -166,6 +198,7 @@ export function useRenewalFormSubmit({
     isExporting,
     isBusy: isSaving || isExporting,
     isCreatingDraft,
+    isAutoSaving,
     handleSaveOnly,
     handleSaveAndExport,
     savedRecordId,
