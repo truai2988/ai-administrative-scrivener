@@ -376,7 +376,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
         {/* Content */}
         {loading || isSeeding ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[400px]">
+          <div className="flex-1 flex flex-col items-center pt-[20vh] gap-4 min-h-[400px]">
             <Loader2 className="h-10 w-10 text-indigo-500 animate-spin" />
             <p className="text-slate-500 font-bold text-sm">データを読み込み中...</p>
           </div>
