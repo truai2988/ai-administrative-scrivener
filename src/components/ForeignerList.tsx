@@ -375,6 +375,16 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenDropdown(null);
+                                    window.open('/forms/coe/new', '_blank');
+                                  }}
+                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
+                                >
+                                  在留資格認定証明書交付申請
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDropdown(null);
                                     window.open(`/forms/renewal/${person.id}`, '_blank');
                                   }}
                                   className="block w-full text-left px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
@@ -387,19 +397,9 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                     setOpenDropdown(null);
                                     window.open(`/forms/change-of-status/new?foreignerId=${person.id}`, '_blank');
                                   }}
-                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 border-b border-slate-100 transition-colors"
+                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
                                 >
                                   在留資格変更許可申請
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenDropdown(null);
-                                    window.open('/forms/coe/new', '_blank');
-                                  }}
-                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 transition-colors"
-                                >
-                                  在留資格認定証明書交付申請
                                 </button>
                               </div>
                             </>
