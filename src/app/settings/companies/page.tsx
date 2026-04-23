@@ -448,6 +448,9 @@ function CompanyFormModal({
   );
 }
 
+/** アクセス許可ロール（モジュールレベル定数） */
+const ALLOWED_ROLES: UserRole[] = ['scrivener', 'hq_admin', 'branch_staff'];
+
 // ────────────────────────────────────────────────────────
 // メインページ
 // ────────────────────────────────────────────────────────
@@ -461,9 +464,6 @@ export default function CompanyMastersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<CompanyMaster | undefined>();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  /** アクセス許可ロール */
-  const ALLOWED_ROLES: UserRole[] = ['scrivener', 'hq_admin', 'branch_staff'];
 
   // RBAC: 所属 organizationId を解決
   // scrivener / hq_admin → 'hq_direct'（全社マスタ）
