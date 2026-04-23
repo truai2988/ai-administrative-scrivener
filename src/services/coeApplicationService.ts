@@ -18,9 +18,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { type CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
-import { type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema'; // Assuming we reuse the generic AttachmentsMap
+import { type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapCoeFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
+import { sanitizeForFirestore, isValidPersonName } from '@/lib/utils/firestoreUtils';
 
 const COLLECTION_NAME = COLLECTIONS.COE_APPLICATIONS;
 
@@ -37,15 +38,7 @@ export interface CoeApplicationRecord {
   updatedAt: string;
 }
 
-/**
- * Firestoreは undefined 値を受け付けないため、保存前に除去する。
- * JSON.stringify は undefined を自動的に取り除くため、
- * ネストの深さに関わらず確実に動作する。
- * （フォームデータはDate/Symbolを含まないため安全）
- */
-function sanitizeForFirestore<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj)) as T;
-}
+// sanitizeForFirestore は @/lib/utils/firestoreUtils からインポートして使用
 
 /**
  * 内部ヘルパー：申請書保存時に対応する外国人マスタ（Foreigner）を自動検索・Upsertする
@@ -66,8 +59,8 @@ async function _syncForeignerMaster(
     const name = formData.identityInfo.nameKanji || formData.identityInfo.nameEn || '';
     const birthDate = formData.identityInfo.birthDate || '';
 
-    // ①最低限の識別情報がない場合はマスタレコードを作成・同期しない
-    if (!passportNum && !name) {
+    // ③ '名称未設定' も含めて「有効な識別情報がない」場合はマスタレコードを作成しない
+    if (!passportNum && !isValidPersonName(name)) {
       return null;
     }
 

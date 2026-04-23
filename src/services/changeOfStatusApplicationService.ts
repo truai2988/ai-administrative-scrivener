@@ -19,6 +19,7 @@ import { db } from '@/lib/firebase/client';
 import { type ChangeOfStatusApplicationFormData, type AttachmentsMap } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapChangeOfStatusFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
+import { sanitizeForFirestore, isValidPersonName } from '@/lib/utils/firestoreUtils';
 
 const COLLECTION_NAME = COLLECTIONS.CHANGE_OF_STATUS_APPLICATIONS;
 
@@ -35,12 +36,7 @@ export interface ChangeOfStatusApplicationRecord {
   updatedAt: string;
 }
 
-/**
- * Firestoreは undefined 値を受け付けないため、保存前に除去する。
- */
-function sanitizeForFirestore<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj)) as T;
-}
+// sanitizeForFirestore は @/lib/utils/firestoreUtils からインポートして使用
 
 /**
  * 内部ヘルパー：申請書保存時に対応する外国人マスタ（Foreigner）を自動検索・Upsertする
@@ -62,8 +58,8 @@ async function _syncForeignerMaster(
     const name = formData.foreignerInfo.nameKanji || formData.foreignerInfo.nameEn || '';
     const birthDate = formData.foreignerInfo.birthDate || '';
 
-    // ①最低限の識別情報がない場合はマスタレコードを作成・同期しない
-    if (!cardNum && !passportNum && !name) {
+    // ③ '名称未設定' も含めて「有効な識別情報がない」場合はマスタレコードを作成しない
+    if (!cardNum && !passportNum && !isValidPersonName(name)) {
       return null;
     }
 

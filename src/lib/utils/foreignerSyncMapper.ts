@@ -1,28 +1,29 @@
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
-import { Foreigner, ForeignerStatus } from '@/types/database';
+import { Foreigner, ForeignerStatus, ApprovalStatus } from '@/types/database';
+import { mapApplicationStatusToApprovalStatus } from '@/lib/utils/firestoreUtils';
+
 
 /**
- * 申請書のステータスを外国人台帳（Foreigner）のステータスに変換する
+ * 申請書のステータスを外国人台帳（Foreigner）の表示ステータスに変換する
  */
 export function mapApplicationStatusToForeignerStatus(appStatus: string): ForeignerStatus {
   switch (appStatus) {
-    case 'draft':
-      return '準備中';
-    case 'editing':
-      return '編集中';
-    case 'pending_review':
-      return 'チェック中';
-    case 'approved':
-      return '申請済';
-    default:
-      return '準備中';
+    case 'draft':          return '準備中';
+    case 'editing':        return '編集中';
+    case 'pending_review': return 'チェック中';
+    case 'approved':       return '申請済';
+    default:               return '準備中';
   }
 }
 
 /**
  * 更新申請書データを外国人台帳（Foreigner）データへマッピングする関数
+ *
+ * ※ name フィールドは空文字を返す。「名称未設定」は使わない。
+ *    呼び出し側の _syncForeignerMaster で isValidPersonName チェックにより
+ *    空レコードの生成を防いでいる。
  */
 export function mapFormDataToForeigner(
   formData: RenewalApplicationFormData,
@@ -33,31 +34,28 @@ export function mapFormDataToForeigner(
   const eInfo = formData.employerInfo;
 
   return {
-    name: fInfo.nameKanji || fInfo.nameEn || '名称未設定',
+    // ③ '名称未設定' フォールバックをやめ、空文字を返すよう修正
+    name: fInfo.nameKanji || fInfo.nameEn || '',
     residenceCardNumber: fInfo.residenceCardNumber || '',
     expiryDate: fInfo.stayExpiryDate || '',
     birthDate: fInfo.birthDate || '',
     nationality: fInfo.nationality || '',
     gender: fInfo.gender || '',
     address: `${fInfo.japanPrefecture || ''}${fInfo.japanCity || ''}${fInfo.japanAddressLines || ''}`,
-    residenceCardFrontUrl: '', // 将来的にアタッチメントから抽出
-    photoUrl: '', // 将来的にアタッチメントから抽出
-    
+    residenceCardFrontUrl: '',
+    photoUrl: '',
+
     // 申請書の関連付け
     current_application_id: applicationId,
     current_status: appStatus,
     status: mapApplicationStatusToForeignerStatus(appStatus),
-    
-    // 承認ステータス（申請側とリンクさせる場合）
-    approvalStatus: appStatus === 'draft' ? 'draft' : 
-                    appStatus === 'editing' ? 'draft' : 
-                    appStatus === 'pending_review' ? 'pending_review' : 
-                    appStatus === 'approved' ? 'approved' : 'draft',
-                    
+
+    // ② 共通関数に統一
+    approvalStatus: mapApplicationStatusToApprovalStatus(appStatus) as ApprovalStatus,
+
     // 企業情報
     company: eInfo.companyNameJa || '',
-    // 職務・在留資格
-    jobTitle: eInfo.mainJobType || '', 
+    jobTitle: eInfo.mainJobType || '',
     visaType: fInfo.currentResidenceStatus || '',
   };
 }
@@ -74,28 +72,25 @@ export function mapCoeFormDataToForeigner(
   const eInfo = formData.employerInfo;
 
   return {
-    name: iInfo.nameKanji || iInfo.nameEn || '名称未設定',
+    // ③ '名称未設定' フォールバックをやめ、空文字を返すよう修正
+    name: iInfo.nameKanji || iInfo.nameEn || '',
     passportNumber: iInfo.passportNumber || '',
     birthDate: iInfo.birthDate || '',
     nationality: iInfo.nationality || '',
     gender: iInfo.gender || '',
     address: `${iInfo.japanPrefecture || ''}${iInfo.japanCity || ''}${iInfo.japanAddressLines || ''}`,
-    
+
     // 申請書の関連付け
     current_application_id: applicationId,
     current_status: appStatus,
     status: mapApplicationStatusToForeignerStatus(appStatus),
-    
-    // 承認ステータス（申請側とリンクさせる場合）
-    approvalStatus: appStatus === 'draft' ? 'draft' : 
-                    appStatus === 'editing' ? 'draft' : 
-                    appStatus === 'pending_review' ? 'pending_review' : 
-                    appStatus === 'approved' ? 'approved' : 'draft',
-                    
+
+    // ② 共通関数に統一
+    approvalStatus: mapApplicationStatusToApprovalStatus(appStatus) as ApprovalStatus,
+
     // 企業情報
     company: eInfo?.companyNameJa || '',
-    // 職務・在留資格
-    jobTitle: eInfo?.mainIndustry || '', 
+    jobTitle: eInfo?.mainIndustry || '',
     visaType: iInfo.entryPurpose || '',
   };
 }
@@ -112,7 +107,8 @@ export function mapChangeOfStatusFormDataToForeigner(
   const eInfo = formData.employerInfo;
 
   return {
-    name: fInfo.nameKanji || fInfo.nameEn || '名称未設定',
+    // ③ '名称未設定' フォールバックをやめ、空文字を返すよう修正
+    name: fInfo.nameKanji || fInfo.nameEn || '',
     residenceCardNumber: fInfo.residenceCardNumber || '',
     passportNumber: fInfo.passportNumber || '',
     expiryDate: fInfo.stayExpiryDate || '',
@@ -120,22 +116,18 @@ export function mapChangeOfStatusFormDataToForeigner(
     nationality: fInfo.nationality || '',
     gender: fInfo.gender || '',
     address: `${fInfo.japanPrefecture || ''}${fInfo.japanCity || ''}${fInfo.japanAddressLines || ''}`,
-    
+
     // 申請書の関連付け
     current_application_id: applicationId,
     current_status: appStatus,
     status: mapApplicationStatusToForeignerStatus(appStatus),
-    
-    // 承認ステータス
-    approvalStatus: appStatus === 'draft' ? 'draft' : 
-                    appStatus === 'editing' ? 'draft' : 
-                    appStatus === 'pending_review' ? 'pending_review' : 
-                    appStatus === 'approved' ? 'approved' : 'draft',
-                    
+
+    // ② 共通関数に統一
+    approvalStatus: mapApplicationStatusToApprovalStatus(appStatus) as ApprovalStatus,
+
     // 企業情報
     company: eInfo?.companyNameJa || '',
-    // 職務・在留資格
-    jobTitle: eInfo?.mainJobType || '', 
-    visaType: fInfo.desiredStatus || '',
+    jobTitle: eInfo?.mainJobType || '',
+    visaType: fInfo.currentResidenceStatus || '',
   };
 }
