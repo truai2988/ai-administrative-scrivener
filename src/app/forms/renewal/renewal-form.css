@@ -2306,3 +2306,93 @@
 
 /* context-headerのflex対応 */
 .applicant-context-header { flex-wrap: wrap; gap: 0.75rem; }
+
+/* ─── 企業マスタセレクター ───────────────────────────────── */
+.company-master-selector {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(56, 189, 248, 0.05));
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.company-master-selector__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.company-master-selector__icon {
+  color: #818cf8;
+  flex-shrink: 0;
+}
+
+.company-master-selector__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #818cf8;
+}
+
+.company-master-selector__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.company-master-selector__select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.company-master-selector__select {
+  width: 100%;
+  padding: 0.6rem 2.5rem 0.6rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 0.5rem;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.company-master-selector__select:focus {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.company-master-selector__select option {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.company-master-selector__select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.company-master-selector__chevron {
+  position: absolute;
+  right: 0.75rem;
+  color: #818cf8;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.company-master-selector__hint {
+  font-size: 0.78rem;
+  color: #34d399;
+  margin: 0;
+  font-weight: 500;
+}

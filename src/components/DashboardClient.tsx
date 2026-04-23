@@ -11,7 +11,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, AlertTriangle, FilePen, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, AlertTriangle, FilePen, MessageSquare, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -243,6 +243,15 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               icon={Settings}
               label="アサイン設定"
               href="/settings"
+            />
+          )}
+
+          {/* 企業マスタ管理（scrivener / hq_admin / branch_staff） */}
+          {(userRole === 'scrivener' || userRole === 'hq_admin' || userRole === 'branch_staff') && (
+            <SidebarItem
+              icon={Building2}
+              label="企業マスタ管理"
+              href="/settings/companies"
             />
           )}
 

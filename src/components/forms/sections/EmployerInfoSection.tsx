@@ -12,6 +12,8 @@ import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
+import { CompanyMasterSelector } from '../ui/CompanyMasterSelector';
+import { useCompanyMasters } from '@/hooks/useCompanyMasters';
 
 type ComplianceOathItem = {
   key: string;
@@ -99,6 +101,8 @@ interface EmployerInfoSectionProps {
   applicationId?: string;
   initialAttachments?: AttachmentMeta[];
   globalLimitContext?: GlobalLimitContext;
+  /** RBAC フィルタリング用の organizationId（企業マスタ取得に使用） */
+  organizationId?: string | null;
 }
 
 export function EmployerInfoSection({
@@ -106,6 +110,7 @@ export function EmployerInfoSection({
   applicationId,
   initialAttachments,
   globalLimitContext,
+  organizationId,
 }: EmployerInfoSectionProps) {
   const {
     register,
@@ -113,6 +118,9 @@ export function EmployerInfoSection({
     watch,
     formState: { errors },
   } = useFormContext<RenewalApplicationFormData>();
+
+  // 企業マスタの取得（organizationId がある場合のみ）
+  const { companies, loading: companiesLoading } = useCompanyMasters(organizationId);
 
   const emp = errors.employerInfo;
   
@@ -490,6 +498,14 @@ export function EmployerInfoSection({
       {/* ─── ⑤ 法人基本情報 ──────────────────────────────────────────────── */}
       <div className="subsection">
         <h3 className="subsection-title">法人基本情報</h3>
+
+        {/* 企業マスタから自動入力 */}
+        {isEditable && (
+          <CompanyMasterSelector
+            companies={companies}
+            loading={companiesLoading}
+          />
+        )}
         <div className="form-grid form-grid--2">
           <FormField label="法人（会社）名" required error={emp?.companyNameJa?.message}>
             <FormInput

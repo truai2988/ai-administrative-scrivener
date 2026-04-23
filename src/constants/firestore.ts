@@ -9,6 +9,7 @@ export const COLLECTIONS = {
   COE_APPLICATIONS: 'coe_applications',
   BRANCHES: 'branches',
   USERS: 'users',
+  COMPANY_MASTERS: 'company_masters',
 } as const;
 
 /**

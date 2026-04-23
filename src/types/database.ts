@@ -196,3 +196,44 @@ export interface Client {
   contactPerson: string;
   phoneNumber: string;
 }
+
+// ─── CompanyMaster (企業マスタ) ───────────────────────────────────────────────
+/**
+ * 事前登録しておく「所属機関（雇用主）」のマスタデータ。
+ * 申請フォームの「法人基本情報」セクションで選択すると、関連フィールドに一括自動入力される。
+ * organizationId で RBAC フィルタリングを行う（自支部の企業マスタのみ参照可）。
+ */
+export interface CompanyMaster {
+  id: string;                         // Firestore Document ID
+  organizationId: string;             // 所属支部ID（RBAC フィルタリング用）
+  // 法人基本情報
+  companyNameJa: string;              // 法人名（日本語）
+  hasCorporateNumber: boolean;        // 法人番号の有無
+  corporateNumber?: string;           // 法人番号（13桁）
+  // 法人所在地
+  companyZipCode: string;             // 郵便番号
+  companyPref: string;                // 都道府県
+  companyCity: string;                // 市区町村
+  companyAddressLines: string;        // 番地等
+  companyAddress?: string;            // 結合住所（任意）
+  companyPhone: string;               // 電話番号
+  representativeName: string;         // 代表者氏名
+  // 勤務事業所（法人所在地と異なる場合）
+  workplaceName?: string;             // 事業所名
+  workplaceZipCode?: string;          // 事業所 郵便番号
+  workplacePref?: string;             // 事業所 都道府県
+  workplaceCity?: string;             // 事業所 市区町村
+  workplaceAddressLines?: string;     // 事業所 番地等
+  // 従業員・財務情報
+  employeeCount?: number;             // 従業員数
+  capital?: number;                   // 資本金（万円）
+  annualRevenue?: number;             // 売上高（万円）
+  // 保険情報
+  isSocialInsuranceApplicable?: boolean;   // 社会保険適用の有無
+  isLaborInsuranceApplicable?: boolean;    // 労働保険適用の有無
+  laborInsuranceNumber?: string;           // 労働保険番号
+  employmentInsuranceNumber?: string;      // 雇用保険適用事業所番号
+  // メタデータ
+  createdAt: string;
+  updatedAt: string;
+}

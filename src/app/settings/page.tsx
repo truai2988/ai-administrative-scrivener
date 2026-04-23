@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Settings, Save, Loader2, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { Settings, Save, Loader2, ArrowLeft, ShieldAlert, Building2 } from 'lucide-react';
 import {
   getAssignmentTemplates,
   saveAssignmentTemplates,
@@ -183,6 +183,29 @@ export default function SettingsPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* ─── 企業マスタ管理への導線 ─── */}
+        <div className="mt-6 bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Building2 size={18} className="text-indigo-500" />
+              企業マスタ管理
+            </h2>
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              申請フォームの「法人基本情報」で使用するプルダウン選択肢（雇用主情報）を事前登録・管理します。
+              登録済みの企業を選択すると、法人名・住所・代表者名などが一括自動入力されます。
+            </p>
+          </div>
+          <div className="p-6">
+            <Link
+              href="/settings/companies"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-colors"
+            >
+              <Building2 size={16} />
+              企業マスタ一覧を管理する
+            </Link>
           </div>
         </div>
       </main>

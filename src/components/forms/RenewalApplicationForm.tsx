@@ -515,6 +515,7 @@ function RenewalApplicationFormInner({
                     applicationId={savedRecordId}
                     initialAttachments={employerFiles}
                     globalLimitContext={globalCtx}
+                    organizationId={currentUser?.organizationId}
                   />
                 )}
                 {effectiveTab === 'simultaneous' && (
