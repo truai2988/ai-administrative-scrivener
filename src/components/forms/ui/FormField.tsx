@@ -24,11 +24,13 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className={`form-field ${className}`}>
-      <label className="form-label">
-        {label}
-        {required && <span className="form-required">*</span>}
-      </label>
-      {hint && <p className="form-hint">{hint}</p>}
+      <div className="flex items-center gap-2">
+        <label className="form-label">
+          {label}
+          {required && <span className="form-required">*</span>}
+        </label>
+        {hint && <p className="form-hint">{hint}</p>}
+      </div>
       {children}
       {error && (
         <p className="form-error" role="alert">
