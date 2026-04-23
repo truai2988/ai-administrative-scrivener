@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Next.js Middleware: 未ログインユーザーのリダイレクト
+ * Next.js Proxy: 未ログインユーザーのリダイレクト
  * 
  * クライアント側（React Context）のみに依存すると画面の「ちらつき」が発生するため、
  * サーバーサイドでセッションCookie（__session）の有無を判定し、
@@ -12,7 +12,7 @@ import type { NextRequest } from "next/server";
  * Firebase Admin SDK が必要。このMiddlewareではCookieの存在チェックのみ行い、
  * 詳細な権限チェックはクライアント側の AuthContext で実施する。
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 保護対象外のパスをスキップ
