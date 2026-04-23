@@ -5,6 +5,8 @@ import { useFormContext } from 'react-hook-form';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { FormField } from '../../ui/FormField';
 import { FormInput } from '../../ui/FormInput';
+import { FormSelect } from '../../ui/FormSelect';
+import { formOptions } from '@/lib/constants/formOptions';
 
 export function PassportStatusSubForm() {
   const { register, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
@@ -38,9 +40,9 @@ export function PassportStatusSubForm() {
         <div className="space-y-4">
           <h4 className="cert-block-label">現在の在留状態</h4>
           <FormField label="現に有する在留資格" required error={infoError?.currentResidenceStatus?.message}>
-            <FormInput
+            <FormSelect
               {...register('foreignerInfo.currentResidenceStatus')}
-              placeholder="例: 技能実習〇号"
+              options={formOptions.residenceStatus}
               error={!!infoError?.currentResidenceStatus}
             />
           </FormField>

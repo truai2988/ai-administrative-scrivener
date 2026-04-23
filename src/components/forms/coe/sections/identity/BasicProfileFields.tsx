@@ -1,22 +1,23 @@
 'use client';
 
 import React from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
-import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
+import { formOptions } from '@/lib/constants/formOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function BasicProfileFields() {
-  const { register, control, formState: { errors } } = useFormContext<CoeApplicationFormData>();
+  const { register, formState: { errors } } = useFormContext<CoeApplicationFormData>();
   const idErrors = errors.identityInfo;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField label="国籍・地域" required error={idErrors?.nationality?.message}>
-        <FormInput
+        <FormSelect
           {...register('identityInfo.nationality')}
-          placeholder="例: 中国"
+          options={formOptions.nationality}
           error={!!idErrors?.nationality}
         />
       </FormField>
@@ -48,21 +49,10 @@ export function BasicProfileFields() {
       </FormField>
 
       <FormField label="性別" required error={idErrors?.gender?.message}>
-        <Controller
-          name="identityInfo.gender"
-          control={control}
-          render={({ field }) => (
-            <FormRadioGroup
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
-              options={[
-                { label: '男', value: '1' },
-                { label: '女', value: '2' },
-              ]}
-              error={!!idErrors?.gender}
-            />
-          )}
+        <FormSelect
+          {...register('identityInfo.gender')}
+          options={formOptions.gender}
+          error={!!idErrors?.gender}
         />
       </FormField>
 
@@ -75,21 +65,10 @@ export function BasicProfileFields() {
       </FormField>
 
       <FormField label="配偶者の有無" required error={idErrors?.maritalStatus?.message}>
-        <Controller
-          name="identityInfo.maritalStatus"
-          control={control}
-          render={({ field }) => (
-            <FormRadioGroup
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
-              options={[
-                { label: '有', value: '1' },
-                { label: '無', value: '2' },
-              ]}
-              error={!!idErrors?.maritalStatus}
-            />
-          )}
+        <FormSelect
+          {...register('identityInfo.maritalStatus')}
+          options={formOptions.yesNo}
+          error={!!idErrors?.maritalStatus}
         />
       </FormField>
 

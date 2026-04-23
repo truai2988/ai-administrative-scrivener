@@ -1,8 +1,18 @@
 import Encoding from 'encoding-japanese';
 import { z } from 'zod';
 import { foreignerInfoSchema } from '@/lib/schemas/renewalApplicationSchema';
+import { formOptions } from '@/lib/constants/formOptions';
 
 type ForeignerInfo = z.infer<typeof foreignerInfoSchema>;
+
+/**
+ * selectのvalue（ID等）からラベル文字列を引くヘルパー
+ */
+const getLabel = (value: string | undefined | null, options: { value: string, label: string }[]) => {
+  if (!value) return '';
+  const option = options.find(o => o.value === value);
+  return option ? option.label : value;
+};
 
 /**
  * CSVの各フィールドを適切にエスケープする
@@ -111,7 +121,7 @@ export const generateRenewalCsv = (data: ForeignerInfo): Uint8Array => {
 
   // 1行のデータ行を作成
   const rowData = [
-    data.nationality,
+    getLabel(data.nationality, formOptions.nationality),
     data.birthDate,
     data.nameEn,
     formatGender(data.gender),
@@ -127,7 +137,7 @@ export const generateRenewalCsv = (data: ForeignerInfo): Uint8Array => {
     data.email,
     data.passportNumber,
     data.passportExpiryDate,
-    data.currentResidenceStatus,
+    getLabel(data.currentResidenceStatus, formOptions.residenceStatus),
     data.currentStayPeriod,
     data.stayExpiryDate,
     formatBoolean(data.hasResidenceCard),

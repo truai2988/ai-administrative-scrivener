@@ -17,6 +17,7 @@ import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 import { useOcrExtract } from '@/hooks/useOcrExtract';
+import { formOptions } from '@/lib/constants/formOptions';
 
 interface ForeignerInfoSectionProps {
   isEditable?: boolean;
@@ -314,10 +315,18 @@ export function ForeignerInfoSection({
         <h3 className="subsection-title">基本情報</h3>
         <div className="form-grid form-grid--3">
           <FormField label="国籍・地域" required error={info?.nationality?.message}>
-            <FormInput
-              {...register('foreignerInfo.nationality')}
-              placeholder="例: 中国"
-              error={!!info?.nationality}
+            <Controller
+              name="foreignerInfo.nationality"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  options={formOptions.nationality}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  error={!!info?.nationality}
+                  style={isOcrFilled('foreignerInfo.nationality') ? { background: 'transparent', borderColor: '#3b82f6', borderStyle: 'solid', borderWidth: '2px' } : undefined}
+                />
+              )}
             />
           </FormField>
 
@@ -567,11 +576,18 @@ export function ForeignerInfoSection({
             required
             error={info?.currentResidenceStatus?.message}
           >
-            <FormInput
-              {...register('foreignerInfo.currentResidenceStatus')}
-              placeholder="例: 特定技能"
-              error={!!info?.currentResidenceStatus}
-              style={isOcrFilled('foreignerInfo.currentResidenceStatus') ? { background: '#eff6ff', borderColor: '#93c5fd', transition: 'background 0.5s' } : undefined}
+            <Controller
+              name="foreignerInfo.currentResidenceStatus"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  options={formOptions.residenceStatus}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  error={!!info?.currentResidenceStatus}
+                  style={isOcrFilled('foreignerInfo.currentResidenceStatus') ? { background: 'transparent', borderColor: '#3b82f6', borderStyle: 'solid', borderWidth: '2px' } : undefined}
+                />
+              )}
             />
           </FormField>
 
@@ -1149,10 +1165,17 @@ export function ForeignerInfoSection({
                   </div>
                   <div className="form-grid form-grid--3">
                     <FormField label="続柄" required error={rel?.relationship?.message}>
-                      <FormInput
-                        {...register(`foreignerInfo.relatives.${index}.relationship`)}
-                        placeholder="例: 配偶者"
-                        error={!!rel?.relationship}
+                      <Controller
+                        name={`foreignerInfo.relatives.${index}.relationship`}
+                        control={control}
+                        render={({ field }) => (
+                          <FormSelect
+                            {...field}
+                            options={formOptions.relationship}
+                            placeholder="続柄を選択"
+                            error={!!rel?.relationship}
+                          />
+                        )}
                       />
                     </FormField>
                     <FormField label="氏名" required error={rel?.name?.message}>
@@ -1261,10 +1284,17 @@ export function ForeignerInfoSection({
                 />
               </FormField>
               <FormField label="本人との関係" error={(info?.agent as {relationship?: {message?: string}} | undefined)?.relationship?.message}>
-                <FormInput
-                  {...register('foreignerInfo.agent.relationship')}
-                  placeholder="例: 親権者・配偶者"
-                  error={!!(info?.agent as {relationship?: unknown} | undefined)?.relationship}
+                <Controller
+                  name="foreignerInfo.agent.relationship"
+                  control={control}
+                  render={({ field }) => (
+                    <FormSelect
+                      {...field}
+                      options={formOptions.relationship}
+                      placeholder="関係を選択"
+                      error={!!(info?.agent as {relationship?: unknown} | undefined)?.relationship}
+                    />
+                  )}
                 />
               </FormField>
               <FormField label="郵便番号" hint="7桁・ハイフンなし" error={(info?.agent as {zipCode?: {message?: string}} | undefined)?.zipCode?.message}>
@@ -1605,10 +1635,17 @@ export function ForeignerInfoSection({
           </FormField>
 
           <FormField label="受領官署" error={info?.receivingOffice?.message}>
-            <FormInput
-              {...register('foreignerInfo.receivingOffice')}
-              placeholder="例: 東京出入国在留管理局"
-              error={!!info?.receivingOffice}
+            <Controller
+              name="foreignerInfo.receivingOffice"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  {...field}
+                  options={formOptions.receivingOffice}
+                  placeholder="受領官署を選択"
+                  error={!!info?.receivingOffice}
+                />
+              )}
             />
           </FormField>
 

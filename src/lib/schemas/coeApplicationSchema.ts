@@ -1,7 +1,15 @@
 import { z } from 'zod';
+import { formOptions } from '../constants/formOptions';
 
 // ─── 共通バリデーター ────────────────────────────────────────────────────────
 const requiredString = z.string().min(1, '必須項目です');
+
+// 動的配列からz.enum用のタプルを生成するヘルパー
+const getEnumValues = (options: { value: string }[]) => {
+  if (!options || options.length === 0) return [''] as [string, ...string[]];
+  const values = options.map(o => o.value);
+  return [values[0], ...values.slice(1)] as [string, ...string[]];
+};
 
 // YYYYMMDD の8桁固定、または空文字を許容
 const dateString8 = z
@@ -54,7 +62,7 @@ const alphanumericExact = (length: number) =>
 // ─── 身分事項 (Identity Info) ─────────────────────────────────────────────────
 export const identityInfoSchema = z.object({
   // CSV: 申請情報入力(在留資格認定証明書交付申請).csv に相当
-  nationality: requiredString.max(40, '40文字以内で入力してください').describe('国籍・地域'),
+  nationality: z.enum(getEnumValues(formOptions.nationality)).describe('国籍・地域'),
   birthDate: pastDateString8.min(1, '必須項目です').describe('生年月日'),
   nameEn: requiredString
     .max(80, '80文字以内で入力してください')
@@ -79,9 +87,9 @@ export const identityInfoSchema = z.object({
   passportNumber: z.string().max(20).optional().describe('旅券 (1)番号'),
   passportExpiryDate: dateString8.optional().describe('旅券 (2)有効期限'),
 
-  entryPurpose: requiredString.max(2, '2文字以内で入力してください').describe('入国目的（在留資格）'),
+  entryPurpose: z.enum(getEnumValues(formOptions.entryPurpose)).describe('入国目的（在留資格）'),
   entryPurposeOther: z.string().max(40, '40文字以内で入力してください').optional().describe('入国目的（その他）'),
-  entryPort: requiredString.max(40, '40文字以内で入力してください').describe('入国予定港'),
+  entryPort: z.enum(getEnumValues(formOptions.entryPort)).describe('入国予定港'),
   entryDate: futureDateString8.describe('入国予定年月日'),
   stayPeriod: requiredString.max(40, '40文字以内で入力してください').describe('滞在予定期間'),
 

@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { useFormContext, Controller, useWatch } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
-import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
+import { formOptions } from '@/lib/constants/formOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function PassportAndEntryFields() {
@@ -40,10 +41,9 @@ export function PassportAndEntryFields() {
       {/* 入国予定 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-6">
         <FormField label="入国目的（在留資格）" required error={idErrors?.entryPurpose?.message}>
-          <FormInput
+          <FormSelect
             {...register('identityInfo.entryPurpose')}
-            placeholder="例: V"
-            maxLength={2}
+            options={formOptions.entryPurpose}
             error={!!idErrors?.entryPurpose}
           />
         </FormField>
@@ -55,9 +55,9 @@ export function PassportAndEntryFields() {
           />
         </FormField>
         <FormField label="入国予定港" required error={idErrors?.entryPort?.message}>
-          <FormInput
+          <FormSelect
             {...register('identityInfo.entryPort')}
-            placeholder="例: 成田空港"
+            options={formOptions.entryPort}
             error={!!idErrors?.entryPort}
           />
         </FormField>
@@ -84,21 +84,10 @@ export function PassportAndEntryFields() {
           />
         </FormField>
         <FormField label="同伴者の有無" required error={idErrors?.accompanyingPersons?.message}>
-          <Controller
-            name="identityInfo.accompanyingPersons"
-            control={control}
-            render={({ field }) => (
-              <FormRadioGroup
-                name={field.name}
-                value={field.value}
-                onChange={field.onChange}
-                options={[
-                  { label: '有', value: '1' },
-                  { label: '無', value: '2' },
-                ]}
-                error={!!idErrors?.accompanyingPersons}
-              />
-            )}
+          <FormSelect
+            {...register('identityInfo.accompanyingPersons')}
+            options={formOptions.yesNo}
+            error={!!idErrors?.accompanyingPersons}
           />
         </FormField>
       </div>
@@ -133,21 +122,10 @@ export function PassportAndEntryFields() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-6">
         <FormField label="過去の在留資格認定証明書交付申請歴" required error={idErrors?.pastApplicationRecord?.message}>
-          <Controller
-            name="identityInfo.pastApplicationRecord"
-            control={control}
-            render={({ field }) => (
-              <FormRadioGroup
-                name={field.name}
-                value={field.value}
-                onChange={field.onChange}
-                options={[
-                  { label: '有', value: '1' },
-                  { label: '無', value: '2' },
-                ]}
-                error={!!idErrors?.pastApplicationRecord}
-              />
-            )}
+          <FormSelect
+            {...register('identityInfo.pastApplicationRecord')}
+            options={formOptions.yesNo}
+            error={!!idErrors?.pastApplicationRecord}
           />
         </FormField>
         
@@ -173,21 +151,10 @@ export function PassportAndEntryFields() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-6">
         <FormField label="犯罪を理由とする処分の有無" required error={idErrors?.criminalRecord?.message}>
-          <Controller
-            name="identityInfo.criminalRecord"
-            control={control}
-            render={({ field }) => (
-              <FormRadioGroup
-                name={field.name}
-                value={field.value}
-                onChange={field.onChange}
-                options={[
-                  { label: '有', value: '1' },
-                  { label: '無', value: '2' },
-                ]}
-                error={!!idErrors?.criminalRecord}
-              />
-            )}
+          <FormSelect
+            {...register('identityInfo.criminalRecord')}
+            options={formOptions.yesNo}
+            error={!!idErrors?.criminalRecord}
           />
         </FormField>
 
@@ -206,21 +173,10 @@ export function PassportAndEntryFields() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-6">
         <FormField label="退去強制又は出国命令による出国の有無" required error={idErrors?.departureOrderHistory?.message}>
-          <Controller
-            name="identityInfo.departureOrderHistory"
-            control={control}
-            render={({ field }) => (
-              <FormRadioGroup
-                name={field.name}
-                value={field.value}
-                onChange={field.onChange}
-                options={[
-                  { label: '有', value: '1' },
-                  { label: '無', value: '2' },
-                ]}
-                error={!!idErrors?.departureOrderHistory}
-              />
-            )}
+          <FormSelect
+            {...register('identityInfo.departureOrderHistory')}
+            options={formOptions.yesNo}
+            error={!!idErrors?.departureOrderHistory}
           />
         </FormField>
 

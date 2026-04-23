@@ -53,6 +53,16 @@ const formatReceiptMethod = (val: 'window' | 'post' | undefined): string => {
 };
 
 /**
+ * 期間を変換する
+ */
+const formatStayPeriod = (val: string | undefined): string => {
+  if (val === '4months') return '4ヶ月';
+  if (val === '6months') return '6ヶ月';
+  if (val === '1year') return '1年';
+  return val || '';
+};
+
+/**
  * 在留資格変更許可申請_1（外国人本人情報）のデータを政府指定のCSV（Shift-JIS）に変換するジェネレーター
  * @param data Zodでバリデーション済みのデータ
  * @returns Shift-JISエンコードされたCSVのUint8Array
@@ -138,7 +148,7 @@ export const generateChangeOfStatusCsv1 = (data: ForeignerInfo): Uint8Array => {
     data.edNumberAlpha,
     data.edNumberNumeric,
     data.desiredResidenceStatus,
-    data.desiredStayPeriod === 'other' ? data.desiredStayPeriodOther : data.desiredStayPeriod,
+    data.desiredStayPeriod === 'other' ? data.desiredStayPeriodOther : formatStayPeriod(data.desiredStayPeriod),
     data.changeReason,
     formatBoolean(data.criminalRecord),
     data.criminalRecordDetail,

@@ -5,7 +5,9 @@ import { useFormContext, Controller } from 'react-hook-form';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { FormField } from '../../ui/FormField';
 import { FormInput } from '../../ui/FormInput';
+import { FormSelect } from '../../ui/FormSelect';
 import { FormRadioGroup } from '../../ui/FormRadio';
+import { formOptions } from '@/lib/constants/formOptions';
 
 export function BasicInfoSubForm() {
   const { register, control, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
@@ -17,9 +19,9 @@ export function BasicInfoSubForm() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="国籍・地域" required error={infoError?.nationality?.message}>
-          <FormInput
+          <FormSelect
             {...register('foreignerInfo.nationality')}
-            placeholder="例: 中国"
+            options={formOptions.nationality}
             error={!!infoError?.nationality}
           />
         </FormField>

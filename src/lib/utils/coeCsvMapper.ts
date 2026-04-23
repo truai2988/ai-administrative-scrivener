@@ -434,7 +434,7 @@ function buildSheet1Row(f: CoeApplicationFormData): string[] {
   }
 
   return [
-    /* [000] 国籍・地域 */ fi.nationality ?? '',
+    /* [000] 国籍・地域 */ fi.nationality ?? '', // 原本仕様により日本語・英語混在の値をそのまま出力
     /* [001] 生年月日 */ toCSVDate(fi.birthDate),
     /* [002] 氏名 */ fi.nameEn ?? '',
     /* [003] 性別 */ gender(fi.gender),
@@ -451,9 +451,9 @@ function buildSheet1Row(f: CoeApplicationFormData): string[] {
     /* [014] メールアドレス */ fi.email ?? '',
     /* [015] 旅券 (1)番号 */ fi.passportNumber ?? '',
     /* [016] 旅券 (2)有効期限 */ toCSVDate(fi.passportExpiryDate),
-    /* [017] 入国目的 */ fi.entryPurpose ?? '',
+    /* [017] 入国目的 */ fi.entryPurpose ?? '', // 原本仕様により日本語・英語混在の値をそのまま出力
     /* [018] 入国予定年月日 */ toCSVDate(fi.entryDate),
-    /* [019] 上陸予定港 */ fi.entryPort ?? '',
+    /* [019] 上陸予定港 */ fi.entryPort ?? '', // 原本仕様により日本語・英語混在の値をそのまま出力
     /* [020] 上陸予定港_その他 */ '',
     /* [021] 滞在予定期間(年数) */ '', // 滞在予定期間から抽出が必要だが単純に空にしておくか全体を文字列に入れる
     /* [022] 滞在予定期間(月数) */ fi.stayPeriod ?? '',
