@@ -152,8 +152,12 @@ service cloud.firestore {
         resource.data.get('approvalStatus', 'draft') == 'returned' &&
         request.resource.data.status == '差し戻し';
 
-      // ===== 削除 =====（物理削除は全ロール禁止）
-      allow delete: if false;
+      // ===== 削除 =====
+      allow delete: if isAuthenticated() && (
+        isScrivener() || 
+        isHqAdmin() || 
+        (isBranchStaff() && resource.data.get('branchId', '') == getUserBranchId())
+      );
     }
 
     // -------------------------------------------------------------------------
