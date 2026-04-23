@@ -202,7 +202,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
           </thead>
           <tbody className="divide-y divide-slate-50">
             {displayedData.map((person) => {
-              const daysLeft = getDaysRemaining(person.expiryDate);
+              const daysLeft = person.expiryDate ? getDaysRemaining(person.expiryDate) : Infinity;
               const isUrgent = daysLeft < 90;
               const isChecked = selectedIds?.has(person.id) ?? false;
 
@@ -295,7 +295,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   </td>
                   <td className="px-2 py-3 text-center">
                     <span className={`text-xs ${isUrgent ? 'text-rose-600 font-bold' : 'text-slate-700 font-medium'}`}>
-                      {person.expiryDate.replace(/-/g, '/')}
+                      {person.expiryDate ? person.expiryDate.replace(/-/g, '/') : '−'}
                     </span>
                   </td>
                   <td className="px-2 py-3 text-center">

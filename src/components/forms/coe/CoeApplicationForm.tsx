@@ -16,6 +16,7 @@ import { ApplicantSpecificInfoSubForm } from './sections/ApplicantSpecificInfoSu
 import { EmployerInfoSubForm } from './sections/EmployerInfoSubForm';
 import { RepresentativeSubForm } from './sections/RepresentativeSubForm';
 import { ApplicationMetadataFields } from './sections/ApplicationMetadataFields';
+import { useAuth } from '@/contexts/AuthContext';
 
 type TabId = 'identity' | 'applicant' | 'employer' | 'representative' | 'metadata';
 
@@ -147,6 +148,8 @@ export function CoeApplicationForm({
 
   const { formState: { errors }, control, getValues } = methods;
 
+  const { currentUser } = useAuth();
+
   const {
     isSaving,
     isExporting,
@@ -158,7 +161,7 @@ export function CoeApplicationForm({
   } = useCoeFormSubmit({
     recordId,
     foreignerId,
-    organizationId,
+    organizationId: organizationId || currentUser?.organizationId || undefined,
     control,
     getValues,
   });

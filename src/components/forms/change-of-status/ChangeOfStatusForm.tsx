@@ -224,12 +224,14 @@ export function ChangeOfStatusForm({
     reset(mergedDefaultValues as any);
   }, [mergedDefaultValues, reset]);
 
+  const defaultAssignments = useMemo(() => ({ foreigner: '', employer: '', simultaneous: '' }), []);
+
   const { isSaving, isAutoSaving, isBusy, handleSaveOnly, savedRecordId } =
     useChangeOfStatusFormSubmit({
       recordId,
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
-      assignments: { foreigner: '', employer: '', simultaneous: '' },
+      assignments: defaultAssignments,
       control: methods.control,
       getValues: methods.getValues,
       onSubmit
