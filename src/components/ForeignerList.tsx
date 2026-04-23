@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Clock, CheckSquare, Square, MinusSquare, FilePen, Mail, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import { Clock, CheckSquare, Square, MinusSquare, FilePen, Sparkles, XCircle } from 'lucide-react';
 import { UserRole } from '@/types/database';
-import { foreignerService } from '@/services/foreignerService';
-import { canRequestReview, canApproveOrReturn } from '@/utils/permissions';
 import { ExcelDownloadButton } from './ExcelDownloadButton';
 import { ConsentPdfButton } from './ConsentPdfButton';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
@@ -24,14 +22,14 @@ interface ForeignerListProps {
   onDeleteSelected?: () => void;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, onUpdate, onDeleteSelected }) => {
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, onDeleteSelected }) => {
   const [filterBranch, setFilterBranch] = useState('');
   const [filterNationality, setFilterNationality] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterVisaType, setFilterVisaType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const { toasts, dismiss, show: showToast } = useToast();
+  const { toasts, dismiss } = useToast();
 
   const renderFilterHeader = (
     filterKey: string,
@@ -138,50 +136,13 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
     onSelectionChange(next);
   };
 
-  const colName = readonly ? (showBranch ? 'w-[15%]' : 'w-[20%]') : (showBranch ? 'w-[13%]' : 'w-[16%]');
-  const colNat = readonly ? (showBranch ? 'w-[10%]' : 'w-[12%]') : (showBranch ? 'w-[7%]' : 'w-[8%]');
-  const colBranch = readonly ? 'w-[14%]' : 'w-[10%]';
-  const colComp = readonly ? (showBranch ? 'w-[16%]' : 'w-[20%]') : (showBranch ? 'w-[12%]' : 'w-[14%]');
-  const colVisa = readonly ? (showBranch ? 'w-[14%]' : 'w-[16%]') : (showBranch ? 'w-[10%]' : 'w-[12%]');
-  const colExp = readonly ? (showBranch ? 'w-[13%]' : 'w-[15%]') : (showBranch ? 'w-[9%]' : 'w-[10%]');
-  const colStat = readonly ? (showBranch ? 'w-[14%]' : 'w-[17%]') : (showBranch ? 'w-[11%]' : 'w-[12%]');
-
-  const handleRequestReview = useCallback(async (e: React.MouseEvent, person: Foreigner) => {
-    e.stopPropagation();
-    if (!confirm('行政書士に内容の確認を依頼しますか？')) return;
-    try {
-      await foreignerService.updateApprovalStatus(person.id, 'pending_review');
-      if (onUpdate) onUpdate({ ...person, approvalStatus: 'pending_review', status: 'チェック中' });
-    } catch (err) {
-      console.error(err);
-      showToast('error', 'エラーが発生しました');
-    }
-  }, [onUpdate, showToast]);
-
-  const handleApprove = useCallback(async (e: React.MouseEvent, person: Foreigner) => {
-    e.stopPropagation();
-    if (!confirm('このデータを承認し、「申請済」にしますか？')) return;
-    try {
-      await foreignerService.updateApprovalStatus(person.id, 'approved');
-      if (onUpdate) onUpdate({ ...person, approvalStatus: 'approved', status: '申請済' });
-    } catch (err) {
-      console.error(err);
-      showToast('error', 'エラーが発生しました');
-    }
-  }, [onUpdate, showToast]);
-
-  const handleReturn = useCallback(async (e: React.MouseEvent, person: Foreigner) => {
-    e.stopPropagation();
-    const reason = window.prompt('差し戻しの理由を入力してください');
-    if (reason === null) return;
-    try {
-      await foreignerService.updateApprovalStatus(person.id, 'returned', reason);
-      if (onUpdate) onUpdate({ ...person, approvalStatus: 'returned', returnReason: reason, status: '差し戻し' });
-    } catch (err) {
-      console.error(err);
-      showToast('error', 'エラーが発生しました');
-    }
-  }, [onUpdate, showToast]);
+  const colName = readonly ? (showBranch ? 'w-[14%]' : 'w-[16%]') : (showBranch ? 'w-[12%]' : 'w-[14%]');
+  const colNat = readonly ? (showBranch ? 'w-[10%]' : 'w-[11%]') : (showBranch ? 'w-[8%]' : 'w-[9%]');
+  const colBranch = readonly ? 'w-[11%]' : 'w-[9%]';
+  const colComp = readonly ? (showBranch ? 'w-[17%]' : 'w-[20%]') : (showBranch ? 'w-[14%]' : 'w-[17%]');
+  const colVisa = readonly ? (showBranch ? 'w-[14%]' : 'w-[15%]') : (showBranch ? 'w-[11%]' : 'w-[12%]');
+  const colExp = readonly ? (showBranch ? 'w-[12%]' : 'w-[13%]') : (showBranch ? 'w-[9%]' : 'w-[10%]');
+  const colStat = readonly ? (showBranch ? 'w-[12%]' : 'w-[13%]') : (showBranch ? 'w-[9%]' : 'w-[10%]');
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -207,7 +168,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
       </div>
 
       <div className="overflow-x-auto min-h-[400px]">
-        <table className="w-full min-w-[1100px] text-left border-collapse table-fixed">
+        <table className="w-full min-w-[1200px] text-left border-collapse table-fixed">
           <thead>
             <tr className="bg-slate-50/50">
               {isSelectable && (
@@ -247,7 +208,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                 {renderFilterHeader('status', '進捗ステータス', filterStatus, setFilterStatus, statusOptions)}
               </th>
               {!readonly && (
-                <th className={`px-2 py-3 ${showBranch ? 'w-[21%]' : 'w-[25%]'} text-center text-xs font-bold text-slate-400 uppercase tracking-wider`}>操作</th>
+                <th className={`px-2 py-3 w-[24%] text-center text-xs font-bold text-slate-400 uppercase tracking-wider`}>操作</th>
               )}
             </tr>
           </thead>
@@ -256,19 +217,6 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
               const daysLeft = person.expiryDate ? getDaysRemaining(person.expiryDate) : Infinity;
               const isUrgent = daysLeft < 90;
               const isChecked = selectedIds?.has(person.id) ?? false;
-
-              const allowApproveOrReturn = userRole ? canApproveOrReturn(userRole) : false;
-              const allowRequestReview = userRole ? (canRequestReview(userRole) || (userRole === 'hq_admin' && person.branchId === 'hq_direct')) : false;
-
-              const isStatusDraft = person.status === '準備中' || person.status === '編集中' || person.status === '差し戻し';
-              const isStatusPendingReview = person.approvalStatus === 'pending_review' || person.status === 'チェック中';
-              const isWorkflowDraftOrReturned = !person.approvalStatus || person.approvalStatus === 'draft' || person.approvalStatus === 'returned';
-
-              const showRequestReviewBtn = allowRequestReview && isStatusDraft && isWorkflowDraftOrReturned;
-              const showApproveReturnBtn = allowApproveOrReturn && isStatusPendingReview;
-
-
-
               return (
                 <tr 
                   key={person.id} 
@@ -316,8 +264,8 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                     <StatusBadge status={person.status} />
                   </td>
                   {!readonly && (
-                    <td className="pl-2 pr-8 py-3 whitespace-nowrap align-middle">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-2 py-3 align-middle">
+                      <div className="flex flex-nowrap whitespace-nowrap items-center justify-center gap-1.5 min-w-0">
                         {userRole === 'scrivener' && (
                           <>
                             <ExcelDownloadButton foreigner={person} variant="icon" />
@@ -405,53 +353,6 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                             </>
                           )}
                         </div>
-                        
-                        {allowRequestReview && (
-                          <button
-                            onClick={showRequestReviewBtn ? (e) => handleRequestReview(e, person) : undefined}
-                            disabled={!showRequestReviewBtn}
-                            title={showRequestReviewBtn ? "行政書士へ確認依頼" : "現在は確認依頼できません"}
-                            className={`flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[96px] ${
-                              showRequestReviewBtn
-                                ? "bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm"
-                                : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                            }`}
-                          >
-                            <Mail className="w-3.5 h-3.5" />
-                            確認依頼
-                          </button>
-                        )}
-                        
-                        {allowApproveOrReturn && (
-                          <>
-                            <button
-                              onClick={showApproveReturnBtn ? (e) => handleReturn(e, person) : undefined}
-                              disabled={!showApproveReturnBtn}
-                              title={showApproveReturnBtn ? "差し戻し" : "現在は差し戻しできません"}
-                              className={`flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] ${
-                                showApproveReturnBtn
-                                  ? "bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 shadow-sm"
-                                  : "bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed"
-                              }`}
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              差戻
-                            </button>
-                            <button
-                              onClick={showApproveReturnBtn ? (e) => handleApprove(e, person) : undefined}
-                              disabled={!showApproveReturnBtn}
-                              title={showApproveReturnBtn ? "承認" : "現在は承認できません"}
-                              className={`flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] ${
-                                showApproveReturnBtn
-                                  ? "bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm"
-                                  : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-                              }`}
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              承認
-                            </button>
-                          </>
-                        )}
                       </div>
                     </td>
                   )}

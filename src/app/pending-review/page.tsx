@@ -34,9 +34,6 @@ export default function PendingReviewPage() {
     load();
   }, [currentUser, authLoading, router]);
 
-  const handleUpdate = (updated: Foreigner) => {
-    setData(prev => prev.map(f => f.id === updated.id ? updated : f).filter(f => f.approvalStatus === 'pending_review'));
-  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -81,7 +78,7 @@ export default function PendingReviewPage() {
           </motion.div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-             <ForeignerList data={data} userRole={currentUser?.role} onUpdate={handleUpdate} />
+             <ForeignerList data={data} userRole={currentUser?.role} />
           </div>
         )}
       </div>

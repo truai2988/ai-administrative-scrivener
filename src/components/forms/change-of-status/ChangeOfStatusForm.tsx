@@ -4,9 +4,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Download, Check
+  AlertCircle, Save, Loader2, Download, Check,
+  Mail, CheckCircle, XCircle
 } from 'lucide-react';
 import {
   changeOfStatusApplicationSchema,
@@ -20,6 +20,7 @@ import { ToastContainer, useToast } from '@/components/ui/Toast';
 import { useChangeOfStatusFormSubmit } from '@/hooks/useChangeOfStatusFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
 import { mergeWithDefaults } from '@/lib/utils/formUtils';
+import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 
 import { downloadChangeOfStatusCsv1 } from '@/utils/changeOfStatusCsvGenerator1';
 import { downloadChangeOfStatusCsvU } from '@/utils/changeOfStatusCsvGeneratorU';
@@ -196,9 +197,6 @@ export function ChangeOfStatusForm({
     return visibleTabs[0].id;
   }, [visibleTabs, activeTab]);
 
-  const activeIndex = visibleTabs.findIndex(t => t.id === effectiveTab);
-  const prevTab = activeIndex > 0 ? visibleTabs[activeIndex - 1] : null;
-  const nextTab = activeIndex < visibleTabs.length - 1 ? visibleTabs[activeIndex + 1] : null;
 
   const mergedDefaultValues = useMemo(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -237,6 +235,16 @@ export function ChangeOfStatusForm({
       onSubmit
     });
 
+  const {
+    hasApproveReturnPermission,
+    canExecuteApproveReturn,
+    hasRequestReviewPermission,
+    canExecuteRequestReview,
+    handleApprove,
+    handleReturn,
+    handleRequestReview
+  } = useForeignerApproval(foreignerId);
+
   const hasForeignerErrors    = !!errors.foreignerInfo;
   const hasEmployerErrors     = !!errors.employerInfo;
   const hasSimultaneousErrors = !!errors.simultaneousApplication;
@@ -247,108 +255,138 @@ export function ChangeOfStatusForm({
       <FormProvider {...methods}>
         <form noValidate className="renewal-form">
           <div className="renewal-form-sticky-top">
-            {!hideHeader && (
-              <div className="form-header">
-                <div className="form-header-main">
-                  <div className="form-header-left">
-                    <span className="form-header-badge">出入国在留管理庁 様式</span>
-                    <h1 className="form-header-title">在留資格変更許可申請書</h1>
-                    <p className="form-header-subtitle flex items-center mt-1 min-h-5">
-                      別記第29号の14様式（特定技能）
+            <div className="applicant-context-header flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="applicant-avatar shrink-0">
+                  {applicantName.charAt(0)}
+                </div>
+                <div className="applicant-info min-w-0">
+                  <div className="applicant-name truncate text-base font-bold text-slate-100 flex items-center gap-3">
+                    <div>
+                      {applicantName} <span className="applicant-suffix text-sm font-normal text-slate-400">様の申請データ</span>
+                    </div>
+                    <div className="flex items-center">
                       {isAutoSaving ? (
-                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1 ml-2">
+                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1">
                           <Loader2 size={12} className="spin" /> 自動保存中...
                         </span>
                       ) : savedRecordId ? (
-                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
+                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1">
                           <Check size={12} /> 保存済み
                         </span>
                       ) : null}
-                    </p>
+                    </div>
                   </div>
-                  <div className="form-header-actions">
-                    {prevTab && (
-                      <button type="button" className="btn-outline btn-nav-sm" onClick={() => setActiveTab(prevTab.id)} disabled={isBusy}>
-                        <ChevronLeft size={15} /> {prevTab.label}へ
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn-outline btn-save btn-nav-sm"
-                      onClick={() => handleSaveOnly(methods.getValues())}
-                      disabled={isBusy}
-                      title="入力途中の内容を下書き保存します"
-                    >
-                      {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-                      <span className="hidden sm:inline">{isSaving ? '保存中...' : '保存'}</span>
-                    </button>
+                  <div className="applicant-type flex items-center flex-wrap gap-2 mt-0.5">
+                    <span className="text-xs font-medium text-slate-400">在留資格変更許可申請</span>
+                    <span className="text-slate-500 text-xs font-normal">別記第29号の14様式（特定技能）</span>
+                  </div>
+                </div>
+              </div>
 
-                    <div className="relative inline-block text-left">
+              <div className="flex flex-col items-end gap-1.5 w-full md:w-auto shrink-0">
+                <div className="applicant-context-actions flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-1 md:pb-0 shrink-0">
+                  {!hideHeader && (
+                    <>
+                      {hasRequestReviewPermission && (
+                        <button
+                          type="button"
+                          onClick={handleRequestReview}
+                          disabled={!canExecuteRequestReview}
+                          title={canExecuteRequestReview ? "行政書士へ確認依頼" : "現在は確認依頼できません"}
+                          className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[96px] shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          確認依頼
+                        </button>
+                      )}
+
+                      {hasApproveReturnPermission && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleReturn}
+                            disabled={!canExecuteApproveReturn}
+                            title={canExecuteApproveReturn ? "差し戻し" : "現在は差し戻しできません"}
+                            className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            差戻
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleApprove}
+                            disabled={!canExecuteApproveReturn}
+                            title={canExecuteApproveReturn ? "承認" : "現在は承認できません"}
+                            className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            承認
+                          </button>
+                        </>
+                      )}
+
                       <button
                         type="button"
-                        className="btn-outline btn-nav-sm flex items-center gap-1"
-                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                        className="btn-outline btn-save h-8 px-3 text-xs font-bold shrink-0"
+                        onClick={() => handleSaveOnly(methods.getValues())}
+                        disabled={isBusy}
+                        title="入力途中の内容を下書き保存します"
                       >
-                        <Download size={14} /> <span className="hidden sm:inline">CSV出力</span>
+                        {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+                        <span className="hidden sm:inline">{isSaving ? '保存中...' : '保存'}</span>
                       </button>
-                      
-                      {showDownloadMenu && (
-                        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden flex flex-col">
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
-                            onClick={() => {
-                              const data = methods.getValues('foreignerInfo');
-                              downloadChangeOfStatusCsv1(data);
-                              setShowDownloadMenu(false);
-                            }}
-                          >
-                            <User size={14} /> 基本情報 (在留資格変更)
-                          </button>
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
-                            onClick={() => {
-                              const data = methods.getValues();
-                              downloadChangeOfStatusCsvU(data);
-                              setShowDownloadMenu(false);
-                            }}
-                          >
-                            <Building2 size={14} /> 所属機関等 (区分U)
-                          </button>
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            onClick={() => {
-                              const data = methods.getValues('simultaneousApplication');
-                              downloadChangeOfStatusCsvSimultaneous(data);
-                              setShowDownloadMenu(false);
-                            }}
-                          >
-                            <FileStack size={14} /> 同時申請用
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    {nextTab && (
-                      <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
-                        {nextTab.label}へ <ChevronRight size={15} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
 
-            <div className="applicant-context-header">
-              <div className="applicant-avatar">
-                {applicantName.charAt(0)}
-              </div>
-              <div className="applicant-info">
-                <div className="applicant-name">
-                  {applicantName} <span className="applicant-suffix">様の申請データ</span>
+                      <div className="relative inline-block text-left shrink-0">
+                        <button
+                          type="button"
+                          className="btn-outline h-8 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
+                          onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                        >
+                          <Download size={14} /> <span className="hidden sm:inline">CSV出力</span>
+                        </button>
+                        
+                        {showDownloadMenu && (
+                          <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden flex flex-col">
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                              onClick={() => {
+                                const data = methods.getValues('foreignerInfo');
+                                downloadChangeOfStatusCsv1(data);
+                                setShowDownloadMenu(false);
+                              }}
+                            >
+                              <User size={14} /> 基本情報 (在留資格変更)
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                              onClick={() => {
+                                const data = methods.getValues();
+                                downloadChangeOfStatusCsvU(data);
+                                setShowDownloadMenu(false);
+                              }}
+                            >
+                              <Building2 size={14} /> 所属機関等 (区分U)
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                              onClick={() => {
+                                const data = methods.getValues('simultaneousApplication');
+                                downloadChangeOfStatusCsvSimultaneous(data);
+                                setShowDownloadMenu(false);
+                              }}
+                            >
+                              <FileStack size={14} /> 同時申請用
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="applicant-type">在留資格変更許可申請（特定技能）</div>
               </div>
             </div>
 

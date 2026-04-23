@@ -3,12 +3,13 @@
 import React, { useState } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, ChevronRight, ChevronLeft, User, Building2, UserCircle2, Briefcase, FileText, Download, Check } from 'lucide-react';
+import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Check, Mail, CheckCircle, XCircle } from 'lucide-react';
 import {
   coeApplicationSchema,
   type CoeApplicationFormData,
 } from '@/lib/schemas/coeApplicationSchema';
 import { useCoeFormSubmit } from '@/hooks/useCoeFormSubmit';
+import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 
 import { IdentityInfoSubForm } from './sections/IdentityInfoSubForm';
@@ -22,7 +23,7 @@ type TabId = 'identity' | 'applicant' | 'employer' | 'representative' | 'metadat
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
   { id: 'identity', label: '身分事項', icon: User },
-  { id: 'applicant', label: '申請人情報 (区分V)', icon: Briefcase },
+  { id: 'applicant', label: '申請人情報', icon: Briefcase },
   { id: 'employer', label: '所属機関等', icon: Building2 },
   { id: 'representative', label: '代理人・取次者', icon: UserCircle2 },
   { id: 'metadata', label: '申請メタデータ', icon: FileText },
@@ -166,9 +167,16 @@ export function CoeApplicationForm({
     getValues,
   });
 
-  const activeIndex = TABS.findIndex(t => t.id === activeTab);
-  const prevTab = activeIndex > 0 ? TABS[activeIndex - 1] : null;
-  const nextTab = activeIndex < TABS.length - 1 ? TABS[activeIndex + 1] : null;
+  const {
+    hasApproveReturnPermission,
+    canExecuteApproveReturn,
+    hasRequestReviewPermission,
+    canExecuteRequestReview,
+    handleApprove,
+    handleReturn,
+    handleRequestReview
+  } = useForeignerApproval(foreignerId);
+
 
   const nameEn = useWatch({ control: methods.control, name: 'identityInfo.nameEn' });
   const nameKanji = useWatch({ control: methods.control, name: 'identityInfo.nameKanji' });
@@ -181,71 +189,101 @@ export function CoeApplicationForm({
         <form onSubmit={(e) => e.preventDefault()} className="renewal-form" noValidate>
           {/* Header and Tabs */}
           <div className="renewal-form-sticky-top">
-            <div className="form-header">
-              <div className="form-header-main">
-                <div className="form-header-left">
-                  <span className="form-header-badge">出入国在留管理庁 様式</span>
-                  <h1 className="form-header-title">在留資格認定証明書交付申請書</h1>
-                  <p className="form-header-subtitle flex items-center mt-1 min-h-5">
-                    別記第6号の3様式（特定技能）
-                    {isAutoSaving ? (
-                      <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1 ml-2">
-                        <Loader2 size={12} className="spin" /> 自動保存中...
-                      </span>
-                    ) : savedRecordId ? (
-                      <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
-                        <Check size={12} /> 保存済み
-                      </span>
-                    ) : null}
-                  </p>
+            <div className="applicant-context-header flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="applicant-avatar shrink-0">
+                  {applicantName.charAt(0)}
                 </div>
-                <div className="form-header-actions">
-                  {prevTab && (
-                    <button type="button" className="btn-outline btn-nav-sm" onClick={() => setActiveTab(prevTab.id)} disabled={isBusy}>
-                      <ChevronLeft size={15} /> {prevTab.label}へ
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn-outline btn-save btn-nav-sm"
-                    onClick={() => handleSaveOnly(getValues())}
-                    disabled={isBusy}
-                    id="btn-save-only"
-                    title="入力途中の内容を下書き保存します"
-                  >
-                    {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-                    {isSaving ? '保存中...' : '保存'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-outline btn-nav-sm flex items-center gap-1"
-                    onClick={() => handleSaveAndExport(getValues())}
-                    disabled={isBusy}
-                    title="保存してCSV形式で出力します"
-                  >
-                    {isExporting ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
-                    <span className="hidden sm:inline">{isExporting ? '出力中...' : 'CSV出力'}</span>
-                  </button>
-                  {nextTab && (
-                    <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
-                      {nextTab.label}へ <ChevronRight size={15} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+                <div className="applicant-info min-w-0">
+                  <div className="applicant-name truncate text-base font-bold text-slate-100 flex items-center gap-3">
+                    <div>
+                      {applicantName} <span className="applicant-suffix text-sm font-normal text-slate-400">様の申請データ</span>
+                    </div>
+                    <div className="flex items-center">
+                      {isAutoSaving ? (
+                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1">
+                          <Loader2 size={12} className="spin" /> 自動保存中...
+                        </span>
+                      ) : savedRecordId ? (
+                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1">
+                          <Check size={12} /> 保存済み
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="applicant-type flex items-center flex-wrap gap-2 mt-0.5">
 
-          <div className="applicant-context-header">
-            <div className="applicant-avatar">
-              {applicantName.charAt(0)}
-            </div>
-            <div className="applicant-info">
-              <div className="applicant-name">
-                {applicantName} <span className="applicant-suffix">様の申請データ</span>
+                    <span className="text-xs font-medium text-slate-400">在留資格認定証明書交付申請</span>
+                    <span className="text-slate-500 text-xs font-normal">別記第6号の3様式（特定技能）</span>
+                  </div>
+                </div>
               </div>
-              <div className="applicant-type">在留資格認定証明書交付申請</div>
+
+              <div className="flex flex-col items-end gap-1.5 w-full md:w-auto shrink-0">
+                <div className="applicant-context-actions flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-1 md:pb-0 shrink-0">
+                  {hasRequestReviewPermission && (
+                    <button
+                      type="button"
+                      onClick={handleRequestReview}
+                      disabled={!canExecuteRequestReview}
+                      title={canExecuteRequestReview ? "行政書士へ確認依頼" : "現在は確認依頼できません"}
+                      className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[96px] shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      確認依頼
+                    </button>
+                  )}
+
+                  {hasApproveReturnPermission && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleReturn}
+                        disabled={!canExecuteApproveReturn}
+                        title={canExecuteApproveReturn ? "差し戻し" : "現在は差し戻しできません"}
+                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        差戻
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApprove}
+                        disabled={!canExecuteApproveReturn}
+                        title={canExecuteApproveReturn ? "承認" : "現在は承認できません"}
+                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        承認
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-outline btn-save h-8 px-3 text-xs font-bold shrink-0"
+                  onClick={() => handleSaveOnly(getValues())}
+                  disabled={isBusy}
+                  id="btn-save-only"
+                  title="入力途中の内容を下書き保存します"
+                >
+                  {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+                  {isSaving ? '保存中...' : '保存'}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-outline h-8 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
+                  onClick={() => handleSaveAndExport(getValues())}
+                  disabled={isBusy}
+                  title="保存してCSV形式で出力します"
+                >
+                  {isExporting ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
+                  <span>{isExporting ? '出力中...' : 'CSV出力'}</span>
+                </button>
+              </div>
+              </div>
             </div>
-          </div>
 
           <div className="tab-nav" role="tablist">
             {TABS.map((tab) => {

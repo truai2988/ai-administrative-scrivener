@@ -410,7 +410,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 showBranch={isHqAdmin}
                 getBranchLabel={getBranchLabel}
                 userRole={userRole}
-                onUpdate={(updated) => setData(prev => prev.map(f => f.id === updated.id ? updated : f))}
                 onDeleteSelected={async () => {
                   if (!confirm(`${selectedIds.size}件のデータを削除しますか？\nこの操作は取り消せません。`)) return;
                   try {

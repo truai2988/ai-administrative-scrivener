@@ -4,9 +4,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Sparkles, Download, Check
+  AlertCircle, Save, Loader2, Sparkles, Download, Check,
+  Mail, CheckCircle, XCircle
 } from 'lucide-react';
 import { AiDiagnosticPanel } from './AiDiagnosticPanel';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
@@ -34,6 +34,7 @@ import { calculateTotalSize } from '@/lib/utils/fileUtils';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 
 import { downloadRenewalCsvSimultaneous } from '@/utils/renewalCsvGeneratorSim';
+import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 
 // ─── タブ定義 ─────────────────────────────────────────────────────────────────
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
@@ -213,6 +214,16 @@ function RenewalApplicationFormInner({
   // AI診断フック
   const aiDiag = useAiDiagnostics({ recordId });
 
+  const {
+    hasApproveReturnPermission,
+    canExecuteApproveReturn,
+    hasRequestReviewPermission,
+    canExecuteRequestReview,
+    handleApprove,
+    handleReturn,
+    handleRequestReview
+  } = useForeignerApproval(foreignerId);
+
   const visibleTabs = useMemo(() => TABS.filter(tab => isEditable(tab.id)), [isEditable]);
 
   /**
@@ -224,14 +235,6 @@ function RenewalApplicationFormInner({
     if (visibleTabs.some(t => t.id === activeTab)) return activeTab;
     return visibleTabs[0].id;
   }, [visibleTabs, activeTab]);
-
-  // ヘッダーボタンで共用するタブ行移情報
-  const activeIndex = useMemo(
-    () => visibleTabs.findIndex(t => t.id === effectiveTab),
-    [visibleTabs, effectiveTab]
-  );
-  const prevTab = activeIndex > 0 ? visibleTabs[activeIndex - 1] : null;
-  const nextTab = activeIndex < visibleTabs.length - 1 ? visibleTabs[activeIndex + 1] : null;
 
   // DEFAULT_VALUES と initialValues を mergeWithDefaults でディープマージ
   const mergedDefaultValues = useMemo(
@@ -288,34 +291,117 @@ function RenewalApplicationFormInner({
           {/* ─── 上部固定エリア（ヘッダー・対象者情報・タブを束ねる） ──────────────── */}
           <div className="renewal-form-sticky-top">
             {/* ─── ヘッダー（ボタン統合） ──────────────────────── */}
-            {!hideHeader && (
-              <div className="form-header">
-                <div className="form-header-main">
-                  <div className="form-header-left">
-                    <span className="form-header-badge">出入国在留管理庁 様式</span>
-                    <h1 className="form-header-title">在留期間更新許可申請書</h1>
-                    <p className="form-header-subtitle flex items-center mt-1 min-h-5">
-                      別記第29号の15様式（特定技能）
+            <div className="applicant-context-header flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="applicant-avatar shrink-0">
+                  {applicantName.charAt(0)}
+                </div>
+                <div className="applicant-info min-w-0">
+                  <div className="applicant-name truncate text-base font-bold text-slate-100 flex items-center gap-3">
+                    <div>
+                      {applicantName} <span className="applicant-suffix text-sm font-normal text-slate-400">様の申請データ</span>
+                    </div>
+                    <div className="flex items-center">
                       {isAutoSaving ? (
-                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1 ml-2">
+                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1">
                           <Loader2 size={12} className="spin" /> 自動保存中...
                         </span>
                       ) : savedRecordId ? (
-                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
+                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1">
                           <Check size={12} /> 保存済み
                         </span>
                       ) : null}
-                    </p>
+                    </div>
                   </div>
-                  <div className="form-header-actions">
-                    {prevTab && (
-                      <button type="button" className="btn-outline btn-nav-sm" onClick={() => setActiveTab(prevTab.id)} disabled={isBusy}>
-                        <ChevronLeft size={15} /> {prevTab.label}へ
+                  <div className="applicant-type flex items-center flex-wrap gap-2 mt-0.5">
+
+                    <span className="text-xs font-medium text-slate-400">在留期間更新許可申請</span>
+                    <span className="text-slate-500 text-xs font-normal">別記第29号の15様式（特定技能）</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end gap-1.5 w-full md:w-auto shrink-0">
+                <div className="applicant-context-actions flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-1 md:pb-0 shrink-0">
+                  {/* ─── 担当者割り当てパネル ─── */}
+                  <TabAssignmentPanel />
+                  
+                  {/* ─── AI診断ボタン ─── */}
+                  <button
+                    type="button"
+                    id="btn-ai-check"
+                    className={`ai-check-btn shrink-0 ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
+                    onClick={() => aiDiag.runCheck(methods.getValues())}
+                    disabled={aiDiag.status === 'loading'}
+                    title="入力内容・整合性・法的リスクをAIが診断します"
+                  >
+                    {aiDiag.status === 'loading' ? (
+                      <Loader2 size={16} className="spin" />
+                    ) : (
+                      <Sparkles size={16} />
+                    )}
+                    <span className="hidden sm:inline">
+                      {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
+                    </span>
+                    <span className="sm:hidden">
+                      {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
+                    </span>
+                    {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
+                      <span className="ai-check-btn-badge ai-check-btn-badge--critical">
+                        {aiDiag.counts.critical}
+                      </span>
+                    )}
+                    {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
+                      <span className="ai-check-btn-badge ai-check-btn-badge--warning">
+                        {aiDiag.counts.warning}
+                      </span>
+                    )}
+                  </button>
+
+                  {!hideHeader && (
+                    <>
+
+                    {hasRequestReviewPermission && (
+                      <button
+                        type="button"
+                        onClick={handleRequestReview}
+                        disabled={!canExecuteRequestReview}
+                        title={canExecuteRequestReview ? "行政書士へ確認依頼" : "現在は確認依頼できません"}
+                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[96px] shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        確認依頼
                       </button>
                     )}
+
+                    {hasApproveReturnPermission && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleReturn}
+                          disabled={!canExecuteApproveReturn}
+                          title={canExecuteApproveReturn ? "差し戻し" : "現在は差し戻しできません"}
+                          className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          差戻
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleApprove}
+                          disabled={!canExecuteApproveReturn}
+                          title={canExecuteApproveReturn ? "承認" : "現在は承認できません"}
+                          className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          承認
+                        </button>
+                      </>
+                    )}
+
                     <button
                       type="button"
-                      className="btn-outline btn-save btn-nav-sm"
+                      className="btn-outline btn-save h-8 px-3 text-xs font-bold shrink-0"
                       onClick={() => handleSaveOnly(methods.getValues())}
                       disabled={isBusy}
                       id="btn-save-only"
@@ -325,10 +411,10 @@ function RenewalApplicationFormInner({
                       {isSaving ? '保存中...' : '保存'}
                     </button>
 
-                    <div className="relative inline-block text-left">
+                    <div className="relative inline-block text-left shrink-0">
                       <button
                         type="button"
-                        className="btn-outline btn-nav-sm flex items-center gap-1"
+                        className="btn-outline h-8 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
                         onClick={() => setShowDownloadMenu(!showDownloadMenu)}
                       >
                         <Download size={14} /> <span className="hidden sm:inline">CSV出力</span>
@@ -386,65 +472,10 @@ function RenewalApplicationFormInner({
                         </div>
                       )}
                     </div>
-
-                    {nextTab && (
-                      <button type="button" className="btn-secondary btn-nav-sm" onClick={() => setActiveTab(nextTab.id)} disabled={isBusy}>
-                        {nextTab.label}へ <ChevronRight size={15} />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
-            )}
-
-            {/* ─── 対象者コンテキストヘッダー ────────────────────────────── */}
-            <div className="applicant-context-header">
-              <div className="applicant-avatar">
-                {applicantName.charAt(0)}
-              </div>
-              <div className="applicant-info">
-                <div className="applicant-name">
-                  {applicantName} <span className="applicant-suffix">様の申請データ</span>
-                </div>
-                <div className="applicant-type">在留期間更新許可申請（特定技能）</div>
-              </div>
-
-              <div className="applicant-context-actions">
-                {/* ─── 担当者割り当てパネル ─── */}
-                <TabAssignmentPanel />
-                
-                {/* ─── AI診断ボタン ─── */}
-                <button
-                  type="button"
-                  id="btn-ai-check"
-                  className={`ai-check-btn ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
-                  onClick={() => aiDiag.runCheck(methods.getValues())}
-                  disabled={aiDiag.status === 'loading'}
-                  title="入力内容・整合性・法的リスクをAIが診断します"
-                >
-                  {aiDiag.status === 'loading' ? (
-                    <Loader2 size={16} className="spin" />
-                  ) : (
-                    <Sparkles size={16} />
-                  )}
-                  <span className="hidden sm:inline">
-                    {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
-                  </span>
-                  <span className="sm:hidden">
-                    {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
-                  </span>
-                  {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
-                    <span className="ai-check-btn-badge ai-check-btn-badge--critical">
-                      {aiDiag.counts.critical}
-                    </span>
-                  )}
-                  {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
-                    <span className="ai-check-btn-badge ai-check-btn-badge--warning">
-                      {aiDiag.counts.warning}
-                    </span>
-                  )}
-                </button>
-              </div>
+            </div>
             </div>
 
             {/* ─── タブナビゲーション ────────────────────────────────────── */}
