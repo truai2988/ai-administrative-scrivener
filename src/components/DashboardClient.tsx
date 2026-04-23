@@ -405,9 +405,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                   if (!confirm(`${selectedIds.size}件のデータを削除しますか？\nこの操作は取り消せません。`)) return;
                   try {
                     const idsToDelete = Array.from(selectedIds);
-                    for (const id of idsToDelete) {
-                      await foreignerService.deleteForeigner(id);
-                    }
+                    // ⑥ writeBatch を使った一括削除（N+1解消）
+                    await foreignerService.deleteForeignersBatch(idsToDelete);
                     setData(prev => prev.filter(f => !selectedIds.has(f.id)));
                     setSelectedIds(new Set());
                     setToastMessage('削除が完了しました');

@@ -66,9 +66,10 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       
       if (!isSubscribed) return;
       setStats({
-          total: docData.total || 0,
-          pending: docData.pending || 0,
-          completed: docData.completed || 0,
+          // ⑤ カウンターがDBでマイナスになっても表示は最低0でクランプ
+          total: Math.max(0, docData.total || 0),
+          pending: Math.max(0, docData.pending || 0),
+          completed: Math.max(0, docData.completed || 0),
           expiringSoon
       });
       setStatsLoading(false);

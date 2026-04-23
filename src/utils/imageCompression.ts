@@ -37,10 +37,6 @@ export async function compressPhotoForImmigration(
     lastModified: Date.now(),
   });
 
-  console.log(
-    `[Photo Compression] ${(originalSize / 1024).toFixed(1)}KB → ${(compressedFile.size / 1024).toFixed(1)}KB`
-  );
-
   return {
     file: compressedFile,
     originalSize,
@@ -156,10 +152,6 @@ export async function compressDocumentToPdf(
   });
 
   if (onProgress) onProgress(100);
-
-  console.log(
-    `[Document→PDF] ${(originalSize / 1024).toFixed(1)}KB → ${(pdfFile.size / 1024).toFixed(1)}KB`
-  );
 
   return {
     file: pdfFile,

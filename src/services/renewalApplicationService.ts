@@ -161,9 +161,6 @@ export const renewalApplicationService = {
       }
       // ────────────────────────────────────────────────────────────────────
 
-      // デバッグログ（確認後に削除可能）
-      console.log('[renewalApplicationService.save] 保存する formData.attachments:', JSON.stringify(safeFormData.attachments));
-
       const updateData: Record<string, unknown> = {
         formData: safeFormData,
         // ルートのattachmentsもformDataと同期させる（次回読込時の整合性確保）

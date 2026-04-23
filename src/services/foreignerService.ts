@@ -396,6 +396,60 @@ export const foreignerService = {
   },
 
   /**
+   * 複数レコードを1回のバッチで一括削除する（⑥ N+1解消）
+   * - 削除件数分の個別 deleteDoc コールを廃止し、writeBatch で束ねる
+   * - 各レコードのステータス集計（foreigner_stats）も同一バッチで正確に更新する
+   * - Firestore の writeBatch 上限は500件。超える場合は 500件ずつ分割する
+   */
+  async deleteForeignersBatch(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+
+    // 1. 削除対象ドキュメントを並列取得（集計用にステータス・branchIdが必要）
+    const snaps = await Promise.all(
+      ids.map(id => getDoc(doc(db, COLLECTION_NAME, id)))
+    );
+
+    // 2. 存在するものだけを対象とし、支部別の集計差分を計算
+    type StatsDiff = { total: number; pending: number; completed: number };
+    const branchDiffs = new Map<string, StatsDiff>();
+
+    const existingSnaps = snaps.filter(s => s.exists());
+    for (const snap of existingSnaps) {
+      const data = snap.data();
+      const branchId: string = data.branchId ?? DEFAULT_BRANCH_ID;
+      const oldStatus: string | undefined = data.status;
+      const statsDiff = getStatsChanges(oldStatus, undefined);
+      const current = branchDiffs.get(branchId) ?? { total: 0, pending: 0, completed: 0 };
+      branchDiffs.set(branchId, {
+        total: current.total - 1,
+        pending: current.pending + statsDiff.pending,
+        completed: current.completed + statsDiff.completed,
+      });
+    }
+
+    // 3. 500件上限に対応した分割バッチで削除
+    const BATCH_LIMIT = 500;
+    for (let i = 0; i < existingSnaps.length; i += BATCH_LIMIT) {
+      const batch = writeBatch(db);
+      const chunk = existingSnaps.slice(i, i + BATCH_LIMIT);
+
+      for (const snap of chunk) {
+        batch.delete(snap.ref);
+      }
+
+      // 集計更新は先頭バッチにのみ追加（全支部分をまとめて反映）
+      if (i === 0) {
+        for (const [branchId, diff] of branchDiffs.entries()) {
+          applyStatsIncrement(batch, branchId, diff);
+        }
+      }
+
+      await batch.commit();
+    }
+  },
+
+
+  /**
    * デモデータ一括投入
    */
   async seedDemoData(branchId?: string): Promise<{ success: boolean; error?: string }> {

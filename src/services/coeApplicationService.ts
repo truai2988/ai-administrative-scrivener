@@ -153,9 +153,6 @@ export const coeApplicationService = {
         ...(rootAttachments || {}),
       };
       
-      // デバッグログ
-      console.log('[coeApplicationService.save] 保存する attachments:', JSON.stringify(mergedAttachments));
-
       const updateData: Record<string, unknown> = {
         formData: safeFormData,
         // ルートのattachmentsも同期させる

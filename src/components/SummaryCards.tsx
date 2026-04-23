@@ -66,7 +66,8 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
-        const badgeValue = tab.badgeKey ? counts[tab.badgeKey] : undefined;
+        // ⑤ バッジ値は必ず 0 以上にクランプ（Firestoreカウンター異常値の防御）
+        const badgeValue = tab.badgeKey ? Math.max(0, counts[tab.badgeKey]) : undefined;
 
         return (
           <button
