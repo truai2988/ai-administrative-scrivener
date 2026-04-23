@@ -15,15 +15,21 @@ export interface MyInquiry {
 export function useMyInquiries() {
   const { currentUser, loading: authLoading } = useAuth();
   const [inquiries, setInquiries] = useState<MyInquiry[]>([]);
-  // subscriptionLoading: onSnapshot コールバック内でのみ更新 (effect 内で同期 setState しない)
-  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  // subscriptionLoading: 初期値を true とし、マウント時や再取得時のチラツキを防ぐ
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // 認証ロード中 or 未ログインの場合はサブスクリプションを開始しない
-    if (authLoading || !currentUser) return;
+    // 認証ロード中は待機
+    if (authLoading) return;
 
-    setSubscriptionLoading(true);
+    // 未ログインの場合はサブスクリプションしないのでローディングを解除して終了
+    if (!currentUser) {
+      const timer = setTimeout(() => setSubscriptionLoading(false), 0);
+      return () => clearTimeout(timer);
+    }
+
+    // setSubscriptionLoading(true) は同期的呼び出しによる警告を防ぐため省略（初期値がtrueであり、onSnapshot内でfalseになるため）
 
     const q = query(
       collection(db, 'inquiries'),

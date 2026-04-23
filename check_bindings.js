@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 
 const extractNames = (filename, prefix) => {
@@ -22,3 +23,5 @@ console.log("== ForeignerInfoSection ==");
 console.log(extractNames('./src/components/forms/sections/ForeignerInfoSection.tsx', 'foreignerInfo.').join('\n'));
 console.log("\n== EmployerInfoSection ==");
 console.log(extractNames('./src/components/forms/sections/EmployerInfoSection.tsx', 'employerInfo.').join('\n'));
+/* eslint-disable @typescript-eslint/no-require-imports */
+

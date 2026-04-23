@@ -56,7 +56,7 @@ async function _syncForeignerMaster(
   appStatus: string,
   providedForeignerId?: string,
   organizationId?: string
-): Promise<string> {
+): Promise<string | null> {
   const foreignersCol = collection(db, COLLECTIONS.FOREIGNERS);
   
   let matchedDocId: string | null = providedForeignerId || null;
@@ -66,7 +66,12 @@ async function _syncForeignerMaster(
     const name = formData.identityInfo.nameKanji || formData.identityInfo.nameEn || '';
     const birthDate = formData.identityInfo.birthDate || '';
 
-    // ①パスポート番号で完全一致検索 (COEでは在留カード番号がないため)
+    // ①最低限の識別情報がない場合はマスタレコードを作成・同期しない
+    if (!passportNum && !name) {
+      return null;
+    }
+
+    // ②パスポート番号で完全一致検索 (COEでは在留カード番号がないため)
     if (passportNum && passportNum.length > 0) {
       let qPassport;
       if (organizationId && organizationId !== 'hq_direct') {
@@ -142,6 +147,12 @@ export const coeApplicationService = {
 
       // ─── attachments の補完 ──────────────────────────────────────────────
       const existingDocData = snap.data();
+      const existingForeignerId = existingDocData?.foreignerId;
+      const resolvedForeignerId = foreignerId || existingForeignerId;
+
+      // マスタへの自動同期
+      const syncedForeignerId = await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, resolvedForeignerId, organizationId);
+
       const rootAttachments = existingDocData?.attachments as AttachmentsMap | undefined;
       // ルートのattachments と formDataのattachments をマージ（ルートのデータを優先）
       const mergedAttachments: AttachmentsMap = {
@@ -152,17 +163,20 @@ export const coeApplicationService = {
       // デバッグログ
       console.log('[coeApplicationService.save] 保存する attachments:', JSON.stringify(mergedAttachments));
 
-      await updateDoc(docRef, {
+      const updateData: Record<string, unknown> = {
         formData: safeFormData,
         // ルートのattachmentsも同期させる
         attachments: mergedAttachments,
         status: APPLICATION_STATUS.EDITING,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
-      });
+      };
 
-      // マスタへの自動同期
-      await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
+      if (syncedForeignerId) {
+        updateData.foreignerId = syncedForeignerId;
+      }
+
+      await updateDoc(docRef, updateData);
 
       return existingId;
     } else {
@@ -171,6 +185,9 @@ export const coeApplicationService = {
       const passportNum = formData.identityInfo.passportNumber?.replace(/[^A-Za-z0-9]/g, '') || 'UNKNOWN';
       const ts      = Date.now().toString(36).toUpperCase();
       const newId   = `coe_${passportNum}_${ts}`;
+
+      // マスタへの自動同期
+      const syncedForeignerId = await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
 
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: CoeApplicationRecord = {
@@ -182,10 +199,11 @@ export const coeApplicationService = {
         ...(foreignerId ? { foreignerId } : {}),
       };
 
-      await setDoc(docRef, record);
+      if (syncedForeignerId) {
+        record.foreignerId = syncedForeignerId;
+      }
 
-      // マスタへの自動同期
-      await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
+      await setDoc(docRef, record);
 
       return newId;
     }

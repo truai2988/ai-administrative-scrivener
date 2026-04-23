@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-vars */
 const ExcelJS = require('exceljs');
 
 async function main() {
@@ -21,3 +22,5 @@ async function main() {
 }
 
 main().catch(console.error);
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-vars */
+

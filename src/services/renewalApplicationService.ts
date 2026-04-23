@@ -56,17 +56,23 @@ async function _syncForeignerMaster(
   appStatus: string,
   providedForeignerId?: string,
   organizationId?: string
-): Promise<string> {
+): Promise<string | null> {
   const foreignersCol = collection(db, COLLECTIONS.FOREIGNERS);
   
   let matchedDocId: string | null = providedForeignerId || null;
   
   if (!matchedDocId) {
     const cardNum = formData.foreignerInfo.residenceCardNumber?.replace(/[^A-Za-z0-9]/g, '');
+    const passportNum = formData.foreignerInfo.passportNumber?.replace(/[^A-Za-z0-9]/g, '');
     const name = formData.foreignerInfo.nameKanji || formData.foreignerInfo.nameEn || '';
     const birthDate = formData.foreignerInfo.birthDate || '';
 
-    // ①在留カード番号で完全一致検索
+    // ①最低限の識別情報がない場合はマスタレコードを作成・同期しない
+    if (!cardNum && !passportNum && !name) {
+      return null;
+    }
+
+    // ②在留カード番号で完全一致検索
     if (cardNum && cardNum.length > 0) {
       let qCard;
       if (organizationId && organizationId !== 'hq_direct') {
@@ -145,6 +151,12 @@ export const renewalApplicationService = {
       // formDataの中のattachmentsはReact Hook Form経由で更新される。
       // 保存時に両者を確実にマージして整合性を保つ。
       const existingDocData = snap.data();
+      const existingForeignerId = existingDocData?.foreignerId;
+      const resolvedForeignerId = foreignerId || existingForeignerId;
+
+      // マスタへの自動同期
+      const syncedForeignerId = await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, resolvedForeignerId, organizationId);
+
       const rootAttachments = existingDocData?.attachments as AttachmentsMap | undefined;
       // ルートのattachments と formDataのattachments をマージ（ルートのデータを優先）
       const mergedAttachments: AttachmentsMap = {
@@ -159,17 +171,20 @@ export const renewalApplicationService = {
       // デバッグログ（確認後に削除可能）
       console.log('[renewalApplicationService.save] 保存する formData.attachments:', JSON.stringify(safeFormData.attachments));
 
-      await updateDoc(docRef, {
+      const updateData: Record<string, unknown> = {
         formData: safeFormData,
         // ルートのattachmentsもformDataと同期させる（次回読込時の整合性確保）
         attachments: safeFormData.attachments ?? {},
         status: APPLICATION_STATUS.EDITING,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
-      });
+      };
 
-      // マスタへの自動同期
-      await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
+      if (syncedForeignerId) {
+        updateData.foreignerId = syncedForeignerId;
+      }
+
+      await updateDoc(docRef, updateData);
 
       return existingId;
     } else {
@@ -178,6 +193,9 @@ export const renewalApplicationService = {
       const cardNum = formData.foreignerInfo.residenceCardNumber?.replace(/[^A-Za-z0-9]/g, '') || 'UNKNOWN';
       const ts      = Date.now().toString(36).toUpperCase();
       const newId   = `renewal_${cardNum}_${ts}`;
+
+      // マスタへの自動同期
+      const syncedForeignerId = await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
 
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: RenewalApplicationRecord = {
@@ -189,10 +207,11 @@ export const renewalApplicationService = {
         ...(foreignerId ? { foreignerId } : {}),
       };
 
-      await setDoc(docRef, record);
+      if (syncedForeignerId) {
+        record.foreignerId = syncedForeignerId;
+      }
 
-      // マスタへの自動同期
-      await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
+      await setDoc(docRef, record);
 
       return newId;
     }

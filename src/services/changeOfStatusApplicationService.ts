@@ -18,6 +18,7 @@ import {
 import { db } from '@/lib/firebase/client';
 import { type ChangeOfStatusApplicationFormData, type AttachmentsMap } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
+import { mapChangeOfStatusFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
 
 const COLLECTION_NAME = COLLECTIONS.CHANGE_OF_STATUS_APPLICATIONS;
 
@@ -39,6 +40,82 @@ export interface ChangeOfStatusApplicationRecord {
  */
 function sanitizeForFirestore<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj)) as T;
+}
+
+/**
+ * 内部ヘルパー：申請書保存時に対応する外国人マスタ（Foreigner）を自動検索・Upsertする
+ */
+async function _syncForeignerMaster(
+  formData: ChangeOfStatusApplicationFormData,
+  applicationId: string,
+  appStatus: string,
+  providedForeignerId?: string,
+  organizationId?: string
+): Promise<string | null> {
+  const foreignersCol = collection(db, COLLECTIONS.FOREIGNERS);
+  
+  let matchedDocId: string | null = providedForeignerId || null;
+  
+  if (!matchedDocId) {
+    const cardNum = formData.foreignerInfo.residenceCardNumber?.replace(/[^A-Za-z0-9]/g, '');
+    const passportNum = formData.foreignerInfo.passportNumber?.replace(/[^A-Za-z0-9]/g, '');
+    const name = formData.foreignerInfo.nameKanji || formData.foreignerInfo.nameEn || '';
+    const birthDate = formData.foreignerInfo.birthDate || '';
+
+    // ①最低限の識別情報がない場合はマスタレコードを作成・同期しない
+    if (!cardNum && !passportNum && !name) {
+      return null;
+    }
+
+    // ②在留カード番号で完全一致検索
+    if (cardNum && cardNum.length > 0) {
+      let qCard;
+      if (organizationId && organizationId !== 'hq_direct') {
+        qCard = query(foreignersCol, where('residenceCardNumber', '==', cardNum), where('branchId', '==', organizationId), limit(1));
+      } else {
+        qCard = query(foreignersCol, where('residenceCardNumber', '==', cardNum), limit(1));
+      }
+      const snapCard = await getDocs(qCard);
+      if (!snapCard.empty) {
+        matchedDocId = snapCard.docs[0].id;
+      }
+    }
+
+    // ②名前＋生年月日で完全一致検索
+    if (!matchedDocId && name.length > 0 && birthDate.length > 0) {
+      let qProfile;
+      if (organizationId && organizationId !== 'hq_direct') {
+        qProfile = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), where('branchId', '==', organizationId), limit(1));
+      } else {
+        qProfile = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), limit(1));
+      }
+      const snapProfile = await getDocs(qProfile);
+      if (!snapProfile.empty) {
+        matchedDocId = snapProfile.docs[0].id;
+      }
+    }
+  }
+
+  const syncData = mapChangeOfStatusFormDataToForeigner(formData, applicationId, appStatus);
+  const now = new Date().toISOString();
+
+  if (matchedDocId) {
+    const docRef = doc(db, COLLECTIONS.FOREIGNERS, matchedDocId);
+    await setDoc(docRef, { ...syncData, updatedAt: now }, { merge: true });
+    return matchedDocId;
+  } else {
+    // 新規作成
+    const newId = `foreigner_${Date.now().toString(36).toUpperCase()}`;
+    const docRef = doc(db, COLLECTIONS.FOREIGNERS, newId);
+    await setDoc(docRef, {
+      ...syncData,
+      id: newId,
+      branchId: organizationId || 'hq_direct',
+      createdAt: now,
+      updatedAt: now,
+    }, { merge: true });
+    return newId;
+  }
 }
 
 export const changeOfStatusApplicationService = {
@@ -66,6 +143,12 @@ export const changeOfStatusApplicationService = {
 
       // ─── attachments の補完 ──────────────────────────────────────────────
       const existingDocData = snap.data();
+      const existingForeignerId = existingDocData?.foreignerId;
+      const resolvedForeignerId = foreignerId || existingForeignerId;
+
+      // マスタへの自動同期
+      const syncedForeignerId = await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, resolvedForeignerId, organizationId);
+
       const rootAttachments = existingDocData?.attachments as AttachmentsMap | undefined;
       const mergedAttachments: AttachmentsMap = {
         ...(safeFormData.attachments || {}),
@@ -76,13 +159,19 @@ export const changeOfStatusApplicationService = {
       }
       // ────────────────────────────────────────────────────────────────────
 
-      await updateDoc(docRef, {
+      const updateData: Record<string, unknown> = {
         formData: safeFormData,
         attachments: safeFormData.attachments ?? {},
         status: APPLICATION_STATUS.EDITING,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
-      });
+      };
+
+      if (syncedForeignerId) {
+        updateData.foreignerId = syncedForeignerId;
+      }
+
+      await updateDoc(docRef, updateData);
 
       return existingId;
     } else {
@@ -90,6 +179,9 @@ export const changeOfStatusApplicationService = {
       const cardNum = formData.foreignerInfo.residenceCardNumber?.replace(/[^A-Za-z0-9]/g, '') || 'UNKNOWN';
       const ts      = Date.now().toString(36).toUpperCase();
       const newId   = `change_status_${cardNum}_${ts}`;
+
+      // マスタへの自動同期
+      const syncedForeignerId = await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
 
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: ChangeOfStatusApplicationRecord = {
@@ -100,6 +192,10 @@ export const changeOfStatusApplicationService = {
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
       };
+
+      if (syncedForeignerId) {
+        record.foreignerId = syncedForeignerId;
+      }
 
       await setDoc(docRef, record);
 

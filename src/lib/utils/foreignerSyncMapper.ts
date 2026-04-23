@@ -1,5 +1,6 @@
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
+import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { Foreigner, ForeignerStatus } from '@/types/database';
 
 /**
@@ -96,5 +97,45 @@ export function mapCoeFormDataToForeigner(
     // 職務・在留資格
     jobTitle: eInfo?.mainIndustry || '', 
     visaType: iInfo.entryPurpose || '',
+  };
+}
+
+/**
+ * 在留資格変更許可申請書データを外国人台帳（Foreigner）データへマッピングする関数
+ */
+export function mapChangeOfStatusFormDataToForeigner(
+  formData: ChangeOfStatusApplicationFormData,
+  applicationId: string,
+  appStatus: string
+): Partial<Foreigner> {
+  const fInfo = formData.foreignerInfo;
+  const eInfo = formData.employerInfo;
+
+  return {
+    name: fInfo.nameKanji || fInfo.nameEn || '名称未設定',
+    residenceCardNumber: fInfo.residenceCardNumber || '',
+    passportNumber: fInfo.passportNumber || '',
+    expiryDate: fInfo.stayExpiryDate || '',
+    birthDate: fInfo.birthDate || '',
+    nationality: fInfo.nationality || '',
+    gender: fInfo.gender || '',
+    address: `${fInfo.japanPrefecture || ''}${fInfo.japanCity || ''}${fInfo.japanAddressLines || ''}`,
+    
+    // 申請書の関連付け
+    current_application_id: applicationId,
+    current_status: appStatus,
+    status: mapApplicationStatusToForeignerStatus(appStatus),
+    
+    // 承認ステータス
+    approvalStatus: appStatus === 'draft' ? 'draft' : 
+                    appStatus === 'editing' ? 'draft' : 
+                    appStatus === 'pending_review' ? 'pending_review' : 
+                    appStatus === 'approved' ? 'approved' : 'draft',
+                    
+    // 企業情報
+    company: eInfo?.companyNameJa || '',
+    // 職務・在留資格
+    jobTitle: eInfo?.mainJobType || '', 
+    visaType: fInfo.desiredStatus || '',
   };
 }

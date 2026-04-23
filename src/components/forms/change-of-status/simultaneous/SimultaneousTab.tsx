@@ -1,14 +1,11 @@
 'use client';
 
 import React from 'react';
-import { useFormContext } from 'react-hook-form';
-import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { ReEntryPermitSubForm } from './ReEntryPermitSubForm';
 import { ActivityOutsideStatusSubForm } from './ActivityOutsideStatusSubForm';
 import { AuthEmploymentCertSubForm } from './AuthEmploymentCertSubForm';
 
 export function SimultaneousTab() {
-  const { formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">

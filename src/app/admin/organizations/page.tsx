@@ -17,25 +17,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2,
   UserPlus,
-  Plus,
   Loader2,
   ArrowLeft,
   ShieldCheck,
-  Mail,
-  Lock,
   User,
-  Tag,
-  MapPin,
-  Phone,
-  CheckCircle2,
-  AlertCircle,
-  X,
   Trash2,
   ChevronDown,
   ChevronRight,
   Pencil,
-  Eye,
-  EyeOff,
+  X,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -67,19 +59,6 @@ function orgTypeBadgeClass(type: OrganizationType): string {
       return 'bg-indigo-100 text-indigo-700 border-indigo-200';
     case 'enterprise':
       return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  }
-}
-
-function roleToOrganizationType(role: UserRole): OrganizationType | 'any' {
-  switch (role) {
-    case 'hq_admin':
-      return 'hq';
-    case 'branch_staff':
-      return 'branch';
-    case 'enterprise_staff':
-      return 'enterprise';
-    default:
-      return 'any'; // scrivener は組織不要
   }
 }
 

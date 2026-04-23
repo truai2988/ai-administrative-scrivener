@@ -5,7 +5,6 @@ import { RenewalApplicationFormData } from './schemas/renewalApplicationSchema';
 // 政府指定のCSVフォーマットを出力するジェネレーター関数
 export function generateApplicationCsvs(data: RenewalApplicationFormData): { basicCsv: Blob, specificSkillCsv: Blob } {
   const boolToYesNo = (val?: boolean) => val === true ? '有' : (val === false ? '無' : '');
-  const boolTo10 = (val?: boolean) => val === true ? '1' : (val === false ? '0' : '');
   
   const basicHeaders = [
   "身分事項_国籍・地域",

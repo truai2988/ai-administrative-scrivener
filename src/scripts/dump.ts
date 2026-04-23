@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 
 // read U headers
 const contentU = fs.readFileSync('c:/Users/truee/ai-administrative-scrivener/Application_form/在留資格変更/申請情報入力(区分U)_1.csv', 'utf-8');

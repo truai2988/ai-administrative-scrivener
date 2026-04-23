@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 function walk(dir) {
@@ -51,3 +52,5 @@ files.forEach(f => {
   fs.writeFileSync(f, c);
 });
 console.log('Successfully replaced styles in ' + files.length + ' files.');
+/* eslint-disable @typescript-eslint/no-require-imports */
+
