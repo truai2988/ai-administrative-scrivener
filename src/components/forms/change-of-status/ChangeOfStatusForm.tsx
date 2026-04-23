@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Download, Sparkles
+  AlertCircle, Save, Loader2, Download, Check
 } from 'lucide-react';
 import {
   changeOfStatusApplicationSchema,
@@ -261,7 +261,7 @@ export function ChangeOfStatusForm({
                         </span>
                       ) : savedRecordId ? (
                         <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
-                          <Sparkles size={12} /> 保存済み
+                          <Check size={12} /> 保存済み
                         </span>
                       ) : null}
                     </p>
@@ -280,7 +280,7 @@ export function ChangeOfStatusForm({
                       title="入力途中の内容を下書き保存します"
                     >
                       {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-                      <span className="hidden sm:inline">{isSaving ? '保存中...' : '下書き保存'}</span>
+                      <span className="hidden sm:inline">{isSaving ? '保存中...' : '保存'}</span>
                     </button>
 
                     <div className="relative inline-block text-left">

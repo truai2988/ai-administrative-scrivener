@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, ChevronRight, ChevronLeft, User, Building2, UserCircle2, Briefcase, FileText, Download } from 'lucide-react';
+import { Loader2, Save, ChevronRight, ChevronLeft, User, Building2, UserCircle2, Briefcase, FileText, Download, Check } from 'lucide-react';
 import {
   coeApplicationSchema,
   type CoeApplicationFormData,
@@ -187,13 +187,14 @@ export function CoeApplicationForm({
                   <span className="form-header-badge">出入国在留管理庁 様式</span>
                   <h1 className="form-header-title">在留資格認定証明書交付申請書</h1>
                   <p className="form-header-subtitle flex items-center mt-1 min-h-5">
+                    別記第6号の3様式（特定技能）
                     {isAutoSaving ? (
-                      <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1">
+                      <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1 ml-2">
                         <Loader2 size={12} className="spin" /> 自動保存中...
                       </span>
                     ) : savedRecordId ? (
-                      <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1">
-                        ✓ 保存済み
+                      <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
+                        <Check size={12} /> 保存済み
                       </span>
                     ) : null}
                   </p>

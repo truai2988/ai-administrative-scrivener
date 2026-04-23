@@ -1,14 +1,12 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import '../../renewal/renewal-form.css';
 import { CoeApplicationForm } from '@/components/forms/coe/CoeApplicationForm';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function NewCoeApplicationPage() {
-  const router = useRouter();
   const { loading } = useAuth();
 
   if (loading) {
@@ -24,15 +22,6 @@ export default function NewCoeApplicationPage() {
 
   return (
     <main className="renewal-page">
-      <div className="mb-4">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          戻る
-        </button>
-      </div>
       <CoeApplicationForm />
     </main>
   );

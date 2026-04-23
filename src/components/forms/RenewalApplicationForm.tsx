@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronRight, ChevronLeft,
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Sparkles, Download
+  AlertCircle, Save, Loader2, Sparkles, Download, Check
 } from 'lucide-react';
 import { AiDiagnosticPanel } from './AiDiagnosticPanel';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
@@ -302,7 +302,7 @@ function RenewalApplicationFormInner({
                         </span>
                       ) : savedRecordId ? (
                         <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1 ml-2">
-                          ✓ 保存済み
+                          <Check size={12} /> 保存済み
                         </span>
                       ) : null}
                     </p>
