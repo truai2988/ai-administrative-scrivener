@@ -20,9 +20,10 @@ interface ForeignerListProps {
   getBranchLabel?: (branchId: string) => string;
   userRole?: UserRole;
   onUpdate?: (updated: Foreigner) => void;
+  onDeleteSelected?: () => void;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, onUpdate }) => {
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, onUpdate, onDeleteSelected }) => {
   const [filterBranch, setFilterBranch] = useState('');
   const [filterNationality, setFilterNationality] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
@@ -149,9 +150,20 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
         <Clock className="h-5 w-5 text-indigo-500" />
         <h2 className="text-lg font-bold text-slate-800">管理対象者リスト</h2>
         {isSelectable && selectedIds && selectedIds.size > 0 && (
-          <span className="ml-2 text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-100">
-            {selectedIds.size}名選択中
-          </span>
+          <div className="flex items-center gap-3 ml-2">
+            <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-100">
+              {selectedIds.size}名選択中
+            </span>
+            {onDeleteSelected && (
+              <button
+                onClick={onDeleteSelected}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 rounded-lg text-xs font-bold transition-colors"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                削除
+              </button>
+            )}
+          </div>
         )}
       </div>
 

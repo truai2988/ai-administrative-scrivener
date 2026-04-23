@@ -401,6 +401,21 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 getBranchLabel={getBranchLabel}
                 userRole={userRole}
                 onUpdate={(updated) => setData(prev => prev.map(f => f.id === updated.id ? updated : f))}
+                onDeleteSelected={async () => {
+                  if (!confirm(`${selectedIds.size}件のデータを削除しますか？\nこの操作は取り消せません。`)) return;
+                  try {
+                    const idsToDelete = Array.from(selectedIds);
+                    for (const id of idsToDelete) {
+                      await foreignerService.deleteForeigner(id);
+                    }
+                    setData(prev => prev.filter(f => !selectedIds.has(f.id)));
+                    setSelectedIds(new Set());
+                    setToastMessage('削除が完了しました');
+                  } catch (error) {
+                    console.error('削除エラー:', error);
+                    alert('削除に失敗しました');
+                  }
+                }}
               />
               
               {hasMore && (
