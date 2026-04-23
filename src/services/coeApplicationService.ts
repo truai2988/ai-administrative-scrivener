@@ -1,10 +1,3 @@
-/**
- * coeApplicationService.ts
- * 在留資格認定証明書交付申請フォームのFirebase保存サービス
- *
- * Firestore コレクション: "coe_applications"
- * Foreigner コレクションとは独立した別コレクションで管理する
- */
 import {
   collection,
   doc,
@@ -14,14 +7,14 @@ import {
   where,
   setDoc,
   updateDoc,
-  limit,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { type CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 import { type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapCoeFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
-import { sanitizeForFirestore, isValidPersonName } from '@/lib/utils/firestoreUtils';
+import { sanitizeForFirestore } from '@/lib/utils/firestoreUtils';
+import { foreignerService } from '@/services/foreignerService';
 
 const COLLECTION_NAME = COLLECTIONS.COE_APPLICATIONS;
 
@@ -38,83 +31,6 @@ export interface CoeApplicationRecord {
   updatedAt: string;
 }
 
-// sanitizeForFirestore は @/lib/utils/firestoreUtils からインポートして使用
-
-/**
- * 内部ヘルパー：申請書保存時に対応する外国人マスタ（Foreigner）を自動検索・Upsertする
- */
-async function _syncForeignerMaster(
-  formData: CoeApplicationFormData,
-  applicationId: string,
-  appStatus: string,
-  providedForeignerId?: string,
-  organizationId?: string
-): Promise<string | null> {
-  const foreignersCol = collection(db, COLLECTIONS.FOREIGNERS);
-  
-  let matchedDocId: string | null = providedForeignerId || null;
-  
-  if (!matchedDocId) {
-    const passportNum = formData.identityInfo.passportNumber?.replace(/[^A-Za-z0-9]/g, '');
-    const name = formData.identityInfo.nameKanji || formData.identityInfo.nameEn || '';
-    const birthDate = formData.identityInfo.birthDate || '';
-
-    // ③ '名称未設定' も含めて「有効な識別情報がない」場合はマスタレコードを作成しない
-    if (!passportNum && !isValidPersonName(name)) {
-      return null;
-    }
-
-    // ②パスポート番号で完全一致検索 (COEでは在留カード番号がないため)
-    if (passportNum && passportNum.length > 0) {
-      let qPassport;
-      if (organizationId && organizationId !== 'hq_direct') {
-        qPassport = query(foreignersCol, where('passportNumber', '==', passportNum), where('branchId', '==', organizationId), limit(1));
-      } else {
-        qPassport = query(foreignersCol, where('passportNumber', '==', passportNum), limit(1));
-      }
-      const snapPassport = await getDocs(qPassport);
-      if (!snapPassport.empty) {
-        matchedDocId = snapPassport.docs[0].id;
-      }
-    }
-
-    // ②名前＋生年月日で完全一致検索
-    if (!matchedDocId && name.length > 0 && birthDate.length > 0) {
-      let qProfile;
-      if (organizationId && organizationId !== 'hq_direct') {
-        qProfile = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), where('branchId', '==', organizationId), limit(1));
-      } else {
-        qProfile = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), limit(1));
-      }
-      const snapProfile = await getDocs(qProfile);
-      if (!snapProfile.empty) {
-        matchedDocId = snapProfile.docs[0].id;
-      }
-    }
-  }
-
-  const syncData = mapCoeFormDataToForeigner(formData, applicationId, appStatus);
-  const now = new Date().toISOString();
-
-  if (matchedDocId) {
-    const docRef = doc(db, COLLECTIONS.FOREIGNERS, matchedDocId);
-    await setDoc(docRef, { ...syncData, updatedAt: now }, { merge: true });
-    return matchedDocId;
-  } else {
-    // 新規作成
-    const newId = `foreigner_${Date.now().toString(36).toUpperCase()}`;
-    const docRef = doc(db, COLLECTIONS.FOREIGNERS, newId);
-    await setDoc(docRef, {
-      ...syncData,
-      id: newId,
-      branchId: organizationId || 'hq_direct',
-      createdAt: now,
-      updatedAt: now,
-    }, { merge: true });
-    return newId;
-  }
-}
-
 export const coeApplicationService = {
   /**
    * 申請フォームデータを保存（新規 or 更新）
@@ -128,6 +44,18 @@ export const coeApplicationService = {
   ): Promise<string> {
     const now = new Date().toISOString();
     const safeFormData = sanitizeForFirestore(formData);
+
+    // ⑦ マスタ同期用の識別子と変換済みデータを準備（COEはpassportNumberのみ）
+    const buildSyncParams = (applicationId: string) => ({
+      syncData: mapCoeFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.EDITING) as import('@/types/database').Foreigner,
+      identifiers: {
+        passportNumber: safeFormData.identityInfo?.passportNumber,
+        name: safeFormData.identityInfo?.nameKanji || safeFormData.identityInfo?.nameEn || '',
+        birthDate: safeFormData.identityInfo?.birthDate || '',
+      },
+      applicationId,
+      organizationId,
+    });
 
     if (existingId) {
       // 既存レコードの更新
@@ -143,8 +71,11 @@ export const coeApplicationService = {
       const existingForeignerId = existingDocData?.foreignerId;
       const resolvedForeignerId = foreignerId || existingForeignerId;
 
-      // マスタへの自動同期
-      const syncedForeignerId = await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, resolvedForeignerId, organizationId);
+      // ⑦ 共通マスタ同期
+      const syncedForeignerId = await foreignerService.syncForeignerMasterRecord({
+        ...buildSyncParams(existingId),
+        providedForeignerId: resolvedForeignerId,
+      });
 
       const rootAttachments = existingDocData?.attachments as AttachmentsMap | undefined;
       // ルートのattachments と formDataのattachments をマージ（ルートのデータを優先）
@@ -176,8 +107,11 @@ export const coeApplicationService = {
       const ts      = Date.now().toString(36).toUpperCase();
       const newId   = `coe_${passportNum}_${ts}`;
 
-      // マスタへの自動同期
-      const syncedForeignerId = await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
+      // ⑦ 共通マスタ同期
+      const syncedForeignerId = await foreignerService.syncForeignerMasterRecord({
+        ...buildSyncParams(newId),
+        providedForeignerId: foreignerId,
+      });
 
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: CoeApplicationRecord = {

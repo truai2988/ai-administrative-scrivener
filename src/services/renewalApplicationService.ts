@@ -15,13 +15,13 @@ import {
   where,
   setDoc,
   updateDoc,
-  limit,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { type RenewalApplicationFormData, type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
-import { sanitizeForFirestore, isValidPersonName } from '@/lib/utils/firestoreUtils';
+import { sanitizeForFirestore } from '@/lib/utils/firestoreUtils';
+import { foreignerService } from '@/services/foreignerService';
 
 const COLLECTION_NAME = COLLECTIONS.RENEWAL_APPLICATIONS;
 
@@ -38,84 +38,6 @@ export interface RenewalApplicationRecord {
   updatedAt: string;
 }
 
-// sanitizeForFirestore は @/lib/utils/firestoreUtils からインポートして使用
-
-/**
- * 内部ヘルパー：申請書保存時に対応する外国人マスタ（Foreigner）を自動検索・Upsertする
- */
-async function _syncForeignerMaster(
-  formData: RenewalApplicationFormData,
-  applicationId: string,
-  appStatus: string,
-  providedForeignerId?: string,
-  organizationId?: string
-): Promise<string | null> {
-  const foreignersCol = collection(db, COLLECTIONS.FOREIGNERS);
-  
-  let matchedDocId: string | null = providedForeignerId || null;
-  
-  if (!matchedDocId) {
-    const cardNum = formData.foreignerInfo.residenceCardNumber?.replace(/[^A-Za-z0-9]/g, '');
-    const passportNum = formData.foreignerInfo.passportNumber?.replace(/[^A-Za-z0-9]/g, '');
-    const name = formData.foreignerInfo.nameKanji || formData.foreignerInfo.nameEn || '';
-    const birthDate = formData.foreignerInfo.birthDate || '';
-
-    // ③ '名称未設定' も含めて「有効な識別情報がない」場合はマスタレコードを作成しない
-    if (!cardNum && !passportNum && !isValidPersonName(name)) {
-      return null;
-    }
-
-    // ②在留カード番号で完全一致検索
-    if (cardNum && cardNum.length > 0) {
-      let qCard;
-      if (organizationId && organizationId !== 'hq_direct') {
-        qCard = query(foreignersCol, where('residenceCardNumber', '==', cardNum), where('branchId', '==', organizationId), limit(1));
-      } else {
-        qCard = query(foreignersCol, where('residenceCardNumber', '==', cardNum), limit(1));
-      }
-      const snapCard = await getDocs(qCard);
-      if (!snapCard.empty) {
-        matchedDocId = snapCard.docs[0].id;
-      }
-    }
-
-    // ②名前＋生年月日で完全一致検索
-    if (!matchedDocId && name.length > 0 && birthDate.length > 0) {
-      let qProfile;
-      if (organizationId && organizationId !== 'hq_direct') {
-        qProfile = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), where('branchId', '==', organizationId), limit(1));
-      } else {
-        qProfile = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), limit(1));
-      }
-      const snapProfile = await getDocs(qProfile);
-      if (!snapProfile.empty) {
-        matchedDocId = snapProfile.docs[0].id;
-      }
-    }
-  }
-
-  const syncData = mapFormDataToForeigner(formData, applicationId, appStatus);
-  const now = new Date().toISOString();
-
-  if (matchedDocId) {
-    const docRef = doc(db, COLLECTIONS.FOREIGNERS, matchedDocId);
-    await setDoc(docRef, { ...syncData, updatedAt: now }, { merge: true });
-    return matchedDocId;
-  } else {
-    // 新規作成
-    const newId = `foreigner_${Date.now().toString(36).toUpperCase()}`;
-    const docRef = doc(db, COLLECTIONS.FOREIGNERS, newId);
-    await setDoc(docRef, {
-      ...syncData,
-      id: newId,
-      branchId: organizationId || 'hq_direct',
-      createdAt: now,
-      updatedAt: now,
-    }, { merge: true });
-    return newId;
-  }
-}
-
 export const renewalApplicationService = {
   /**
    * 申請フォームデータを保存（新規 or 更新）
@@ -129,6 +51,19 @@ export const renewalApplicationService = {
   ): Promise<string> {
     const now = new Date().toISOString();
     const safeFormData = sanitizeForFirestore(formData);
+
+    // ⑦ マスタ同期用の識別子と変換済みデータを準備（Renewalは在留カード＋パスポート両対応）
+    const buildSyncParams = (applicationId: string) => ({
+      syncData: mapFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.EDITING) as import('@/types/database').Foreigner,
+      identifiers: {
+        residenceCardNumber: safeFormData.foreignerInfo?.residenceCardNumber,
+        passportNumber: safeFormData.foreignerInfo?.passportNumber,
+        name: safeFormData.foreignerInfo?.nameKanji || safeFormData.foreignerInfo?.nameEn || '',
+        birthDate: safeFormData.foreignerInfo?.birthDate || '',
+      },
+      applicationId,
+      organizationId,
+    });
 
     if (existingId) {
       // 既存レコードの更新
@@ -147,8 +82,11 @@ export const renewalApplicationService = {
       const existingForeignerId = existingDocData?.foreignerId;
       const resolvedForeignerId = foreignerId || existingForeignerId;
 
-      // マスタへの自動同期
-      const syncedForeignerId = await _syncForeignerMaster(safeFormData, existingId, APPLICATION_STATUS.EDITING, resolvedForeignerId, organizationId);
+      // ⑦ 共通マスタ同期
+      const syncedForeignerId = await foreignerService.syncForeignerMasterRecord({
+        ...buildSyncParams(existingId),
+        providedForeignerId: resolvedForeignerId,
+      });
 
       const rootAttachments = existingDocData?.attachments as AttachmentsMap | undefined;
       // ルートのattachments と formDataのattachments をマージ（ルートのデータを優先）
@@ -184,8 +122,11 @@ export const renewalApplicationService = {
       const ts      = Date.now().toString(36).toUpperCase();
       const newId   = `renewal_${cardNum}_${ts}`;
 
-      // マスタへの自動同期
-      const syncedForeignerId = await _syncForeignerMaster(safeFormData, newId, APPLICATION_STATUS.EDITING, foreignerId, organizationId);
+      // ⑦ 共通マスタ同期
+      const syncedForeignerId = await foreignerService.syncForeignerMasterRecord({
+        ...buildSyncParams(newId),
+        providedForeignerId: foreignerId,
+      });
 
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: RenewalApplicationRecord = {

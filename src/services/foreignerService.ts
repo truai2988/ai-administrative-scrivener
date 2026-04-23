@@ -3,6 +3,7 @@ import {
   doc, 
   getDoc, 
   getDocs, 
+  setDoc,
   query,
   orderBy,
   where,
@@ -20,6 +21,7 @@ import { db } from "../lib/firebase/client";
 import { Foreigner, UserRole, DEFAULT_BRANCH_ID } from "../types/database";
 import { emailService } from "./emailService";
 import { canViewAllBranches } from "../utils/permissions";
+import { isValidPersonName } from "../lib/utils/firestoreUtils";
 
 const COLLECTION_NAME = "foreigners";
 
@@ -629,6 +631,104 @@ export const foreignerService = {
       applyStatsIncrement(batch, branchId, { total: 0, ...statsDiff });
 
       await batch.commit();
+    }
+  },
+
+  /**
+   * ⑦ 外国人マスタ（foreigners）への共通 Upsert（申請Service間のDRY違反を解消）
+   *
+   * 各申請Service（COE / Renewal / ChangeOfStatus）の _syncForeignerMaster を統合。
+   * 呼び出し元はフォームデータをマッパーで変換した Partial<Foreigner> と
+   * 検索キー（識別子）を渡すだけでよい。
+   *
+   * 検索優先順位:
+   *   1. providedForeignerId が指定されている場合 → 即 Upsert（検索スキップ）
+   *   2. residenceCardNumber（在留カード番号）での完全一致
+   *   3. passportNumber（パスポート番号）での完全一致
+   *   4. name + birthDate（氏名＋生年月日）での完全一致
+   *   5. いずれも一致しない → 新規作成
+   *
+   * @returns 外国人マスタの documentId（新規・既存ともに）、識別情報不足時は null
+   */
+  async syncForeignerMasterRecord(params: {
+    syncData: Partial<Foreigner>;
+    identifiers: {
+      residenceCardNumber?: string;
+      passportNumber?: string;
+      name: string;
+      birthDate: string;
+    };
+    applicationId: string;
+    organizationId?: string;
+    providedForeignerId?: string;
+  }): Promise<string | null> {
+    const { syncData, identifiers, applicationId: _applicationId, organizationId, providedForeignerId } = params;
+    void _applicationId; // applicationId は syncData 内に含まれるため参照のみ
+
+    const foreignersCol = collection(db, COLLECTION_NAME);
+    let matchedDocId: string | null = providedForeignerId || null;
+
+    if (!matchedDocId) {
+      const { residenceCardNumber, passportNumber, name, birthDate } = identifiers;
+      const cardNum = residenceCardNumber?.replace(/[^A-Za-z0-9]/g, '') || '';
+      const passNum = passportNumber?.replace(/[^A-Za-z0-9]/g, '') || '';
+
+      // 有効な識別情報がない場合は同期しない（'名称未設定' 等のガード）
+      if (!cardNum && !passNum && !isValidPersonName(name)) {
+        return null;
+      }
+
+      const buildQuery = (field: string, value: string) => {
+        if (organizationId && organizationId !== 'hq_direct') {
+          return query(foreignersCol, where(field, '==', value), where('branchId', '==', organizationId), limit(1));
+        }
+        return query(foreignersCol, where(field, '==', value), limit(1));
+      };
+
+      // 在留カード番号で検索
+      if (cardNum) {
+        const snap = await getDocs(buildQuery('residenceCardNumber', cardNum));
+        if (!snap.empty) matchedDocId = snap.docs[0].id;
+      }
+
+      // パスポート番号で検索
+      if (!matchedDocId && passNum) {
+        const snap = await getDocs(buildQuery('passportNumber', passNum));
+        if (!snap.empty) matchedDocId = snap.docs[0].id;
+      }
+
+      // 氏名＋生年月日で検索
+      if (!matchedDocId && name && birthDate) {
+        let q;
+        if (organizationId && organizationId !== 'hq_direct') {
+          q = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), where('branchId', '==', organizationId), limit(1));
+        } else {
+          q = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), limit(1));
+        }
+        const snap = await getDocs(q);
+        if (!snap.empty) matchedDocId = snap.docs[0].id;
+      }
+    }
+
+    const now = new Date().toISOString();
+
+    if (matchedDocId) {
+      // 既存レコードの更新
+      const docRef = doc(db, COLLECTION_NAME, matchedDocId);
+      await setDoc(docRef, { ...syncData, updatedAt: now }, { merge: true });
+      return matchedDocId;
+    } else {
+      // 新規作成
+      const newId = `foreigner_${Date.now().toString(36).toUpperCase()}`;
+      const docRef = doc(db, COLLECTION_NAME, newId);
+      await setDoc(docRef, {
+        ...syncData,
+        id: newId,
+        branchId: organizationId || 'hq_direct',
+        createdAt: now,
+        updatedAt: now,
+      }, { merge: true });
+      return newId;
     }
   },
 };
