@@ -1,2 +1,0 @@
-src/components/forms/sections/EmployerInfoSection.tsx(7,34): error TS2305: Module '"@/types/renewalApplication"' has no exported member 'PAYMENT_METHOD_OPTIONS'.
-src/components/forms/sections/EmployerInfoSection.tsx(254,56): error TS7006: Parameter 'o' implicitly has an 'any' type.
