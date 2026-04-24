@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { formOptions } from '../constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 
 // ─── 共通バリデーター ────────────────────────────────────────────────────────
 const requiredString = z.string().min(1, '必須項目です');
@@ -58,7 +58,7 @@ const optionalPhone = z.string().regex(/^(|\d{1,12})$/, '半角数字12文字以
 // ─── 身分事項 (Identity Info) ─────────────────────────────────────────────────
 export const identityInfoSchema = z.object({
   // CSV: 申請情報入力(在留資格認定証明書交付申請).csv に相当
-  nationality: z.enum(getEnumValues(formOptions.nationality)).describe('国籍・地域'),
+  nationality: z.enum(getEnumValues(coeFormOptions.nationality)).describe('国籍・地域'),
   birthDate: pastDateString8.min(1, '必須項目です').describe('生年月日'),
   // CSV仕様: 半角英字(大文字入力)、104文字以内、スペース区切り
   nameEn: requiredString
@@ -89,9 +89,9 @@ export const identityInfoSchema = z.object({
   // CSV仕様: YYYYMMDD、半角数字8文字
   passportExpiryDate: dateString8.optional().describe('旅券 (2)有効期限'),
 
-  entryPurpose: z.enum(getEnumValues(formOptions.entryPurpose)).describe('入国目的（在留資格）'),
+  entryPurpose: z.enum(getEnumValues(coeFormOptions.entryPurpose)).describe('入国目的（在留資格）'),
   entryPurposeOther: z.string().max(40, '40文字以内で入力してください').optional().describe('入国目的（その他）'),
-  entryPort: z.enum(getEnumValues(formOptions.entryPort)).describe('入国予定港'),
+  entryPort: z.enum(getEnumValues(coeFormOptions.entryPort)).describe('入国予定港'),
   entryDate: futureDateString8.describe('入国予定年月日'),
   stayPeriod: requiredString.max(40, '40文字以内で入力してください').describe('滞在予定期間'),
 

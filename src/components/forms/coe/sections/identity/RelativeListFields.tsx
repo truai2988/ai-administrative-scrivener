@@ -7,7 +7,7 @@ import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
-import { formOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function RelativeListFields() {
@@ -46,7 +46,7 @@ export function RelativeListFields() {
               name={field.name}
               value={field.value}
               onChange={field.onChange}
-              options={formOptions.yesNo}
+              options={coeFormOptions.yesNo}
               error={!!idErrors?.familyInJapan}
             />
           )}
@@ -78,7 +78,7 @@ export function RelativeListFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.relationship}
+                          options={coeFormOptions.relationship}
                           error={!!fieldError?.relationship}
                         />
                       )}
@@ -106,7 +106,7 @@ export function RelativeListFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.nationality}
+                          options={coeFormOptions.nationality}
                           error={!!fieldError?.nationality}
                         />
                       )}
@@ -121,7 +121,7 @@ export function RelativeListFields() {
                           name={field.name}
                           value={field.value}
                           onChange={field.onChange}
-                          options={formOptions.yesNo}
+                          options={coeFormOptions.yesNo}
                           error={!!fieldError?.cohabitation}
                         />
                       )}

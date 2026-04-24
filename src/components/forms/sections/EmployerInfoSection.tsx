@@ -5,7 +5,8 @@ import { useFormContext, useFieldArray, Controller, useWatch, Path } from 'react
 import { Building2, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
-import { INDUSTRY_FIELD_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/types/renewalApplication';
+import { INDUSTRY_FIELD_OPTIONS } from '@/types/renewalApplication';
+import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
 import { FormField } from '../ui/FormField';
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
@@ -116,6 +117,7 @@ export function EmployerInfoSection({
     register,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<RenewalApplicationFormData>();
 
@@ -448,10 +450,7 @@ export function EmployerInfoSection({
               control={control}
               render={({ field }) => (
                 <FormSelect
-                  options={PAYMENT_METHOD_OPTIONS.map((o) => ({
-                    value: o.value,
-                    label: o.label,
-                  }))}
+                  options={renewalFormOptions.paymentMethod}
                   value={field.value ?? ''}
                   onChange={field.onChange}
                   error={!!emp?.paymentMethod}
@@ -562,18 +561,40 @@ export function EmployerInfoSection({
           </FormField>
 
           <FormField label="法人所在地（都道府県）" required error={emp?.companyPref?.message}>
-            <FormInput
-              {...register('employerInfo.companyPref')}
-              placeholder="例: 東京都"
-              error={!!emp?.companyPref}
+            <Controller
+              name="employerInfo.companyPref"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  options={renewalFormOptions.prefectures}
+                  value={field.value ?? ''}
+                  onChange={(val) => {
+                    field.onChange(val);
+                    setValue('employerInfo.companyCity', '');
+                  }}
+                  error={!!emp?.companyPref}
+                />
+              )}
             />
           </FormField>
 
           <FormField label="法人所在地（市区町村）" required error={emp?.companyCity?.message}>
-            <FormInput
-              {...register('employerInfo.companyCity')}
-              placeholder="例: 千代田区"
-              error={!!emp?.companyCity}
+            <Controller
+              name="employerInfo.companyCity"
+              control={control}
+              render={({ field }) => {
+                const selectedPrefecture = watch('employerInfo.companyPref');
+                const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                return (
+                  <FormSelect
+                    options={cityOptions}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    error={!!emp?.companyCity}
+                    disabled={!selectedPrefecture || cityOptions.length === 0}
+                  />
+                );
+              }}
             />
           </FormField>
 
@@ -677,18 +698,40 @@ export function EmployerInfoSection({
           </FormField>
 
           <FormField label="事業所 都道府県" required error={emp?.workplacePref?.message}>
-            <FormInput
-              {...register('employerInfo.workplacePref')}
-              placeholder="例: 東京都"
-              error={!!emp?.workplacePref}
+            <Controller
+              name="employerInfo.workplacePref"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  options={renewalFormOptions.prefectures}
+                  value={field.value ?? ''}
+                  onChange={(val) => {
+                    field.onChange(val);
+                    setValue('employerInfo.workplaceCity', '');
+                  }}
+                  error={!!emp?.workplacePref}
+                />
+              )}
             />
           </FormField>
 
           <FormField label="事業所 市区町村" required error={emp?.workplaceCity?.message}>
-            <FormInput
-              {...register('employerInfo.workplaceCity')}
-              placeholder="例: 港区"
-              error={!!emp?.workplaceCity}
+            <Controller
+              name="employerInfo.workplaceCity"
+              control={control}
+              render={({ field }) => {
+                const selectedPrefecture = watch('employerInfo.workplacePref');
+                const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                return (
+                  <FormSelect
+                    options={cityOptions}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    error={!!emp?.workplaceCity}
+                    disabled={!selectedPrefecture || cityOptions.length === 0}
+                  />
+                );
+              }}
             />
           </FormField>
           
@@ -968,10 +1011,40 @@ export function EmployerInfoSection({
                   <FormInput {...register('employerInfo.supportAgency.zipCode')} placeholder="1000001" maxLength={7} error={!!saErr?.zipCode} />
                 </FormField>
                 <FormField label="都道府県" error={saErr?.prefecture?.message}>
-                  <FormInput {...register('employerInfo.supportAgency.prefecture')} placeholder="例: 東京都" error={!!saErr?.prefecture} />
+                  <Controller
+                    name="employerInfo.supportAgency.prefecture"
+                    control={control}
+                    render={({ field }) => (
+                      <FormSelect
+                        options={renewalFormOptions.prefectures}
+                        value={field.value ?? ''}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          setValue('employerInfo.supportAgency.city', '');
+                        }}
+                        error={!!saErr?.prefecture}
+                      />
+                    )}
+                  />
                 </FormField>
                 <FormField label="市区町村" error={saErr?.city?.message}>
-                  <FormInput {...register('employerInfo.supportAgency.city')} placeholder="例: 港区" error={!!saErr?.city} />
+                  <Controller
+                    name="employerInfo.supportAgency.city"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedPrefecture = watch('employerInfo.supportAgency.prefecture');
+                      const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                      return (
+                        <FormSelect
+                          options={cityOptions}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          error={!!saErr?.city}
+                          disabled={!selectedPrefecture || cityOptions.length === 0}
+                        />
+                      );
+                    }}
+                  />
                 </FormField>
                 <FormField label="町名・番地等" error={saErr?.addressLines?.message}>
                   <FormInput {...register('employerInfo.supportAgency.addressLines')} placeholder="例: 芝公園1-1-1" error={!!saErr?.addressLines} />
@@ -988,10 +1061,40 @@ export function EmployerInfoSection({
                   <FormInput {...register('employerInfo.supportAgency.officeZipCode')} placeholder="1000001" maxLength={7} error={!!saErr?.officeZipCode} />
                 </FormField>
                 <FormField label="事業所 都道府県" error={saErr?.officePrefecture?.message}>
-                  <FormInput {...register('employerInfo.supportAgency.officePrefecture')} placeholder="例: 東京都" error={!!saErr?.officePrefecture} />
+                  <Controller
+                    name="employerInfo.supportAgency.officePrefecture"
+                    control={control}
+                    render={({ field }) => (
+                      <FormSelect
+                        options={renewalFormOptions.prefectures}
+                        value={field.value ?? ''}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          setValue('employerInfo.supportAgency.officeCity', '');
+                        }}
+                        error={!!saErr?.officePrefecture}
+                      />
+                    )}
+                  />
                 </FormField>
                 <FormField label="事業所 市区町村" error={saErr?.officeCity?.message}>
-                  <FormInput {...register('employerInfo.supportAgency.officeCity')} placeholder="例: 港区" error={!!saErr?.officeCity} />
+                  <Controller
+                    name="employerInfo.supportAgency.officeCity"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedPrefecture = watch('employerInfo.supportAgency.officePrefecture');
+                      const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                      return (
+                        <FormSelect
+                          options={cityOptions}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          error={!!saErr?.officeCity}
+                          disabled={!selectedPrefecture || cityOptions.length === 0}
+                        />
+                      );
+                    }}
+                  />
                 </FormField>
                 <FormField label="支援責任者名" error={saErr?.supportSupervisorName?.message}>
                   <FormInput {...register('employerInfo.supportAgency.supportSupervisorName')} placeholder="例: 鈴木 次郎" error={!!saErr?.supportSupervisorName} />
@@ -1280,8 +1383,26 @@ export function EmployerInfoSection({
               <FormField label="雇用保険適用事業所番号" error={dispatchErr?.employmentInsuranceNumber?.message}><FormInput {...register('employerInfo.dispatchDestination.employmentInsuranceNumber')} maxLength={11} error={!!dispatchErr?.employmentInsuranceNumber} /></FormField>
               <FormField label="代表者の氏名" error={dispatchErr?.representativeName?.message}><FormInput {...register('employerInfo.dispatchDestination.representativeName')} error={!!dispatchErr?.representativeName} /></FormField>
               <FormField label="郵便番号" hint="ハイフンなし" error={dispatchErr?.zipCode?.message}><FormInput {...register('employerInfo.dispatchDestination.zipCode')} maxLength={7} error={!!dispatchErr?.zipCode} /></FormField>
-              <FormField label="都道府県" error={dispatchErr?.prefecture?.message}><FormInput {...register('employerInfo.dispatchDestination.prefecture')} error={!!dispatchErr?.prefecture} /></FormField>
-              <FormField label="市区町村" error={dispatchErr?.city?.message}><FormInput {...register('employerInfo.dispatchDestination.city')} error={!!dispatchErr?.city} /></FormField>
+              <FormField label="都道府県" error={dispatchErr?.prefecture?.message}>
+                <Controller
+                  name="employerInfo.dispatchDestination.prefecture"
+                  control={control}
+                  render={({ field }) => (
+                    <FormSelect options={renewalFormOptions.prefectures} value={field.value ?? ''} onChange={(val) => { field.onChange(val); setValue('employerInfo.dispatchDestination.city', ''); }} error={!!dispatchErr?.prefecture} />
+                  )}
+                />
+              </FormField>
+              <FormField label="市区町村" error={dispatchErr?.city?.message}>
+                <Controller
+                  name="employerInfo.dispatchDestination.city"
+                  control={control}
+                  render={({ field }) => {
+                    const selectedPrefecture = watch('employerInfo.dispatchDestination.prefecture');
+                    const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                    return <FormSelect options={cityOptions} value={field.value ?? ''} onChange={field.onChange} error={!!dispatchErr?.city} disabled={!selectedPrefecture || cityOptions.length === 0} />;
+                  }}
+                />
+              </FormField>
               <FormField label="町名・番地等" error={dispatchErr?.addressLines?.message}><FormInput {...register('employerInfo.dispatchDestination.addressLines')} error={!!dispatchErr?.addressLines} /></FormField>
               <FormField label="電話番号" hint="ハイフンなし" error={dispatchErr?.phone?.message}><FormInput {...register('employerInfo.dispatchDestination.phone')} error={!!dispatchErr?.phone} /></FormField>
               <FormField label="派遣期間(始期)" error={dispatchErr?.periodStart?.message}><FormInput type="date" {...register('employerInfo.dispatchDestination.periodStart')} error={!!dispatchErr?.periodStart} /></FormField>
@@ -1308,8 +1429,26 @@ export function EmployerInfoSection({
               <FormField label="許可・届出番号" error={placeErr?.licenseNumber?.message}><FormInput {...register('employerInfo.placementAgency.licenseNumber')} error={!!placeErr?.licenseNumber} /></FormField>
               <FormField label="受理年月日" error={placeErr?.acceptanceDate?.message}><FormInput type="date" {...register('employerInfo.placementAgency.acceptanceDate')} error={!!placeErr?.acceptanceDate} /></FormField>
               <FormField label="郵便番号" hint="ハイフンなし" error={placeErr?.zipCode?.message}><FormInput {...register('employerInfo.placementAgency.zipCode')} maxLength={7} error={!!placeErr?.zipCode} /></FormField>
-              <FormField label="都道府県" error={placeErr?.prefecture?.message}><FormInput {...register('employerInfo.placementAgency.prefecture')} error={!!placeErr?.prefecture} /></FormField>
-              <FormField label="市区町村" error={placeErr?.city?.message}><FormInput {...register('employerInfo.placementAgency.city')} error={!!placeErr?.city} /></FormField>
+              <FormField label="都道府県" error={placeErr?.prefecture?.message}>
+                <Controller
+                  name="employerInfo.placementAgency.prefecture"
+                  control={control}
+                  render={({ field }) => (
+                    <FormSelect options={renewalFormOptions.prefectures} value={field.value ?? ''} onChange={(val) => { field.onChange(val); setValue('employerInfo.placementAgency.city', ''); }} error={!!placeErr?.prefecture} />
+                  )}
+                />
+              </FormField>
+              <FormField label="市区町村" error={placeErr?.city?.message}>
+                <Controller
+                  name="employerInfo.placementAgency.city"
+                  control={control}
+                  render={({ field }) => {
+                    const selectedPrefecture = watch('employerInfo.placementAgency.prefecture');
+                    const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                    return <FormSelect options={cityOptions} value={field.value ?? ''} onChange={field.onChange} error={!!placeErr?.city} disabled={!selectedPrefecture || cityOptions.length === 0} />;
+                  }}
+                />
+              </FormField>
               <FormField label="町名・番地等" error={placeErr?.addressLines?.message}><FormInput {...register('employerInfo.placementAgency.addressLines')} error={!!placeErr?.addressLines} /></FormField>
               <FormField label="電話番号" hint="ハイフンなし" error={placeErr?.phone?.message}><FormInput {...register('employerInfo.placementAgency.phone')} error={!!placeErr?.phone} /></FormField>
             </div>

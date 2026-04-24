@@ -5,11 +5,7 @@ import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-
 import { Plus, Trash2, User, Sparkles, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
-import {
-  DESIRED_STAY_PERIOD_OPTIONS,
-  SKILL_CERT_METHOD_OPTIONS,
-  SPECIFIC_SKILL_CATEGORY_OPTIONS,
-} from '@/types/renewalApplication';
+
 import { FormField } from '../ui/FormField';
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
@@ -17,7 +13,7 @@ import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 import { useOcrExtract } from '@/hooks/useOcrExtract';
-import { formOptions } from '@/lib/constants/formOptions';
+import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
 
 interface ForeignerInfoSectionProps {
   isEditable?: boolean;
@@ -320,7 +316,7 @@ export function ForeignerInfoSection({
               control={control}
               render={({ field }) => (
                 <FormSelect
-                  options={formOptions.nationality}
+                  options={renewalFormOptions.nationality}
                   value={field.value ?? ''}
                   onChange={field.onChange}
                   error={!!info?.nationality}
@@ -345,10 +341,7 @@ export function ForeignerInfoSection({
               render={({ field }) => (
                 <FormRadioGroup
                   name="foreignerInfo.gender"
-                  options={[
-                    { value: 'male', label: '男' },
-                    { value: 'female', label: '女' },
-                  ]}
+                  options={renewalFormOptions.gender}
                   value={field.value}
                   onChange={field.onChange}
                   error={!!info?.gender}
@@ -391,10 +384,7 @@ export function ForeignerInfoSection({
               render={({ field }) => (
                 <FormRadioGroup
                   name="foreignerInfo.maritalStatus"
-                  options={[
-                    { value: 'married', label: '有' },
-                    { value: 'unmarried', label: '無' },
-                  ]}
+                  options={renewalFormOptions.maritalStatus}
                   value={field.value}
                   onChange={field.onChange}
                   error={!!info?.maritalStatus}
@@ -436,10 +426,21 @@ export function ForeignerInfoSection({
             required
             error={info?.japanPrefecture?.message}
           >
-            <FormInput
-              {...register('foreignerInfo.japanPrefecture')}
-              placeholder="例: 東京都"
-              error={!!info?.japanPrefecture}
+            <Controller
+              name="foreignerInfo.japanPrefecture"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  options={renewalFormOptions.prefectures}
+                  value={field.value ?? ''}
+                  onChange={(val) => {
+                    field.onChange(val);
+                    // Reset city when prefecture changes
+                    setValue('foreignerInfo.japanCity', '');
+                  }}
+                  error={!!info?.japanPrefecture}
+                />
+              )}
             />
           </FormField>
 
@@ -448,10 +449,22 @@ export function ForeignerInfoSection({
             required
             error={info?.japanCity?.message}
           >
-            <FormInput
-              {...register('foreignerInfo.japanCity')}
-              placeholder="例: 港区"
-              error={!!info?.japanCity}
+            <Controller
+              name="foreignerInfo.japanCity"
+              control={control}
+              render={({ field }) => {
+                const selectedPrefecture = watch('foreignerInfo.japanPrefecture');
+                const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                return (
+                  <FormSelect
+                    options={cityOptions}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    error={!!info?.japanCity}
+                    disabled={!selectedPrefecture || cityOptions.length === 0}
+                  />
+                );
+              }}
             />
           </FormField>
 
@@ -581,7 +594,7 @@ export function ForeignerInfoSection({
               control={control}
               render={({ field }) => (
                 <FormSelect
-                  options={formOptions.residenceStatus}
+                  options={renewalFormOptions.residenceStatus}
                   value={field.value ?? ''}
                   onChange={field.onChange}
                   error={!!info?.currentResidenceStatus}
@@ -662,10 +675,7 @@ export function ForeignerInfoSection({
                 control={control}
                 render={({ field }) => (
                   <FormSelect
-                    options={DESIRED_STAY_PERIOD_OPTIONS.map((o) => ({
-                      value: o.value,
-                      label: o.label,
-                    }))}
+                    options={renewalFormOptions.desiredStayPeriod}
                     value={field.value ?? ''}
                     onChange={field.onChange}
                     error={!!info?.desiredStayPeriod}
@@ -782,10 +792,7 @@ export function ForeignerInfoSection({
             render={({ field }) => (
               <FormRadioGroup
                 name="foreignerInfo.specificSkillCategory"
-                options={SPECIFIC_SKILL_CATEGORY_OPTIONS.map((o) => ({
-                  value: o.value,
-                  label: o.label,
-                }))}
+                options={renewalFormOptions.specificSkillCategory}
                 value={field.value}
                 onChange={field.onChange}
                 error={!!info?.specificSkillCategory}
@@ -808,10 +815,7 @@ export function ForeignerInfoSection({
                 control={control}
                 render={({ field }) => (
                   <FormSelect
-                    options={SKILL_CERT_METHOD_OPTIONS.map((o) => ({
-                      value: o.value,
-                      label: o.label,
-                    }))}
+                    options={renewalFormOptions.skillCertMethod}
                     value={field.value}
                     onChange={field.onChange}
                     error={!!info?.skillCertifications?.[0]?.method}
@@ -939,10 +943,7 @@ export function ForeignerInfoSection({
                 control={control}
                 render={({ field }) => (
                   <FormSelect
-                    options={SKILL_CERT_METHOD_OPTIONS.map((o) => ({
-                      value: o.value,
-                      label: o.label,
-                    }))}
+                    options={renewalFormOptions.skillCertMethod}
                     value={field.value}
                     onChange={field.onChange}
                     error={!!info?.languageCertifications?.[0]?.method}
@@ -1171,7 +1172,7 @@ export function ForeignerInfoSection({
                         render={({ field }) => (
                           <FormSelect
                             {...field}
-                            options={formOptions.relationship}
+                            options={renewalFormOptions.relationship}
                             placeholder="続柄を選択"
                             error={!!rel?.relationship}
                           />
@@ -1193,10 +1194,17 @@ export function ForeignerInfoSection({
                       />
                     </FormField>
                     <FormField label="国籍・地域" required error={rel?.nationality?.message}>
-                      <FormInput
-                        {...register(`foreignerInfo.relatives.${index}.nationality`)}
-                        placeholder="例: ブラジル"
-                        error={!!rel?.nationality}
+                      <Controller
+                        name={`foreignerInfo.relatives.${index}.nationality`}
+                        control={control}
+                        render={({ field }) => (
+                          <FormSelect
+                            {...field}
+                            options={renewalFormOptions.nationality}
+                            placeholder="国籍を選択"
+                            error={!!rel?.nationality}
+                          />
+                        )}
                       />
                     </FormField>
                     <FormField label="勤務先・通学先" error={rel?.workplace?.message}>
@@ -1290,7 +1298,7 @@ export function ForeignerInfoSection({
                   render={({ field }) => (
                     <FormSelect
                       {...field}
-                      options={formOptions.relationship}
+                      options={renewalFormOptions.relationship}
                       placeholder="関係を選択"
                       error={!!(info?.agent as {relationship?: unknown} | undefined)?.relationship}
                     />
@@ -1306,17 +1314,39 @@ export function ForeignerInfoSection({
                 />
               </FormField>
               <FormField label="都道府県" error={(info?.agent as {prefecture?: {message?: string}} | undefined)?.prefecture?.message}>
-                <FormInput
-                  {...register('foreignerInfo.agent.prefecture')}
-                  placeholder="例: 東京都"
-                  error={!!(info?.agent as {prefecture?: unknown} | undefined)?.prefecture}
+                <Controller
+                  name="foreignerInfo.agent.prefecture"
+                  control={control}
+                  render={({ field }) => (
+                    <FormSelect
+                      options={renewalFormOptions.prefectures}
+                      value={field.value ?? ''}
+                      onChange={(val) => {
+                        field.onChange(val);
+                        setValue('foreignerInfo.agent.city', '');
+                      }}
+                      error={!!(info?.agent as {prefecture?: unknown} | undefined)?.prefecture}
+                    />
+                  )}
                 />
               </FormField>
               <FormField label="市区町村" error={(info?.agent as {city?: {message?: string}} | undefined)?.city?.message}>
-                <FormInput
-                  {...register('foreignerInfo.agent.city')}
-                  placeholder="例: 港区"
-                  error={!!(info?.agent as {city?: unknown} | undefined)?.city}
+                <Controller
+                  name="foreignerInfo.agent.city"
+                  control={control}
+                  render={({ field }) => {
+                    const selectedPrefecture = watch('foreignerInfo.agent.prefecture');
+                    const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                    return (
+                      <FormSelect
+                        options={cityOptions}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        error={!!(info?.agent as {city?: unknown} | undefined)?.city}
+                        disabled={!selectedPrefecture || cityOptions.length === 0}
+                      />
+                    );
+                  }}
                 />
               </FormField>
               <FormField label="町名丁目番地号等" error={(info?.agent as {addressLines?: {message?: string}} | undefined)?.addressLines?.message}>
@@ -1396,17 +1426,39 @@ export function ForeignerInfoSection({
                 />
               </FormField>
               <FormField label="都道府県" error={(info?.agencyRep as {prefecture?: {message?: string}} | undefined)?.prefecture?.message}>
-                <FormInput
-                  {...register('foreignerInfo.agencyRep.prefecture')}
-                  placeholder="例: 東京都"
-                  error={!!(info?.agencyRep as {prefecture?: unknown} | undefined)?.prefecture}
+                <Controller
+                  name="foreignerInfo.agencyRep.prefecture"
+                  control={control}
+                  render={({ field }) => (
+                    <FormSelect
+                      options={renewalFormOptions.prefectures}
+                      value={field.value ?? ''}
+                      onChange={(val) => {
+                        field.onChange(val);
+                        setValue('foreignerInfo.agencyRep.city', '');
+                      }}
+                      error={!!(info?.agencyRep as {prefecture?: unknown} | undefined)?.prefecture}
+                    />
+                  )}
                 />
               </FormField>
               <FormField label="市区町村" error={(info?.agencyRep as {city?: {message?: string}} | undefined)?.city?.message}>
-                <FormInput
-                  {...register('foreignerInfo.agencyRep.city')}
-                  placeholder="例: 港区"
-                  error={!!(info?.agencyRep as {city?: unknown} | undefined)?.city}
+                <Controller
+                  name="foreignerInfo.agencyRep.city"
+                  control={control}
+                  render={({ field }) => {
+                    const selectedPrefecture = watch('foreignerInfo.agencyRep.prefecture');
+                    const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                    return (
+                      <FormSelect
+                        options={cityOptions}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        error={!!(info?.agencyRep as {city?: unknown} | undefined)?.city}
+                        disabled={!selectedPrefecture || cityOptions.length === 0}
+                      />
+                    );
+                  }}
                 />
               </FormField>
               <FormField label="町名丁目番地号等" error={(info?.agencyRep as {addressLines?: {message?: string}} | undefined)?.addressLines?.message}>
@@ -1641,7 +1693,7 @@ export function ForeignerInfoSection({
               render={({ field }) => (
                 <FormSelect
                   {...field}
-                  options={formOptions.receivingOffice}
+                  options={renewalFormOptions.receivingOffice}
                   placeholder="受領官署を選択"
                   error={!!info?.receivingOffice}
                 />

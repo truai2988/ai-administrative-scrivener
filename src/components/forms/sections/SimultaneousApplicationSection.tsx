@@ -8,8 +8,10 @@ import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import { FormField } from '../ui/FormField';
 import { FormRadioGroup } from '../ui/FormRadio';
 import { FormInput } from '../ui/FormInput';
+import { FormSelect } from '../ui/FormSelect';
 import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
+import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
 
 interface SimultaneousApplicationSectionProps {
   isEditable?: boolean;
@@ -27,6 +29,8 @@ export function SimultaneousApplicationSection({
   const {
     control,
     register,
+    watch,
+    setValue,
     formState: { errors },
   } = useFormContext<RenewalApplicationFormData>();
 
@@ -326,10 +330,40 @@ export function SimultaneousApplicationSection({
                   <FormInput {...register('simultaneousApplication.activityOutsideStatus.workplaceZipCode')} maxLength={7} error={!!actErr?.workplaceZipCode} />
                 </FormField>
                 <FormField label="都道府県" error={actErr?.workplacePrefecture?.message}>
-                  <FormInput {...register('simultaneousApplication.activityOutsideStatus.workplacePrefecture')} error={!!actErr?.workplacePrefecture} />
+                  <Controller
+                    name="simultaneousApplication.activityOutsideStatus.workplacePrefecture"
+                    control={control}
+                    render={({ field }) => (
+                      <FormSelect
+                        options={renewalFormOptions.prefectures}
+                        value={field.value ?? ''}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          setValue('simultaneousApplication.activityOutsideStatus.workplaceCity', '');
+                        }}
+                        error={!!actErr?.workplacePrefecture}
+                      />
+                    )}
+                  />
                 </FormField>
                 <FormField label="市区町村" error={actErr?.workplaceCity?.message}>
-                  <FormInput {...register('simultaneousApplication.activityOutsideStatus.workplaceCity')} error={!!actErr?.workplaceCity} />
+                  <Controller
+                    name="simultaneousApplication.activityOutsideStatus.workplaceCity"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedPrefecture = watch('simultaneousApplication.activityOutsideStatus.workplacePrefecture');
+                      const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
+                      return (
+                        <FormSelect
+                          options={cityOptions}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          error={!!actErr?.workplaceCity}
+                          disabled={!selectedPrefecture || cityOptions.length === 0}
+                        />
+                      );
+                    }}
+                  />
                 </FormField>
                 <FormField label="電話番号" error={actErr?.workplacePhone1?.message}>
                   <FormInput {...register('simultaneousApplication.activityOutsideStatus.workplacePhone1')} error={!!actErr?.workplacePhone1} />

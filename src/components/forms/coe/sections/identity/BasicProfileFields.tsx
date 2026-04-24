@@ -5,7 +5,7 @@ import { useFormContext } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
-import { formOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function BasicProfileFields() {
@@ -17,7 +17,7 @@ export function BasicProfileFields() {
       <FormField label="国籍・地域" required error={idErrors?.nationality?.message}>
         <FormSelect
           {...register('identityInfo.nationality')}
-          options={formOptions.nationality}
+          options={coeFormOptions.nationality}
           error={!!idErrors?.nationality}
         />
       </FormField>
@@ -51,7 +51,7 @@ export function BasicProfileFields() {
       <FormField label="性別" required error={idErrors?.gender?.message}>
         <FormSelect
           {...register('identityInfo.gender')}
-          options={formOptions.gender}
+          options={coeFormOptions.gender}
           error={!!idErrors?.gender}
         />
       </FormField>
@@ -67,7 +67,7 @@ export function BasicProfileFields() {
       <FormField label="配偶者の有無" required error={idErrors?.maritalStatus?.message}>
         <FormSelect
           {...register('identityInfo.maritalStatus')}
-          options={formOptions.yesNo}
+          options={coeFormOptions.yesNo}
           error={!!idErrors?.maritalStatus}
         />
       </FormField>

@@ -1,7 +1,7 @@
 import Encoding from 'encoding-japanese';
 import { z } from 'zod';
 import { foreignerInfoSchema } from '@/lib/schemas/renewalApplicationSchema';
-import { formOptions } from '@/lib/constants/formOptions';
+import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
 
 type ForeignerInfo = z.infer<typeof foreignerInfoSchema>;
 
@@ -38,7 +38,7 @@ const formatBoolean = (val: boolean | undefined): string => {
 /**
  * 性別を変換する
  */
-const formatGender = (val: 'male' | 'female' | undefined): string => {
+const formatGender = (val: string | undefined): string => {
   if (val === 'male') return '男';
   if (val === 'female') return '女';
   return '';
@@ -47,7 +47,7 @@ const formatGender = (val: 'male' | 'female' | undefined): string => {
 /**
  * 配偶者の有無を変換する
  */
-const formatMaritalStatus = (val: 'married' | 'unmarried' | undefined): string => {
+const formatMaritalStatus = (val: string | undefined): string => {
   if (val === 'married') return '有';
   if (val === 'unmarried') return '無';
   return '';
@@ -56,7 +56,7 @@ const formatMaritalStatus = (val: 'married' | 'unmarried' | undefined): string =
 /**
  * 受領方法を変換する
  */
-const formatReceiptMethod = (val: 'window' | 'post' | undefined): string => {
+const formatReceiptMethod = (val: string | undefined): string => {
   if (val === 'window') return '窓口等での受領を希望';
   if (val === 'post') return '郵送による受領を希望';
   return '';
@@ -121,7 +121,7 @@ export const generateRenewalCsv = (data: ForeignerInfo): Uint8Array => {
 
   // 1行のデータ行を作成
   const rowData = [
-    getLabel(data.nationality, formOptions.nationality),
+    getLabel(data.nationality, renewalFormOptions.nationality),
     data.birthDate,
     data.nameEn,
     formatGender(data.gender),
@@ -137,7 +137,7 @@ export const generateRenewalCsv = (data: ForeignerInfo): Uint8Array => {
     data.email,
     data.passportNumber,
     data.passportExpiryDate,
-    getLabel(data.currentResidenceStatus, formOptions.residenceStatus),
+    getLabel(data.currentResidenceStatus, renewalFormOptions.residenceStatus),
     data.currentStayPeriod,
     data.stayExpiryDate,
     formatBoolean(data.hasResidenceCard),

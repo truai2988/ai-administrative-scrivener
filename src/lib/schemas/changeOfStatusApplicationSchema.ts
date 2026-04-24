@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { formOptions } from '../constants/formOptions';
+import { changeFormOptions } from '@/lib/constants/changeFormOptions';
 
 // 動的配列からz.enum用のタプルを生成するヘルパー
 const getEnumValues = (options: { value: string }[]) => {
@@ -40,10 +40,10 @@ const optionalPhone = z.string().regex(/^0\d{9,10}$/, '電話番号の形式が�
 
 // ─── 在日親族・同居者 ────────────────────────────────────────────────────────
 const relativeSchema = z.object({
-  relationship: z.enum(getEnumValues(formOptions.relationship)).describe('sheet1:AE-BN-BS 続柄'),
+  relationship: z.enum(getEnumValues(changeFormOptions.relationship)).describe('sheet1:AE-BN-BS 続柄'),
   name: requiredString.describe('sheet1:AF-BO-BT 氏名'),
   birthDate: dateString.describe('sheet1:AG-BP-BU 生年月日'),
-  nationality: z.enum(getEnumValues(formOptions.nationality)).describe('sheet1:AH-BQ-BV 国籍・地域'),
+  nationality: z.enum(getEnumValues(changeFormOptions.nationality)).describe('sheet1:AH-BQ-BV 国籍・地域'),
   cohabitation: z.boolean().describe('sheet1:AI-BR-BW 同居の有無'),
   workplace: z.string().describe('sheet1:AJ-BS-BX 勤務先名称・通学先名称'),
   residenceCardNumber: z
@@ -105,7 +105,7 @@ const agencyRepSchema = z.object({
 // ─── 外国人本人情報スキーマ (Sheet 1) ──────────────────────────────────────────
 export const foreignerInfoSchema = z
   .object({
-    nationality: z.enum(getEnumValues(formOptions.nationality)).describe('sheet1:B 国籍・地域'),
+    nationality: z.enum(getEnumValues(changeFormOptions.nationality)).describe('sheet1:B 国籍・地域'),
     birthDate: pastDateString.describe('sheet1:C 生年月日'),
     nameEn: requiredString
       .regex(/^[A-Za-z\s]+$/, '英字・スペースのみで入力してください')
@@ -135,7 +135,7 @@ export const foreignerInfoSchema = z
     edNumberAlpha: z.string().length(4, '英字4桁').optional().or(z.literal('')).describe('sheet1:X ED番号(英字)'),
     edNumberNumeric: z.string().length(7, '数字7桁').optional().or(z.literal('')).describe('sheet1:Y ED番号(数字)'),
 
-    currentResidenceStatus: z.enum(getEnumValues(formOptions.residenceStatus)).describe('sheet1:S 現に有する在留資格'),
+    currentResidenceStatus: z.enum(getEnumValues(changeFormOptions.residenceStatus)).describe('sheet1:S 現に有する在留資格'),
     currentStayPeriod: requiredString.describe('sheet1:T 在留期間'),
     stayExpiryDate: dateString.describe('sheet1:U 在留期間の満了日'),
     hasResidenceCard: z.boolean().describe('sheet1:V 在留カードの有無'),
@@ -143,10 +143,10 @@ export const foreignerInfoSchema = z
       .regex(/^[A-Z]{2}\d{8}[A-Z]{2}$/, '在留カード番号の形式が正しくありません')
       .describe('sheet1:W 在留カード番号'),
 
-    desiredResidenceStatus: z.enum(getEnumValues(formOptions.residenceStatus)).describe('sheet1:Y 希望する在留資格'),
+    desiredResidenceStatus: z.enum(getEnumValues(changeFormOptions.residenceStatus)).describe('sheet1:Y 希望する在留資格'),
     desiredStayPeriod: z.enum(['4months', '6months', '1year', 'other']).or(z.literal('')).describe('sheet1:Z 希望する在留期間'),
     desiredStayPeriodOther: optionalString,
-    changeReason: z.enum(getEnumValues(formOptions.changeReason)).describe('sheet1:AA 変更の理由'),
+    changeReason: z.enum(getEnumValues(changeFormOptions.changeReason)).describe('sheet1:AA 変更の理由'),
 
     criminalRecord: z.boolean().describe('sheet1:AB 犯罪を理由とする処分を受けたことの有無'),
     criminalRecordDetail: optionalString.describe('sheet1:AC 処分の内容'),

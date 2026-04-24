@@ -30,18 +30,18 @@ const bool = (v: boolean | undefined): string => (v ? '有' : '無');
 const boolAriNashi = (v: boolean | undefined): string => (v ? '有り' : '無し');
 
 /** 性別変換 */
-const gender = (v: 'male' | 'female'): string => (v === 'male' ? '男' : '女');
+const gender = (v: string | undefined): string => (v === 'male' ? '男' : v === 'female' ? '女' : '');
 
 /** 配偶者変換 */
-const marital = (v: 'married' | 'unmarried'): string =>
-  v === 'married' ? '有' : '無';
+const marital = (v: string | undefined): string =>
+  v === 'married' ? '有' : v === 'unmarried' ? '無' : '';
 
 /** 報酬の支払方法変換 */
-const paymentMethod = (v: 'cash' | 'bank_transfer'): string =>
-  v === 'cash' ? '現金' : '口座振込';
+const paymentMethod = (v: string | undefined): string =>
+  v === 'cash' ? '現金' : v === 'bank_transfer' ? '口座振込' : '';
 
 const desiredStayPeriod = (
-  v: '4months' | '6months' | '1year' | 'other' | '' | undefined,
+  v: string | undefined,
   other?: string
 ): string => {
   switch (v) {
@@ -54,15 +54,16 @@ const desiredStayPeriod = (
 };
 
 /** 在留カード受領方法変換 */
-const receiptMethod = (v: 'window' | 'post'): string =>
-  v === 'window' ? '窓口受領' : '郵送受領';
+const receiptMethod = (v: string | undefined): string =>
+  v === 'window' ? '窓口受領' : v === 'post' ? '郵送受領' : '';
 
 /** 技能評価区分変換 */
-const skillEvalMethod = (v: 'exam' | 'technical_intern' | 'none'): string => {
+const skillEvalMethod = (v: string | undefined): string => {
   switch (v) {
     case 'exam': return '試験';
     case 'technical_intern': return '技能実習2号良好修了';
     case 'none': return '';
+    default: return '';
   }
 };
 

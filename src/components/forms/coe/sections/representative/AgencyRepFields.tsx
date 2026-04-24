@@ -6,7 +6,7 @@ import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
-import { formOptions, getCityOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 
 export function AgencyRepFields() {
   const { register, formState: { errors }, control, watch, setValue } = useFormContext<CoeApplicationFormData>();
@@ -52,7 +52,7 @@ export function AgencyRepFields() {
           render={({ field }) => (
             <FormSelect
               {...field}
-              options={formOptions.prefectures}
+              options={coeFormOptions.prefectures}
               error={!!repErrors?.prefecture}
               onChange={(e) => {
                 field.onChange(e);
@@ -69,7 +69,7 @@ export function AgencyRepFields() {
           render={({ field }) => (
             <FormSelect
               {...field}
-              options={selectedPrefecture ? getCityOptions(selectedPrefecture) : []}
+              options={selectedPrefecture ? coeFormOptions.getCityOptions(selectedPrefecture) : []}
               error={!!repErrors?.city}
               disabled={!selectedPrefecture}
             />

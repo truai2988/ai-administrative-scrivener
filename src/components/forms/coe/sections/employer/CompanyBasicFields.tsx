@@ -6,7 +6,7 @@ import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
 import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
-import { formOptions, getCityOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function CompanyBasicFields() {
@@ -45,7 +45,7 @@ export function CompanyBasicFields() {
                 name={field.name}
                 value={field.value}
                 onChange={field.onChange}
-                options={formOptions.yesNo}
+                options={coeFormOptions.yesNo}
                 error={!!empErrors?.hasCorporateNumber}
               />
             )}
@@ -116,7 +116,7 @@ export function CompanyBasicFields() {
             render={({ field }) => (
               <FormSelect
                 {...field}
-                options={formOptions.prefectures}
+                options={coeFormOptions.prefectures}
                 error={!!empErrors?.companyPref}
                 onChange={(e) => {
                   field.onChange(e);
@@ -133,7 +133,7 @@ export function CompanyBasicFields() {
             render={({ field }) => (
               <FormSelect
                 {...field}
-                options={selectedPrefecture ? getCityOptions(selectedPrefecture) : []}
+                options={selectedPrefecture ? coeFormOptions.getCityOptions(selectedPrefecture) : []}
                 error={!!empErrors?.companyCity}
                 disabled={!selectedPrefecture}
               />
@@ -204,7 +204,7 @@ export function CompanyBasicFields() {
             render={({ field }) => (
               <FormSelect
                 {...field}
-                options={formOptions.mainOccupation}
+                options={coeFormOptions.mainOccupation}
                 error={!!empErrors?.mainOccupation}
               />
             )}
@@ -217,7 +217,7 @@ export function CompanyBasicFields() {
             render={({ field }) => (
               <FormSelect
                 {...field}
-                options={formOptions.yesNo}
+                options={coeFormOptions.yesNo}
                 error={!!empErrors?.hasPosition}
               />
             )}

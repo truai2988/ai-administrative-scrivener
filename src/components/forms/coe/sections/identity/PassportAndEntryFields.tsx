@@ -5,7 +5,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
-import { formOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function PassportAndEntryFields() {
@@ -43,7 +43,7 @@ export function PassportAndEntryFields() {
         <FormField label="入国目的（在留資格）" required error={idErrors?.entryPurpose?.message}>
           <FormSelect
             {...register('identityInfo.entryPurpose')}
-            options={formOptions.entryPurpose}
+            options={coeFormOptions.entryPurpose}
             error={!!idErrors?.entryPurpose}
           />
         </FormField>
@@ -57,7 +57,7 @@ export function PassportAndEntryFields() {
         <FormField label="入国予定港" required error={idErrors?.entryPort?.message}>
           <FormSelect
             {...register('identityInfo.entryPort')}
-            options={formOptions.entryPort}
+            options={coeFormOptions.entryPort}
             error={!!idErrors?.entryPort}
           />
         </FormField>
@@ -86,7 +86,7 @@ export function PassportAndEntryFields() {
         <FormField label="同伴者の有無" required error={idErrors?.accompanyingPersons?.message}>
           <FormSelect
             {...register('identityInfo.accompanyingPersons')}
-            options={formOptions.yesNo}
+            options={coeFormOptions.yesNo}
             error={!!idErrors?.accompanyingPersons}
           />
         </FormField>
@@ -124,7 +124,7 @@ export function PassportAndEntryFields() {
         <FormField label="過去の在留資格認定証明書交付申請歴" required error={idErrors?.pastApplicationRecord?.message}>
           <FormSelect
             {...register('identityInfo.pastApplicationRecord')}
-            options={formOptions.yesNo}
+            options={coeFormOptions.yesNo}
             error={!!idErrors?.pastApplicationRecord}
           />
         </FormField>
@@ -153,7 +153,7 @@ export function PassportAndEntryFields() {
         <FormField label="犯罪を理由とする処分の有無" required error={idErrors?.criminalRecord?.message}>
           <FormSelect
             {...register('identityInfo.criminalRecord')}
-            options={formOptions.yesNo}
+            options={coeFormOptions.yesNo}
             error={!!idErrors?.criminalRecord}
           />
         </FormField>
@@ -175,7 +175,7 @@ export function PassportAndEntryFields() {
         <FormField label="退去強制又は出国命令による出国の有無" required error={idErrors?.departureOrderHistory?.message}>
           <FormSelect
             {...register('identityInfo.departureOrderHistory')}
-            options={formOptions.yesNo}
+            options={coeFormOptions.yesNo}
             error={!!idErrors?.departureOrderHistory}
           />
         </FormField>

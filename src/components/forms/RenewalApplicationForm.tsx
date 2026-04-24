@@ -33,7 +33,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { calculateTotalSize } from '@/lib/utils/fileUtils';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 
-import { downloadRenewalCsvSimultaneous } from '@/utils/renewalCsvGeneratorSim';
 import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 
 // ─── タブ定義 ─────────────────────────────────────────────────────────────────
@@ -389,10 +388,11 @@ function RenewalApplicationFormInner({
                           type="button"
                           className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
                           onClick={async () => {
-                            const csvGenModule = await import('@/lib/csvGenerator');
-                            const data = methods.getValues();
-                            const { basicCsv } = csvGenModule.generateApplicationCsvs(data);
-                            const url = window.URL.createObjectURL(basicCsv);
+                            const csvGenModule = await import('@/lib/csv/index');
+                            const { generateApplicationCsvs } = csvGenModule;
+                            const data = methods.getValues() as any;
+                            const { basicBlob } = await generateApplicationCsvs(data);
+                            const url = window.URL.createObjectURL(basicBlob);
                             const a = document.createElement('a');
                             a.href = url;
                             a.download = '申請情報入力(在留期間更新許可申請)_1.csv';
@@ -407,10 +407,11 @@ function RenewalApplicationFormInner({
                           type="button"
                           className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
                           onClick={async () => {
-                            const csvGenModule = await import('@/lib/csvGenerator');
-                            const data = methods.getValues();
-                            const { specificSkillCsv } = csvGenModule.generateApplicationCsvs(data);
-                            const url = window.URL.createObjectURL(specificSkillCsv);
+                            const csvGenModule = await import('@/lib/csv/index');
+                            const { generateApplicationCsvs } = csvGenModule;
+                            const data = methods.getValues() as any;
+                            const { specificBlob } = await generateApplicationCsvs(data);
+                            const url = window.URL.createObjectURL(specificBlob);
                             const a = document.createElement('a');
                             a.href = url;
                             a.download = '申請情報入力(区分V)_1.csv';
@@ -424,9 +425,17 @@ function RenewalApplicationFormInner({
                         <button
                           type="button"
                           className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                          onClick={() => {
-                            const data = methods.getValues('simultaneousApplication');
-                            downloadRenewalCsvSimultaneous(data);
+                          onClick={async () => {
+                            const csvGenModule = await import('@/lib/csv/index');
+                            const { generateApplicationCsvs } = csvGenModule;
+                            const data = methods.getValues() as any;
+                            const { simultaneousBlob } = await generateApplicationCsvs(data);
+                            const url = window.URL.createObjectURL(simultaneousBlob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = '申請情報入力(同時申請)_1.csv';
+                            a.click();
+                            window.URL.revokeObjectURL(url);
                             setShowDownloadMenu(false);
                           }}
                         >

@@ -7,7 +7,7 @@ import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
 import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
-import { formOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function JobHistoryFields() {
@@ -78,7 +78,7 @@ export function JobHistoryFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.nationality}
+                          options={coeFormOptions.nationality}
                           error={!!fieldError?.country}
                         />
                       )}
@@ -93,7 +93,7 @@ export function JobHistoryFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.monthUnknownFlags}
+                          options={coeFormOptions.monthUnknownFlags}
                           error={!!fieldError?.startDateUnknown}
                         />
                       )}
@@ -125,7 +125,7 @@ export function JobHistoryFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.monthUnknownFlags}
+                          options={coeFormOptions.monthUnknownFlags}
                           error={!!fieldError?.endDateUnknown}
                         />
                       )}

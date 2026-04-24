@@ -6,7 +6,7 @@ import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfSt
 import { FormField } from '../../ui/FormField';
 import { FormInput } from '../../ui/FormInput';
 import { FormSelect } from '../../ui/FormSelect';
-import { formOptions } from '@/lib/constants/formOptions';
+import { changeFormOptions } from '@/lib/constants/changeFormOptions';
 
 export function ChangeRequestSubForm() {
   const { register, watch, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
@@ -21,7 +21,7 @@ export function ChangeRequestSubForm() {
         <FormField label="希望する在留資格" required error={infoError?.desiredResidenceStatus?.message}>
           <FormSelect
             {...register('foreignerInfo.desiredResidenceStatus')}
-            options={formOptions.residenceStatus}
+            options={changeFormOptions.residenceStatus}
             error={!!infoError?.desiredResidenceStatus}
           />
         </FormField>
@@ -52,7 +52,7 @@ export function ChangeRequestSubForm() {
         <FormField label="変更の理由" required error={infoError?.changeReason?.message} className="md:col-span-2 lg:col-span-3">
           <FormSelect
             {...register('foreignerInfo.changeReason')}
-            options={formOptions.changeReason}
+            options={changeFormOptions.changeReason}
             error={!!infoError?.changeReason}
           />
         </FormField>

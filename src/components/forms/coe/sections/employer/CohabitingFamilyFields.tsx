@@ -6,7 +6,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
-import { formOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function CohabitingFamilyFields() {
@@ -71,7 +71,7 @@ export function CohabitingFamilyFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.relationship}
+                          options={coeFormOptions.relationship}
                           error={!!fieldError?.relationship}
                         />
                       )}
@@ -92,7 +92,7 @@ export function CohabitingFamilyFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.nationality}
+                          options={coeFormOptions.nationality}
                           error={!!fieldError?.nationality}
                         />
                       )}
@@ -113,7 +113,7 @@ export function CohabitingFamilyFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.yesNo}
+                          options={coeFormOptions.yesNo}
                           error={!!fieldError?.cohabitation}
                         />
                       )}
@@ -134,7 +134,7 @@ export function CohabitingFamilyFields() {
                       render={({ field }) => (
                         <FormSelect
                           {...field}
-                          options={formOptions.residenceStatus}
+                          options={coeFormOptions.residenceStatus}
                           error={!!fieldError?.residenceStatus}
                         />
                       )}

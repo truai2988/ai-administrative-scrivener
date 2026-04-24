@@ -5,7 +5,7 @@ import { useFormContext, Controller } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
-import { formOptions } from '@/lib/constants/formOptions';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function ApplicationMetadataFields() {
@@ -24,7 +24,7 @@ export function ApplicationMetadataFields() {
               render={({ field }) => (
                 <FormSelect
                   {...field}
-                  options={formOptions.receiptMethod}
+                  options={coeFormOptions.receiptMethod}
                   error={!!errors.residenceCardReceiptMethod}
                 />
               )}
@@ -38,7 +38,7 @@ export function ApplicationMetadataFields() {
               render={({ field }) => (
                 <FormSelect
                   {...field}
-                  options={formOptions.checkIntent}
+                  options={coeFormOptions.checkIntent}
                   error={!!errors.checkIntent}
                 />
               )}

@@ -6,7 +6,7 @@ import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfSt
 import { FormField } from '../../ui/FormField';
 import { FormInput } from '../../ui/FormInput';
 import { FormSelect } from '../../ui/FormSelect';
-import { formOptions } from '@/lib/constants/formOptions';
+import { changeFormOptions } from '@/lib/constants/changeFormOptions';
 
 export function PassportStatusSubForm() {
   const { register, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
@@ -42,7 +42,7 @@ export function PassportStatusSubForm() {
           <FormField label="現に有する在留資格" required error={infoError?.currentResidenceStatus?.message}>
             <FormSelect
               {...register('foreignerInfo.currentResidenceStatus')}
-              options={formOptions.residenceStatus}
+              options={changeFormOptions.residenceStatus}
               error={!!infoError?.currentResidenceStatus}
             />
           </FormField>

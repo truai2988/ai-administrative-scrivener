@@ -7,7 +7,7 @@ import { FormField } from '../../ui/FormField';
 import { FormInput } from '../../ui/FormInput';
 import { FormSelect } from '../../ui/FormSelect';
 import { FormRadioGroup } from '../../ui/FormRadio';
-import { formOptions } from '@/lib/constants/formOptions';
+import { changeFormOptions } from '@/lib/constants/changeFormOptions';
 
 export function BasicInfoSubForm() {
   const { register, control, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
@@ -21,7 +21,7 @@ export function BasicInfoSubForm() {
         <FormField label="国籍・地域" required error={infoError?.nationality?.message}>
           <FormSelect
             {...register('foreignerInfo.nationality')}
-            options={formOptions.nationality}
+            options={changeFormOptions.nationality}
             error={!!infoError?.nationality}
           />
         </FormField>
