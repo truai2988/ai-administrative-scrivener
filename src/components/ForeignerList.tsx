@@ -306,7 +306,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                             className="flex items-center justify-center gap-1.5 h-8 px-3 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm min-w-[96px]"
                           >
                             <FilePen className="w-3.5 h-3.5" />
-                            書類作成
+                            書類編集
                           </button>
 
                           {openDropdown === `edit-${person.id}` && (
@@ -337,7 +337,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                   }}
                                   className="block w-full text-left px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
                                 >
-                                  期間更新許可申請
+                                  在留期間更新許可申請
                                 </button>
                                 <button
                                   onClick={(e) => {
