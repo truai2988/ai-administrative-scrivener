@@ -189,8 +189,8 @@ export function CoeApplicationForm({
         <form onSubmit={(e) => e.preventDefault()} className="renewal-form" noValidate>
           {/* Header and Tabs */}
           <div className="renewal-form-sticky-top">
-            <div className="applicant-context-header flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3">
-              <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="applicant-context-header flex flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="applicant-avatar shrink-0">
                   {applicantName.charAt(0)}
                 </div>
@@ -262,25 +262,25 @@ export function CoeApplicationForm({
                   <button
                     type="button"
                     className="btn-outline btn-save h-8 px-3 text-xs font-bold shrink-0"
-                  onClick={() => handleSaveOnly(getValues())}
-                  disabled={isBusy}
-                  id="btn-save-only"
-                  title="入力途中の内容を下書き保存します"
-                >
-                  {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-                  {isSaving ? '保存中...' : '保存'}
-                </button>
+                    onClick={() => handleSaveOnly(getValues())}
+                    disabled={isBusy}
+                    id="btn-save-only"
+                    title="入力途中の内容を下書き保存します"
+                  >
+                    {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+                    <span className="hidden sm:inline">{isSaving ? '保存中...' : '保存'}</span>
+                  </button>
 
-                <button
-                  type="button"
-                  className="btn-outline h-8 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
-                  onClick={() => handleSaveAndExport(getValues())}
-                  disabled={isBusy}
-                  title="保存してCSV形式で出力します"
-                >
-                  {isExporting ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
-                  <span>{isExporting ? '出力中...' : 'CSV出力'}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="btn-outline h-8 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
+                    onClick={() => handleSaveAndExport(getValues())}
+                    disabled={isBusy}
+                    title="保存してCSV形式で出力します"
+                  >
+                    {isExporting ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
+                    <span className="hidden sm:inline">{isExporting ? '出力中...' : 'CSV出力'}</span>
+                  </button>
               </div>
               </div>
             </div>

@@ -28,44 +28,10 @@ interface RenewalFormLoaderProps {
 // ─── スケルトンUI ──────────────────────────────────────────────────────────────
 function FormSkeleton() {
   return (
-    <div className="renewal-form skeleton-form" aria-busy="true" aria-label="データ読み込み中">
-      {/* ヘッダー */}
-      <div className="form-header">
-        <div className="skeleton-block" style={{ width: 120, height: 20, borderRadius: 6, marginBottom: 12 }} />
-        <div className="skeleton-block" style={{ width: 280, height: 32, borderRadius: 8, marginBottom: 8 }} />
-        <div className="skeleton-block" style={{ width: 200, height: 14, borderRadius: 6 }} />
-      </div>
-
-      {/* タブ */}
-      <div className="tab-nav" role="tablist" style={{ gap: '0.5rem' }}>
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="skeleton-block"
-            style={{ flex: 1, height: 48, borderRadius: 12 }}
-          />
-        ))}
-      </div>
-
-      {/* フィールドグリッド */}
-      <div className="tab-panel">
-        <div className="section-container">
-          <div className="skeleton-block" style={{ width: 160, height: 22, marginBottom: 24, borderRadius: 6 }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i}>
-                <div className="skeleton-block" style={{ width: '60%', height: 12, borderRadius: 4, marginBottom: 8 }} />
-                <div className="skeleton-block" style={{ width: '100%', height: 40, borderRadius: 8 }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ローダーオーバーレイ */}
-      <div className="skeleton-loader-badge">
-        <Loader2 size={16} className="spin" />
-        <span>申請データを読み込み中...</span>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 size={32} className="spin text-indigo-400" />
+        <span className="text-sm font-medium text-slate-400">申請データを読み込み中...</span>
       </div>
     </div>
   );

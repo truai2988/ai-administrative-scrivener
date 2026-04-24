@@ -255,8 +255,8 @@ export function ChangeOfStatusForm({
       <FormProvider {...methods}>
         <form noValidate className="renewal-form">
           <div className="renewal-form-sticky-top">
-            <div className="applicant-context-header flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3">
-              <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="applicant-context-header flex flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="applicant-avatar shrink-0">
                   {applicantName.charAt(0)}
                 </div>

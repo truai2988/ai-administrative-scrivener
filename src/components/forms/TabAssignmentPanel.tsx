@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { ChevronDown, ChevronUp, UserCog, RotateCcw, Sparkles, PenSquare } from 'lucide-react';
+import { ChevronDown, ChevronUp, UserCog, RotateCcw } from 'lucide-react';
 import { useSectionPermission } from '@/contexts/SectionPermissionContext';
 import { TEST_USERS } from '@/lib/constants/testUsers';
 import type { TabId } from '@/lib/schemas/renewalApplicationSchema';
@@ -62,18 +62,6 @@ export function TabAssignmentPanel() {
         <span className="hidden sm:inline">担当者割り当て設定</span>
         <span className="sm:hidden">担当設定</span>
 
-        {/* 自動設定 / 手動変更 バッジ */}
-        {isDefault ? (
-          <span className="tab-assignment-mode-badge tab-assignment-mode-badge--auto">
-            <Sparkles size={10} />
-            自動設定
-          </span>
-        ) : (
-          <span className="tab-assignment-mode-badge tab-assignment-mode-badge--manual">
-            <PenSquare size={10} />
-            手動変更
-          </span>
-        )}
 
         {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>

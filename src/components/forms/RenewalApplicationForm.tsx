@@ -291,8 +291,8 @@ function RenewalApplicationFormInner({
           {/* ─── 上部固定エリア（ヘッダー・対象者情報・タブを束ねる） ──────────────── */}
           <div className="renewal-form-sticky-top">
             {/* ─── ヘッダー（ボタン統合） ──────────────────────── */}
-            <div className="applicant-context-header flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3">
-              <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="applicant-context-header flex flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="applicant-avatar shrink-0">
                   {applicantName.charAt(0)}
                 </div>
@@ -321,161 +321,161 @@ function RenewalApplicationFormInner({
                 </div>
               </div>
 
-              <div className="flex flex-col items-end gap-1.5 w-full md:w-auto shrink-0">
-                <div className="applicant-context-actions flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-1 md:pb-0 shrink-0">
-                  {/* ─── 担当者割り当てパネル ─── */}
-                  <TabAssignmentPanel />
-                  
-                  {/* ─── AI診断ボタン ─── */}
-                  <button
-                    type="button"
-                    id="btn-ai-check"
-                    className={`ai-check-btn shrink-0 ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
-                    onClick={() => aiDiag.runCheck(methods.getValues())}
-                    disabled={aiDiag.status === 'loading'}
-                    title="入力内容・整合性・法的リスクをAIが診断します"
-                  >
-                    {aiDiag.status === 'loading' ? (
-                      <Loader2 size={16} className="spin" />
-                    ) : (
-                      <Sparkles size={16} />
-                    )}
-                    <span className="hidden sm:inline">
-                      {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
-                    </span>
-                    <span className="sm:hidden">
-                      {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
-                    </span>
-                    {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
-                      <span className="ai-check-btn-badge ai-check-btn-badge--critical">
-                        {aiDiag.counts.critical}
-                      </span>
-                    )}
-                    {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
-                      <span className="ai-check-btn-badge ai-check-btn-badge--warning">
-                        {aiDiag.counts.warning}
-                      </span>
-                    )}
-                  </button>
+              <div className="applicant-context-actions flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+                {!hideHeader && (
+                  <>
 
-                  {!hideHeader && (
-                    <>
-
-                    {hasRequestReviewPermission && (
-                      <button
-                        type="button"
-                        onClick={handleRequestReview}
-                        disabled={!canExecuteRequestReview}
-                        title={canExecuteRequestReview ? "行政書士へ確認依頼" : "現在は確認依頼できません"}
-                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[96px] shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Mail className="w-3.5 h-3.5" />
-                        確認依頼
-                      </button>
-                    )}
-
-                    {hasApproveReturnPermission && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleReturn}
-                          disabled={!canExecuteApproveReturn}
-                          title={canExecuteApproveReturn ? "差し戻し" : "現在は差し戻しできません"}
-                          className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          差戻
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleApprove}
-                          disabled={!canExecuteApproveReturn}
-                          title={canExecuteApproveReturn ? "承認" : "現在は承認できません"}
-                          className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          承認
-                        </button>
-                      </>
-                    )}
-
+                  {hasRequestReviewPermission && (
                     <button
                       type="button"
-                      className="btn-outline btn-save h-8 px-3 text-xs font-bold shrink-0"
-                      onClick={() => handleSaveOnly(methods.getValues())}
-                      disabled={isBusy}
-                      id="btn-save-only"
-                      title="入力途中の内容を下書き保存します"
+                      onClick={handleRequestReview}
+                      disabled={!canExecuteRequestReview}
+                      title={canExecuteRequestReview ? "行政書士へ確認依頼" : "現在は確認依頼できません"}
+                      className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[96px] shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-                      {isSaving ? '保存中...' : '保存'}
+                      <Mail className="w-3.5 h-3.5" />
+                      確認依頼
                     </button>
+                  )}
 
-                    <div className="relative inline-block text-left shrink-0">
+                  {hasApproveReturnPermission && (
+                    <>
                       <button
                         type="button"
-                        className="btn-outline h-8 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
-                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                        onClick={handleReturn}
+                        disabled={!canExecuteApproveReturn}
+                        title={canExecuteApproveReturn ? "差し戻し" : "現在は差し戻しできません"}
+                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400"
                       >
-                        <Download size={14} /> <span className="hidden sm:inline">CSV出力</span>
+                        <XCircle className="w-3.5 h-3.5" />
+                        差戻
                       </button>
-                      
-                      {showDownloadMenu && (
-                        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden flex flex-col">
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
-                            onClick={async () => {
-                              const csvGenModule = await import('@/lib/csvGenerator');
-                              const data = methods.getValues();
-                              const { basicCsv } = csvGenModule.generateApplicationCsvs(data);
-                              const url = window.URL.createObjectURL(basicCsv);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = '申請情報入力(在留期間更新許可申請)_1.csv';
-                              a.click();
-                              window.URL.revokeObjectURL(url);
-                              setShowDownloadMenu(false);
-                            }}
-                          >
-                            <User size={14} /> 基本情報 (在留期間更新)
-                          </button>
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
-                            onClick={async () => {
-                              const csvGenModule = await import('@/lib/csvGenerator');
-                              const data = methods.getValues();
-                              const { specificSkillCsv } = csvGenModule.generateApplicationCsvs(data);
-                              const url = window.URL.createObjectURL(specificSkillCsv);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = '申請情報入力(区分V)_1.csv';
-                              a.click();
-                              window.URL.revokeObjectURL(url);
-                              setShowDownloadMenu(false);
-                            }}
-                          >
-                            <Building2 size={14} /> 所属機関等 (区分V)
-                          </button>
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                            onClick={() => {
-                              const data = methods.getValues('simultaneousApplication');
-                              downloadRenewalCsvSimultaneous(data);
-                              setShowDownloadMenu(false);
-                            }}
-                          >
-                            <FileStack size={14} /> 同時申請用
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </>
+                      <button
+                        type="button"
+                        onClick={handleApprove}
+                        disabled={!canExecuteApproveReturn}
+                        title={canExecuteApproveReturn ? "承認" : "現在は承認できません"}
+                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        承認
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-outline btn-save h-8 px-3 text-xs font-bold shrink-0"
+                    onClick={() => handleSaveOnly(methods.getValues())}
+                    disabled={isBusy}
+                    title="入力途中の内容を下書き保存します"
+                  >
+                    {isSaving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+                    <span className="hidden sm:inline">{isSaving ? '保存中...' : '保存'}</span>
+                  </button>
+
+                  <div className="relative inline-block text-left shrink-0">
+                    <button
+                      type="button"
+                      className="btn-outline h-8 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0"
+                      onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                    >
+                      <Download size={14} /> <span className="hidden sm:inline">CSV出力</span>
+                    </button>
+                    
+                    {showDownloadMenu && (
+                      <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 overflow-hidden flex flex-col">
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                          onClick={async () => {
+                            const csvGenModule = await import('@/lib/csvGenerator');
+                            const data = methods.getValues();
+                            const { basicCsv } = csvGenModule.generateApplicationCsvs(data);
+                            const url = window.URL.createObjectURL(basicCsv);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = '申請情報入力(在留期間更新許可申請)_1.csv';
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            setShowDownloadMenu(false);
+                          }}
+                        >
+                          <User size={14} /> 基本情報 (在留期間更新)
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                          onClick={async () => {
+                            const csvGenModule = await import('@/lib/csvGenerator');
+                            const data = methods.getValues();
+                            const { specificSkillCsv } = csvGenModule.generateApplicationCsvs(data);
+                            const url = window.URL.createObjectURL(specificSkillCsv);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = '申請情報入力(区分V)_1.csv';
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            setShowDownloadMenu(false);
+                          }}
+                        >
+                          <Building2 size={14} /> 所属機関等 (区分V)
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                          onClick={() => {
+                            const data = methods.getValues('simultaneousApplication');
+                            downloadRenewalCsvSimultaneous(data);
+                            setShowDownloadMenu(false);
+                          }}
+                        >
+                          <FileStack size={14} /> 同時申請用
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
                 )}
               </div>
             </div>
+
+            {/* ─── 担当者割り当て・AI診断行 ─── */}
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-slate-800/30">
+              {/* ─── 担当者割り当てパネル ─── */}
+              <TabAssignmentPanel />
+              
+              {/* ─── AI診断ボタン ─── */}
+              <button
+                type="button"
+                id="btn-ai-check"
+                className={`ai-check-btn shrink-0 ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
+                onClick={() => aiDiag.runCheck(methods.getValues())}
+                disabled={aiDiag.status === 'loading'}
+                title="入力内容・整合性・法的リスクをAIが診断します"
+              >
+                {aiDiag.status === 'loading' ? (
+                  <Loader2 size={16} className="spin" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+                <span className="hidden sm:inline">
+                  {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
+                </span>
+                <span className="sm:hidden">
+                  {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
+                </span>
+                {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
+                  <span className="ai-check-btn-badge ai-check-btn-badge--critical">
+                    {aiDiag.counts.critical}
+                  </span>
+                )}
+                {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
+                  <span className="ai-check-btn-badge ai-check-btn-badge--warning">
+                    {aiDiag.counts.warning}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* ─── タブナビゲーション ────────────────────────────────────── */}
