@@ -41,14 +41,6 @@ export function EmploymentContractSubForm() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <FormField label="主たる職種" required error={empError?.mainJobType?.message}>
-          <FormInput
-            {...register('employerInfo.mainJobType')}
-            placeholder="例: 加工"
-            error={!!empError?.mainJobType}
-          />
-        </FormField>
-        
         <FormField label="所定労働時間（週平均）" required error={empError?.weeklyWorkHours?.message}>
           <FormInput
             type="number"

@@ -1,17 +1,30 @@
 'use client';
 
-import React from 'react';
+import { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { FormField } from '../../ui/FormField';
 import { FormInput } from '../../ui/FormInput';
 import { FormSelect } from '../../ui/FormSelect';
-import { changeFormOptions } from '@/lib/constants/changeFormOptions';
+import { changeFormOptions, getStayPeriodByStatus } from '@/lib/constants/changeFormOptions';
 
 export function ChangeRequestSubForm() {
-  const { register, watch, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
+  const { register, watch, setValue, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
   const infoError = errors.foreignerInfo;
+  const desiredResidenceStatus = watch('foreignerInfo.desiredResidenceStatus');
   const desiredStayPeriod = watch('foreignerInfo.desiredStayPeriod');
+
+  const stayPeriodOptions = getStayPeriodByStatus(desiredResidenceStatus);
+
+  // カスケード連動：希望する在留資格が変わった際、選択済みの在留期間が新しい選択肢に含まれていなければリセット
+  useEffect(() => {
+    if (stayPeriodOptions.length > 0 && desiredStayPeriod) {
+      const isValid = stayPeriodOptions.some(opt => opt.value === desiredStayPeriod);
+      if (!isValid && desiredStayPeriod !== 'その他') {
+        setValue('foreignerInfo.desiredStayPeriod', '');
+      }
+    }
+  }, [desiredResidenceStatus, stayPeriodOptions, desiredStayPeriod, setValue]);
 
   return (
     <div className="subsection">
@@ -21,7 +34,7 @@ export function ChangeRequestSubForm() {
         <FormField label="希望する在留資格" required error={infoError?.desiredResidenceStatus?.message}>
           <FormSelect
             {...register('foreignerInfo.desiredResidenceStatus')}
-            options={changeFormOptions.residenceStatus}
+            options={changeFormOptions.desiredStatusOfResidence1}
             error={!!infoError?.desiredResidenceStatus}
           />
         </FormField>
@@ -29,17 +42,13 @@ export function ChangeRequestSubForm() {
         <FormField label="希望する在留期間" required error={infoError?.desiredStayPeriod?.message}>
           <FormSelect
             {...register('foreignerInfo.desiredStayPeriod')}
-            options={[
-              { value: '4months', label: '4ヶ月' },
-              { value: '6months', label: '6ヶ月' },
-              { value: '1year', label: '1年' },
-              { value: 'other', label: 'その他' },
-            ]}
+            options={stayPeriodOptions}
+            disabled={!desiredResidenceStatus || stayPeriodOptions.length === 0}
             error={!!infoError?.desiredStayPeriod}
           />
         </FormField>
 
-        {desiredStayPeriod === 'other' && (
+        {desiredStayPeriod === 'その他' && (
           <FormField label="希望する在留期間（その他）" required error={infoError?.desiredStayPeriodOther?.message}>
             <FormInput
               {...register('foreignerInfo.desiredStayPeriodOther')}
@@ -50,9 +59,9 @@ export function ChangeRequestSubForm() {
         )}
 
         <FormField label="変更の理由" required error={infoError?.changeReason?.message} className="md:col-span-2 lg:col-span-3">
-          <FormSelect
+          <FormInput
             {...register('foreignerInfo.changeReason')}
-            options={changeFormOptions.changeReason}
+            placeholder="例: 就労活動を行うため"
             error={!!infoError?.changeReason}
           />
         </FormField>

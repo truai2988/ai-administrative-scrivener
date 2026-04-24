@@ -28,6 +28,7 @@ import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 import { downloadChangeOfStatusCsv1 } from '@/utils/changeOfStatusCsvGenerator1';
 import { downloadChangeOfStatusCsvU } from '@/utils/changeOfStatusCsvGeneratorU';
 import { downloadChangeOfStatusCsvSimultaneous } from '@/utils/changeOfStatusCsvGeneratorSim';
+import { downloadChangeSpecificCsv } from '@/lib/csv/change/generateChangeSpecificCsv';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
   { id: 'foreigner',    label: '外国人本人情報',     icon: User },
@@ -58,12 +59,12 @@ const DEFAULT_VALUES: Partial<ChangeOfStatusApplicationFormData> = {
     passportExpiryDate: '',
     edNumberAlpha: '',
     edNumberNumeric: '',
-    currentResidenceStatus: '特定技能',
+    currentResidenceStatus: '特定技能１号 Specified Skilled Worker ( i )',
     currentStayPeriod: '',
     stayExpiryDate: '',
     hasResidenceCard: true,
     residenceCardNumber: '',
-    desiredResidenceStatus: 'specified_skilled_worker',
+    desiredResidenceStatus: '特定技能１号 Specified Skilled Worker ( i )',
     desiredStayPeriod: '',
     desiredStayPeriodOther: '',
     changeReason: '',
@@ -373,6 +374,17 @@ export function ChangeOfStatusForm({
                               }}
                             >
                               <Building2 size={14} /> 所属機関等 (区分U)
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-3 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-2"
+                              onClick={() => {
+                                const data = methods.getValues();
+                                downloadChangeSpecificCsv(data);
+                                setShowDownloadMenu(false);
+                              }}
+                            >
+                              <Building2 size={14} /> 申請情報 (区分V)
                             </button>
                             <button
                               type="button"

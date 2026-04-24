@@ -12,6 +12,9 @@ const getEnumValues = (options: { value: string }[]) => {
 const requiredString = z.string().min(1, '必須項目です');
 const optionalString = z.string().optional();
 
+const requiredStringMax = (max: number) => z.string().min(1, '必須項目です').max(max, `${max}文字以内で入力してください`);
+const optionalStringMax = (max: number) => z.string().max(max, `${max}文字以内で入力してください`).optional().or(z.literal(''));
+
 const dateString = z
   .string()
   .min(1, '必須項目です')
@@ -35,17 +38,17 @@ const optionalDateString = z
 
 const zipCodeString = z.string().regex(/^\d{7}$/, '郵便番号はハイフンなし7桁で入力してください');
 const optionalZipCode = z.string().regex(/^\d{7}$/, '郵便番号はハイフンなし7桁').optional().or(z.literal(''));
-const phoneString = z.string().regex(/^0\d{9,10}$/, '電話番号の形式が正しくありません');
-const optionalPhone = z.string().regex(/^0\d{9,10}$/, '電話番号の形式が正しくありません').optional().or(z.literal(''));
+const phoneString = z.string().regex(/^[0-9]+$/, '半角数字で入力してください').max(12, '12文字以内で入力してください');
+const optionalPhone = z.string().regex(/^[0-9]+$/, '半角数字で入力してください').max(12, '12文字以内で入力してください').optional().or(z.literal(''));
 
 // ─── 在日親族・同居者 ────────────────────────────────────────────────────────
 const relativeSchema = z.object({
   relationship: z.enum(getEnumValues(changeFormOptions.relationship)).describe('sheet1:AE-BN-BS 続柄'),
-  name: requiredString.describe('sheet1:AF-BO-BT 氏名'),
+  name: requiredStringMax(26).describe('sheet1:AF-BO-BT 氏名'),
   birthDate: dateString.describe('sheet1:AG-BP-BU 生年月日'),
   nationality: z.enum(getEnumValues(changeFormOptions.nationality)).describe('sheet1:AH-BQ-BV 国籍・地域'),
   cohabitation: z.boolean().describe('sheet1:AI-BR-BW 同居の有無'),
-  workplace: z.string().describe('sheet1:AJ-BS-BX 勤務先名称・通学先名称'),
+  workplace: optionalStringMax(60).describe('sheet1:AJ-BS-BX 勤務先名称・通学先名称'),
   residenceCardNumber: z
     .string()
     .regex(/^[A-Z]{2}\d{8}[A-Z]{2}$/, '在留カード番号の形式が正しくありません')
@@ -59,7 +62,7 @@ const relativeSchema = z.object({
 const jobHistorySchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}$/, 'YYYY-MM形式で入力してください').describe('sheet2:AK-BL 入社年月'),
   endDate: z.string().regex(/^\d{4}-\d{2}$/, 'YYYY-MM形式で入力してください').optional().or(z.literal('')).describe('sheet2:AL-BM 退社年月'),
-  companyName: requiredString.describe('sheet2:AM-BN 勤務先名称'),
+  companyName: requiredStringMax(60).describe('sheet2:AM-BN 勤務先名称'),
 });
 
 // ─── 技能・日本語能力の証明 ─────────────────────────────────────────────────
@@ -80,12 +83,12 @@ const technicalInternSchema = z.object({
 // ─── 代理人情報（法定代理人）──────────────────────────────────────────────
 // CSV仕様: 区分V の代理人セクション
 const agentSchema = z.object({
-  name: optionalString.describe('代理人 (1)氏名'),
-  relationship: optionalString.describe('代理人 (2)本人との関係'),
+  name: optionalStringMax(26).describe('代理人 (1)氏名'),
+  relationship: optionalStringMax(40).describe('代理人 (2)本人との関係'),
   zipCode: optionalZipCode.describe('代理人 (3)郵便番号'),
   prefecture: optionalString.describe('代理人 (3)住所(都道府県)'),
   city: optionalString.describe('代理人 (3)住所(市区町村)'),
-  addressLines: optionalString.describe('代理人 (3)住所(町名丁目番地号等)'),
+  addressLines: optionalStringMax(85).describe('代理人 (3)住所(町名丁目番地号等)'),
   phone: optionalPhone.describe('代理人 (3)電話番号'),
   mobilePhone: optionalPhone.describe('代理人 (3)携帯電話番号'),
 });
@@ -93,12 +96,12 @@ const agentSchema = z.object({
 // ─── 取次者情報 ───────────────────────────────────────────────────────────
 // CSV仕様: 区分V の取次者セクション
 const agencyRepSchema = z.object({
-  name: optionalString.describe('取次者(オンラインシステム利用者) (1)氏名'),
+  name: optionalStringMax(26).describe('取次者(オンラインシステム利用者) (1)氏名'),
   zipCode: optionalZipCode.describe('取次者 (2)郵便番号'),
   prefecture: optionalString.describe('取次者 (2)住所(都道府県)'),
   city: optionalString.describe('取次者 (2)住所(市区町村)'),
-  addressLines: optionalString.describe('取次者 (2)住所(町名丁目番地号等)'),
-  organization: optionalString.describe('取次者 (3)所属機関等'),
+  addressLines: optionalStringMax(85).describe('取次者 (2)住所(町名丁目番地号等)'),
+  organization: optionalStringMax(256).describe('取次者 (3)所属機関等'),
   phone: optionalPhone.describe('取次者 (3)電話番号'),
 });
 
@@ -110,18 +113,18 @@ export const foreignerInfoSchema = z
     nameEn: requiredString
       .regex(/^[A-Za-z\s]+$/, '英字・スペースのみで入力してください')
       .describe('sheet1:D 氏名'),
-    nameKanji: optionalString.describe('氏名（母国語）'),
+    nameKanji: optionalStringMax(26).describe('氏名（母国語）'),
     gender: z.enum(['male', 'female']).describe('sheet1:E 性別'),
     birthPlace: requiredString.describe('sheet1:F 出生地'),
     maritalStatus: z.enum(['married', 'unmarried']).describe('sheet1:G 配偶者の有無'),
     occupation: requiredString.describe('sheet1:H 職業'),
-    homeCountryAddress: requiredString.describe('sheet1:I 本国における居住地'),
+    homeCountryAddress: requiredStringMax(85).describe('sheet1:I 本国における居住地'),
 
     // 住所分割
     japanZipCode: zipCodeString.describe('sheet1:J 日本における連絡先 郵便番号'),
     japanPrefecture: requiredString.describe('sheet1:K 日本における住居地(都道府県)'),
     japanCity: requiredString.describe('sheet1:L 日本における住居地(市区町村)'),
-    japanAddressLines: requiredString.describe('sheet1:M 日本における住居地(町名丁目番地号等)'),
+    japanAddressLines: requiredStringMax(85).describe('sheet1:M 日本における住居地(町名丁目番地号等)'),
     japanAddress: optionalString, // UI表示・結合用。既存との互換性のため残す
 
     phoneNumber: phoneString.describe('sheet1:N 日本における連絡先 電話番号'),
@@ -143,13 +146,13 @@ export const foreignerInfoSchema = z
       .regex(/^[A-Z]{2}\d{8}[A-Z]{2}$/, '在留カード番号の形式が正しくありません')
       .describe('sheet1:W 在留カード番号'),
 
-    desiredResidenceStatus: z.enum(getEnumValues(changeFormOptions.residenceStatus)).describe('sheet1:Y 希望する在留資格'),
-    desiredStayPeriod: z.enum(['4months', '6months', '1year', 'other']).or(z.literal('')).describe('sheet1:Z 希望する在留期間'),
+    desiredResidenceStatus: z.enum(getEnumValues(changeFormOptions.desiredStatusOfResidence1)).describe('sheet1:Y 希望する在留資格'),
+    desiredStayPeriod: optionalString.describe('sheet1:Z 希望する在留期間'),
     desiredStayPeriodOther: optionalString,
-    changeReason: z.enum(getEnumValues(changeFormOptions.changeReason)).describe('sheet1:AA 変更の理由'),
+    changeReason: requiredStringMax(40).describe('sheet1:AA 変更の理由'),
 
     criminalRecord: z.boolean().describe('sheet1:AB 犯罪を理由とする処分を受けたことの有無'),
-    criminalRecordDetail: optionalString.describe('sheet1:AC 処分の内容'),
+    criminalRecordDetail: optionalStringMax(256).describe('sheet1:AC 処分の内容'),
 
     specificSkillCategory: z.enum(['1', '2']).describe('特定技能の区分'),
     skillCertifications: z.array(skillCertificationSchema).describe('技能水準証明枠'),
@@ -252,30 +255,30 @@ export const complianceOathsSchema = z.object({
 
 // ─── 派遣先スキーマ（特定技能雇用契約 (12)）─────────────────────────────
 const dispatchDestinationSchema = z.object({
-  name: optionalString.describe('派遣先 氏名又は名称'),
+  name: optionalStringMax(60).describe('派遣先 氏名又は名称'),
   hasCorporateNumber: z.boolean().optional().describe('派遣先 法人番号の有無'),
   corporateNumber: z.string().regex(/^\d{13}$/).optional().or(z.literal('')).describe('派遣先 法人番号'),
   employmentInsuranceNumber: z.string().regex(/^\d{11}$/).optional().or(z.literal('')).describe('派遣先 雇用保険適用事業所番号'),
   zipCode: optionalZipCode.describe('派遣先 郵便番号'),
   prefecture: optionalString.describe('派遣先 都道府県'),
   city: optionalString.describe('派遣先 市区町村'),
-  addressLines: optionalString.describe('派遣先 町名丁目番地号等'),
+  addressLines: optionalStringMax(85).describe('派遣先 町名丁目番地号等'),
   phone: optionalPhone.describe('派遣先 電話番号'),
-  representativeName: optionalString.describe('派遣先 代表者の氏名'),
+  representativeName: optionalStringMax(26).describe('派遣先 代表者の氏名'),
   periodStart: optionalDateString.describe('派遣先 派遣期間(始期)'),
   periodEnd: optionalDateString.describe('派遣先 派遣期間(終期)'),
 });
 
 // ─── 職業紹介事業者スキーマ（特定技能雇用契約 (13)）─────────────────────
 const placementAgencySchema = z.object({
-  name: optionalString.describe('職業紹介事業者 氏名又は名称'),
+  name: optionalStringMax(60).describe('職業紹介事業者 氏名又は名称'),
   hasCorporateNumber: z.boolean().optional().describe('職業紹介事業者 法人番号の有無'),
   corporateNumber: z.string().regex(/^\d{13}$/).optional().or(z.literal('')).describe('職業紹介事業者 法人番号'),
   employmentInsuranceNumber: z.string().regex(/^\d{11}$/).optional().or(z.literal('')).describe('職業紹介事業者 雇用保険適用事業所番号'),
   zipCode: optionalZipCode.describe('職業紹介事業者 郵便番号'),
   prefecture: optionalString.describe('職業紹介事業者 都道府県'),
   city: optionalString.describe('職業紹介事業者 市区町村'),
-  addressLines: optionalString.describe('職業紹介事業者 町名丁目番地号等'),
+  addressLines: optionalStringMax(85).describe('職業紹介事業者 町名丁目番地号等'),
   phone: optionalPhone.describe('職業紹介事業者 電話番号'),
   licenseNumber: optionalString.describe('職業紹介事業者 許可・届出番号'),
   acceptanceDate: optionalDateString.describe('職業紹介事業者 受理年月日'),
@@ -283,12 +286,12 @@ const placementAgencySchema = z.object({
 
 // ─── 取次機関スキーマ（特定技能雇用契約 (14)）──────────────────────────
 const intermediaryAgencySchema = z.object({
-  name: optionalString.describe('取次機関 氏名又は名称'),
+  name: optionalStringMax(60).describe('取次機関 氏名又は名称'),
   country: optionalString.describe('取次機関 国・地域'),
   zipCode: optionalZipCode.describe('取次機関 郵便番号'),
   prefecture: optionalString.describe('取次機関 都道府県'),
   city: optionalString.describe('取次機関 市区町村'),
-  addressLines: optionalString.describe('取次機関 町名丁目番地号等'),
+  addressLines: optionalStringMax(85).describe('取次機関 町名丁目番地号等'),
   phone: optionalPhone.describe('取次機関 電話番号'),
 });
 
@@ -346,25 +349,25 @@ export const supportPlanSchema = z.object({
 
 // ─── 登録支援機関スキーマ ────────────────────────────────────────────────
 const supportAgencySchema = z.object({
-  name: optionalString.describe('登録支援機関 (1)氏名又は名称'),
+  name: optionalStringMax(60).describe('登録支援機関 (1)氏名又は名称'),
   hasCorporateNumber: z.boolean().optional().describe('登録支援機関 (2)法人番号の有無'),
   corporateNumber: z.string().regex(/^\d{13}$/).optional().or(z.literal('')).describe('登録支援機関 (2)法人番号'),
   employmentInsuranceNumber: z.string().regex(/^\d{11}$/).optional().or(z.literal('')).describe('登録支援機関 (3)雇用保険適用事業所番号'),
   zipCode: optionalZipCode.describe('登録支援機関 (4)郵便番号'),
   prefecture: optionalString.describe('登録支援機関 (4)都道府県'),
   city: optionalString.describe('登録支援機関 (4)市区町村'),
-  addressLines: optionalString.describe('登録支援機関 (4)町名丁目番地号等'),
+  addressLines: optionalStringMax(85).describe('登録支援機関 (4)町名丁目番地号等'),
   phone: optionalPhone.describe('登録支援機関 (4)電話番号'),
-  representativeName: optionalString.describe('登録支援機関 (5)代表者の氏名'),
+  representativeName: optionalStringMax(26).describe('登録支援機関 (5)代表者の氏名'),
   registrationNumber: optionalString.describe('登録支援機関 (6)登録番号'),
   registrationDate: optionalDateString.describe('登録支援機関 (7)登録年月日'),
-  supportOfficeName: optionalString.describe('登録支援機関 (8)支援を行う事業所の名称'),
+  supportOfficeName: optionalStringMax(60).describe('登録支援機関 (8)支援を行う事業所の名称'),
   officeZipCode: optionalZipCode.describe('登録支援機関 (9)事業所郵便番号'),
   officePrefecture: optionalString.describe('登録支援機関 (9)事業所都道府県'),
   officeCity: optionalString.describe('登録支援機関 (9)事業所市区町村'),
-  officeAddressLines: optionalString.describe('登録支援機関 (9)事業所町名丁目番地号等'),
-  supportSupervisorName: optionalString.describe('登録支援機関 (10)支援責任者名'),
-  supportOfficerName: optionalString.describe('登録支援機関 (11)支援担当者名'),
+  officeAddressLines: optionalStringMax(85).describe('登録支援機関 (9)事業所町名丁目番地号等'),
+  supportSupervisorName: optionalStringMax(26).describe('登録支援機関 (10)支援責任者名'),
+  supportOfficerName: optionalStringMax(26).describe('登録支援機関 (11)支援担当者名'),
   supportLanguages: optionalString.describe('登録支援機関 (12)対応可能言語'),
   supportFeeMonthly: z.number().min(0).optional().describe('登録支援機関 (13)支援委託手数料(月額/人)'),
 });
@@ -395,7 +398,7 @@ export const employerInfoSchema = z.object({
 
   // ─ 特定技能雇用契約(6) ─
   hasDifferentTreatment: z.boolean().describe('sheet2:CX 異なった待遇の有無'),
-  differentTreatmentDetail: optionalString.describe('sheet2:CY 異なった待遇の内容'),
+  differentTreatmentDetail: optionalStringMax(600).describe('sheet2:CY 異なった待遇の内容'),
 
   // ─ 特定技能雇用契約(12) 派遣先 ─
   dispatchDestination: dispatchDestinationSchema.optional().describe('特定技能雇用契約(12)派遣先'),
@@ -407,7 +410,7 @@ export const employerInfoSchema = z.object({
   intermediaryAgency: intermediaryAgencySchema.optional().describe('特定技能雇用契約(14)取次機関'),
 
   // ─ 特定技能所属機関(1) ─
-  companyNameJa: requiredString.describe('sheet2:EI 氏名又は名称'),
+  companyNameJa: requiredStringMax(60).describe('sheet2:EI 氏名又は名称'),
   hasCorporateNumber: z.boolean().describe('sheet2:EJ 法人番号の有無'),
   corporateNumber: z.string().regex(/^\d{13}$/).describe('sheet2:EK 法人番号'),
   employmentInsuranceNumber: z.string().regex(/^\d{11}$/).describe('sheet2:EL 雇用保険適用事業所番号'),
@@ -424,7 +427,7 @@ export const employerInfoSchema = z.object({
   companyZipCode: zipCodeString.describe('sheet2:ES 所在地 郵便番号'),
   companyPref: requiredString.describe('sheet2:ET 所在地(都道府県)'),
   companyCity: requiredString.describe('sheet2:EU 所在地(市区町村)'),
-  companyAddressLines: requiredString.describe('sheet2:EV 所在地(町名丁目番地号等)'),
+  companyAddressLines: requiredStringMax(85).describe('sheet2:EV 所在地(町名丁目番地号等)'),
   companyAddress: optionalString,
   companyPhone: phoneString.describe('sheet2:EW 電話番号'),
 
@@ -435,11 +438,11 @@ export const employerInfoSchema = z.object({
   representativeName: requiredString.describe('sheet2:FA 代表者の氏名'),
 
   // ─ 特定技能所属機関(10) 勤務事業所 ─
-  workplaceName: requiredString.describe('sheet2:FB 勤務させる事業所名'),
+  workplaceName: requiredStringMax(60).describe('sheet2:FB 勤務させる事業所名'),
   workplaceZipCode: zipCodeString.describe('sheet2:FC 郵便番号'),
   workplacePref: requiredString.describe('sheet2:FD 所在地(都道府県)'),
   workplaceCity: requiredString.describe('sheet2:FE 所在地(市区町村)'),
-  workplaceAddressLines: requiredString.describe('sheet2:FF 所在地(町名丁目番地号等)'),
+  workplaceAddressLines: requiredStringMax(85).describe('sheet2:FF 所在地(町名丁目番地号等)'),
   isSocialInsuranceApplicable: z.boolean().describe('sheet2:FG 社会保険適用の有無'),
   isLaborInsuranceApplicable: z.boolean().describe('sheet2:FH 労働保険適用の有無'),
   laborInsuranceNumber: requiredString.describe('sheet2:FI 労働保険番号'),
@@ -465,11 +468,11 @@ export const employerInfoSchema = z.object({
 
   // ─ 支援責任者・担当者（委託しない場合）─
   supportPersonnel: z.object({
-    supervisorName: requiredString.describe('(33)支援責任者名'),
-    supervisorTitle: requiredString.describe('(33)所属・役職'),
+    supervisorName: requiredStringMax(26).describe('(33)支援責任者名'),
+    supervisorTitle: requiredStringMax(40).describe('(33)所属・役職'),
     isSupervisorFromStaff: z.boolean().optional().describe('(33)役員・職員からの選任'),
-    officerName: requiredString.describe('(34)支援担当者名'),
-    officerTitle: requiredString.describe('(34)所属・役職'),
+    officerName: requiredStringMax(26).describe('(34)支援担当者名'),
+    officerTitle: requiredStringMax(40).describe('(34)所属・役職'),
     isOfficerFromStaff: z.boolean().optional().describe('(34)役員・職員からの選任'),
   }).describe('支援責任者・担当者'),
 
@@ -532,11 +535,11 @@ const reEntryPermitSchema = z.object({
 // ─── 同時申請：資格外活動許可申請 ───────────────────────────────────────
 const activityOutsideStatusSchema = z.object({
   // 現在の在留活動の内容
-  currentActivityDescription: optionalString.describe('現在の在留活動の内容'),
+  currentActivityDescription: optionalStringMax(600).describe('現在の在留活動の内容'),
   // 他に従事しようとする活動(1) 職務内容（最大3件）
-  newActivityJob1: optionalString,
-  newActivityJob2: optionalString,
-  newActivityJob3: optionalString,
+  newActivityJob1: optionalStringMax(600),
+  newActivityJob2: optionalStringMax(600),
+  newActivityJob3: optionalStringMax(600),
   // 他に従事しようとする活動(2) 雇用契約期間
   newActivityContractYears: z.number().min(0).max(10).optional().describe('雇用契約期間(年数)'),
   newActivityContractMonths: z.number().min(0).max(11).optional().describe('雇用契約期間(月数)'),
@@ -547,13 +550,13 @@ const activityOutsideStatusSchema = z.object({
   newActivityHasPayment: z.boolean().optional(),
   newActivityMonthlySalary: z.number().min(0).optional().describe('月額報酬'),
   // 勤務先(1) 名称（最大2件）
-  workplaceName1: optionalString,
-  workplaceName2: optionalString,
+  workplaceName1: optionalStringMax(60),
+  workplaceName2: optionalStringMax(60),
   // 勤務先(2) 所在地
   workplaceZipCode: optionalZipCode,
   workplacePrefecture: optionalString,
   workplaceCity: optionalString,
-  workplaceAddressLines: optionalString,
+  workplaceAddressLines: optionalStringMax(85),
   workplacePhone1: optionalPhone,
   workplacePhone2: optionalPhone,
   // 勤務先(3) 業種（最大2件）
@@ -568,12 +571,12 @@ const activityOutsideStatusSchema = z.object({
 // ─── 同時申請：就労資格証明書交付申請 ───────────────────────────────────
 const authEmploymentCertSchema = z.object({
   // 証明を希望する活動の内容
-  certificationActivityDescription: optionalString.describe('証明を希望する活動の内容'),
+  certificationActivityDescription: optionalStringMax(600).describe('証明を希望する活動の内容'),
   // 就労する期間
   employmentPeriodStart: optionalDateString.describe('就労する期間(始期)'),
   employmentPeriodEnd: optionalDateString.describe('就労する期間(終期)'),
   // 使用目的
-  purpose: optionalString.describe('使用目的'),
+  purpose: optionalStringMax(600).describe('使用目的'),
   // 代理人・取次者
   agent: agentSchema.optional(),
   agencyRep: agencyRepSchema.optional(),
