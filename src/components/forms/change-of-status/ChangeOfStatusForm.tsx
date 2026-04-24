@@ -5,9 +5,12 @@ import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Download, Check,
+  AlertCircle, Save, Loader2, Download, Check, Sparkles,
   Mail, CheckCircle, XCircle
 } from 'lucide-react';
+import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
+import { AiDiagnosticPanel } from '../AiDiagnosticPanel';
+import { TabAssignmentPanel } from '../TabAssignmentPanel';
 import {
   changeOfStatusApplicationSchema,
   type ChangeOfStatusApplicationFormData,
@@ -187,6 +190,7 @@ export function ChangeOfStatusForm({
 }: ChangeOfStatusFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const aiDiag = useAiDiagnostics({ recordId });
   const { toasts, dismiss } = useToast();
   const { currentUser } = useAuth();
 
@@ -390,6 +394,41 @@ export function ChangeOfStatusForm({
               </div>
             </div>
 
+            {/* ─── 担当者割り当て・AI診断行 ─── */}
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-slate-800/30">
+              <TabAssignmentPanel />
+              <button
+                type="button"
+                id="btn-ai-check-cos"
+                className={`ai-check-btn shrink-0 ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
+                onClick={() => aiDiag.runCheck(methods.getValues())}
+                disabled={aiDiag.status === 'loading'}
+                title="入力内容・整合性・法的リスクをAIが診断します"
+              >
+                {aiDiag.status === 'loading' ? (
+                  <Loader2 size={16} className="spin" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+                <span className="hidden sm:inline">
+                  {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
+                </span>
+                <span className="sm:hidden">
+                  {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
+                </span>
+                {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
+                  <span className="ai-check-btn-badge ai-check-btn-badge--critical">
+                    {aiDiag.counts.critical}
+                  </span>
+                )}
+                {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
+                  <span className="ai-check-btn-badge ai-check-btn-badge--warning">
+                    {aiDiag.counts.warning}
+                  </span>
+                )}
+              </button>
+            </div>
+
             <div className="tab-nav" role="tablist">
               {visibleTabs.map((tab) => {
                 const Icon     = tab.icon;
@@ -431,6 +470,13 @@ export function ChangeOfStatusForm({
 
         </form>
       </FormProvider>
+    <AiDiagnosticPanel
+      status={aiDiag.status}
+      diagnostics={aiDiag.diagnostics}
+      counts={aiDiag.counts}
+      errorMessage={aiDiag.errorMessage}
+      onClose={aiDiag.reset}
+    />
     </>
   );
 }

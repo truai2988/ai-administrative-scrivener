@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import type { AiDiagnosticsState, DiagnosticItem } from '@/types/aiDiagnostics';
 import { getIdToken } from '@/lib/firebase/auth';
-import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
+
 
 // ─── 初期状態 ──────────────────────────────────────────────────────────────────
 const INITIAL_STATE: AiDiagnosticsState = {
@@ -42,7 +42,7 @@ export function useAiDiagnostics({ recordId }: UseAiDiagnosticsOptions) {
    * - recordId がない場合: /api/applications/unsaved/ai-check（bodyにformDataを含める）
    */
   const runCheck = useCallback(
-    async (formData: RenewalApplicationFormData) => {
+    async (formData: Record<string, unknown>) => {
       setState((prev) => ({ ...prev, status: 'loading', errorMessage: undefined }));
 
       try {
