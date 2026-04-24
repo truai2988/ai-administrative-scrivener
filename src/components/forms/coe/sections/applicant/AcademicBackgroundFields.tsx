@@ -5,6 +5,7 @@ import { useFormContext, Controller } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
+import { coeFormOptions } from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function AcademicBackgroundFields() {
@@ -20,15 +21,7 @@ export function AcademicBackgroundFields() {
           render={({ field }) => (
             <FormSelect
               {...field}
-              options={[
-                { label: '大学院（博士）', value: '1' },
-                { label: '大学院（修士）', value: '2' },
-                { label: '大学', value: '3' },
-                { label: '短期大学', value: '4' },
-                { label: '専門学校', value: '5' },
-                { label: '高等学校', value: '6' },
-                { label: 'その他', value: '7' },
-              ]}
+              options={coeFormOptions.finalEducation}
               error={!!appErrors?.academicBackground}
             />
           )}
@@ -59,12 +52,7 @@ export function AcademicBackgroundFields() {
           render={({ field }) => (
             <FormSelect
               {...field}
-              options={[
-                { label: '文系', value: '1' },
-                { label: '理系', value: '2' },
-                { label: '芸術・体育系', value: '3' },
-                { label: 'その他', value: '4' },
-              ]}
+              options={coeFormOptions.majorField}
               error={!!appErrors?.majorCategory}
             />
           )}
@@ -96,16 +84,7 @@ export function AcademicBackgroundFields() {
           render={({ field }) => (
             <FormSelect
               {...field}
-              options={[
-                { label: '工業', value: '1' },
-                { label: '農業', value: '2' },
-                { label: '医療', value: '3' },
-                { label: '衛生', value: '4' },
-                { label: '教育・社会福祉', value: '5' },
-                { label: '商業実務', value: '6' },
-                { label: '服飾・家政', value: '7' },
-                { label: '文化・教養', value: '8' },
-              ]}
+              options={coeFormOptions.vocationalSchoolCategory}
               error={!!appErrors?.majorCategoryCollege}
             />
           )}

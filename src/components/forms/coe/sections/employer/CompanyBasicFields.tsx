@@ -1,20 +1,51 @@
 'use client';
 
-import React from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
+import React, { useEffect } from 'react';
+import { useFormContext, Controller, useWatch } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormSelect } from '@/components/forms/ui/FormSelect';
 import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
-import { coeFormOptions } from '@/lib/constants/coeFormOptions';
+import {
+  coeFormOptions,
+  getSpecifiedSkilledSubOptions,
+  getTechnicalInternWorkOptions,
+  getTechnicalInternWorkOptions2,
+} from '@/lib/constants/coeFormOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function CompanyBasicFields() {
-  const { register, control, watch, setValue, formState: { errors } } = useFormContext<CoeApplicationFormData>();
+  const { register, control, setValue, formState: { errors } } = useFormContext<CoeApplicationFormData>();
   const empErrors = errors.employerInfo;
 
-  const hasCorporateNumber = watch('employerInfo.hasCorporateNumber');
-  const selectedPrefecture = watch('employerInfo.companyPref');
+  const hasCorporateNumber = useWatch({ control, name: 'employerInfo.hasCorporateNumber' });
+  const selectedPrefecture = useWatch({ control, name: 'employerInfo.companyPref' });
+
+  // ─── カスケード監視 ──────────────────────────────────────────────────
+  // 特定技能: 分野 → 業務区分
+  const selectedSkilledField = useWatch({ control, name: 'employerInfo.specifiedSkilledField' });
+  // 技能実習: 職種 → 作業
+  const selectedInternOccupation = useWatch({ control, name: 'employerInfo.technicalInternOccupation' });
+  // 技能実習（別系統）: 職種 → 作業
+  const selectedInternOccupation2 = useWatch({ control, name: 'employerInfo.technicalInternOccupation2' });
+
+  // ─── 親変更時に子をクリアする副作用 ─────────────────────────────────
+  useEffect(() => {
+    setValue('employerInfo.specifiedSkilledSubCategory', '');
+  }, [selectedSkilledField, setValue]);
+
+  useEffect(() => {
+    setValue('employerInfo.technicalInternWork', '');
+  }, [selectedInternOccupation, setValue]);
+
+  useEffect(() => {
+    setValue('employerInfo.technicalInternWork2', '');
+  }, [selectedInternOccupation2, setValue]);
+
+  // ─── カスケード子リスト取得 ────────────────────────────────────────
+  const skilledSubOptions = getSpecifiedSkilledSubOptions(selectedSkilledField);
+  const internWorkOptions = getTechnicalInternWorkOptions(selectedInternOccupation);
+  const internWork2Options = getTechnicalInternWorkOptions2(selectedInternOccupation2);
 
   return (
     <div className="flex flex-col gap-8">
@@ -79,12 +110,7 @@ export function CompanyBasicFields() {
             render={({ field }) => (
               <FormSelect
                 {...field}
-                options={[
-                  { label: '製造業', value: '1' },
-                  { label: '建設業', value: '2' },
-                  { label: '情報通信業', value: '3' },
-                  { label: 'その他', value: '4' },
-                ]}
+                options={coeFormOptions.industryClassification}
                 error={!!empErrors?.mainIndustry}
               />
             )}
@@ -136,6 +162,7 @@ export function CompanyBasicFields() {
                 options={selectedPrefecture ? coeFormOptions.getCityOptions(selectedPrefecture) : []}
                 error={!!empErrors?.companyCity}
                 disabled={!selectedPrefecture}
+                placeholder={selectedPrefecture ? '選択してください' : '先に都道府県を選択してください'}
               />
             )}
           />
@@ -238,6 +265,115 @@ export function CompanyBasicFields() {
             error={!!empErrors?.monthlySalary}
           />
         </FormField>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          カスケード型ドロップダウン（連動型）
+          ════════════════════════════════════════════════════════════════════════ */}
+
+      {/* 特定技能: 分野 → 業務区分 */}
+      <div className="border-t border-slate-100 pt-6">
+        <h4 className="text-sm font-semibold text-slate-700 mb-4">特定技能</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="特定技能の分野" error={empErrors?.specifiedSkilledField?.message}>
+            <Controller
+              name="employerInfo.specifiedSkilledField"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  {...field}
+                  options={coeFormOptions.specifiedSkilledField}
+                  error={!!empErrors?.specifiedSkilledField}
+                />
+              )}
+            />
+          </FormField>
+          <FormField label="業務区分" error={empErrors?.specifiedSkilledSubCategory?.message}>
+            <Controller
+              name="employerInfo.specifiedSkilledSubCategory"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  {...field}
+                  options={skilledSubOptions}
+                  error={!!empErrors?.specifiedSkilledSubCategory}
+                  disabled={!selectedSkilledField}
+                  placeholder={selectedSkilledField ? '選択してください' : '先に分野を選択してください'}
+                />
+              )}
+            />
+          </FormField>
+        </div>
+      </div>
+
+      {/* 技能実習: 職種 → 作業 */}
+      <div className="border-t border-slate-100 pt-6">
+        <h4 className="text-sm font-semibold text-slate-700 mb-4">技能実習</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="技能実習の職種" error={empErrors?.technicalInternOccupation?.message}>
+            <Controller
+              name="employerInfo.technicalInternOccupation"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  {...field}
+                  options={coeFormOptions.technicalInternOccupation}
+                  error={!!empErrors?.technicalInternOccupation}
+                />
+              )}
+            />
+          </FormField>
+          <FormField label="作業" error={empErrors?.technicalInternWork?.message}>
+            <Controller
+              name="employerInfo.technicalInternWork"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  {...field}
+                  options={internWorkOptions}
+                  error={!!empErrors?.technicalInternWork}
+                  disabled={!selectedInternOccupation}
+                  placeholder={selectedInternOccupation ? '選択してください' : '先に職種を選択してください'}
+                />
+              )}
+            />
+          </FormField>
+        </div>
+      </div>
+
+      {/* 技能実習（別系統）: 職種 → 作業 */}
+      <div className="border-t border-slate-100 pt-6">
+        <h4 className="text-sm font-semibold text-slate-700 mb-4">技能実習（別系統）</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="技能実習の職種（別系統）" error={empErrors?.technicalInternOccupation2?.message}>
+            <Controller
+              name="employerInfo.technicalInternOccupation2"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  {...field}
+                  options={coeFormOptions.technicalInternWork}
+                  error={!!empErrors?.technicalInternOccupation2}
+                />
+              )}
+            />
+          </FormField>
+          <FormField label="作業（別系統）" error={empErrors?.technicalInternWork2?.message}>
+            <Controller
+              name="employerInfo.technicalInternWork2"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  {...field}
+                  options={internWork2Options}
+                  error={!!empErrors?.technicalInternWork2}
+                  disabled={!selectedInternOccupation2}
+                  placeholder={selectedInternOccupation2 ? '選択してください' : '先に職種を選択してください'}
+                />
+              )}
+            />
+          </FormField>
+        </div>
       </div>
     </div>
   );

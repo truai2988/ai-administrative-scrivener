@@ -298,6 +298,18 @@ export const employerInfoSchema = z.object({
   subOccupation2: z.string().optional().describe('他職種2'), // プルダウン
   subOccupation3: z.string().optional().describe('他職種3'), // プルダウン
 
+  // 特定技能カスケード
+  specifiedSkilledField: z.string().optional().describe('特定技能の分野'), // 親プルダウン (CC04_L)
+  specifiedSkilledSubCategory: z.string().optional().describe('特定技能の業務区分'), // 子プルダウン (CC04_XX_L)
+
+  // 技能実習カスケード
+  technicalInternOccupation: z.string().optional().describe('技能実習の職種'), // 親プルダウン (CA94_L)
+  technicalInternWork: z.string().optional().describe('技能実習の作業'), // 子プルダウン (CA94_XXX_L)
+
+  // 技能実習カスケード（別テーブル）
+  technicalInternOccupation2: z.string().optional().describe('技能実習の職種（別系統）'), // 親プルダウン (CC02_3_L)
+  technicalInternWork2: z.string().optional().describe('技能実習の作業（別系統）'), // 子プルダウン (CC02_3_LXX_L)
+
   // 活動内容詳細
   // CSV仕様: 600文字以内
   activityDetail: z.string().max(600, '600文字以内で入力してください').optional().describe('活動内容詳細'),
