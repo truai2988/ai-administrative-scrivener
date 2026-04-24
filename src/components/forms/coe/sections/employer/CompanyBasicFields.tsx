@@ -1,17 +1,20 @@
 'use client';
 
 import React from 'react';
-import { useFormContext, Controller, useWatch } from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
 import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
+import { formOptions, getCityOptions } from '@/lib/constants/formOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function CompanyBasicFields() {
-  const { register, control, formState: { errors } } = useFormContext<CoeApplicationFormData>();
+  const { register, control, watch, setValue, formState: { errors } } = useFormContext<CoeApplicationFormData>();
   const empErrors = errors.employerInfo;
 
-  const hasCorporateNumber = useWatch({ control, name: 'employerInfo.hasCorporateNumber' });
+  const hasCorporateNumber = watch('employerInfo.hasCorporateNumber');
+  const selectedPrefecture = watch('employerInfo.companyPref');
 
   return (
     <div className="flex flex-col gap-8">
@@ -24,6 +27,14 @@ export function CompanyBasicFields() {
             error={!!empErrors?.companyNameJa}
           />
         </FormField>
+        <FormField label="支店・事業所名" error={empErrors?.branchName?.message} className="md:col-span-2">
+          <FormInput
+            {...register('employerInfo.branchName')}
+            placeholder="例: 東京支店"
+            maxLength={60}
+            error={!!empErrors?.branchName}
+          />
+        </FormField>
         
         <FormField label="法人番号の有無" required error={empErrors?.hasCorporateNumber?.message}>
           <Controller
@@ -34,10 +45,7 @@ export function CompanyBasicFields() {
                 name={field.name}
                 value={field.value}
                 onChange={field.onChange}
-                options={[
-                  { label: '有', value: '1' },
-                  { label: '無', value: '2' },
-                ]}
+                options={formOptions.yesNo}
                 error={!!empErrors?.hasCorporateNumber}
               />
             )}
@@ -65,10 +73,28 @@ export function CompanyBasicFields() {
         </FormField>
         
         <FormField label="主たる業種" error={empErrors?.mainIndustry?.message}>
+          <Controller
+            name="employerInfo.mainIndustry"
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                {...field}
+                options={[
+                  { label: '製造業', value: '1' },
+                  { label: '建設業', value: '2' },
+                  { label: '情報通信業', value: '3' },
+                  { label: 'その他', value: '4' },
+                ]}
+                error={!!empErrors?.mainIndustry}
+              />
+            )}
+          />
+        </FormField>
+        <FormField label="その他の業種" error={empErrors?.mainIndustryOther?.message}>
           <FormInput
-            {...register('employerInfo.mainIndustry')}
-            placeholder="例: 製造業"
-            error={!!empErrors?.mainIndustry}
+            {...register('employerInfo.mainIndustryOther')}
+            placeholder="例: 小売業"
+            error={!!empErrors?.mainIndustryOther}
           />
         </FormField>
       </div>
@@ -84,17 +110,34 @@ export function CompanyBasicFields() {
           />
         </FormField>
         <FormField label="所在地 都道府県" required error={empErrors?.companyPref?.message}>
-          <FormInput
-            {...register('employerInfo.companyPref')}
-            placeholder="例: 東京都"
-            error={!!empErrors?.companyPref}
+          <Controller
+            name="employerInfo.companyPref"
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                {...field}
+                options={formOptions.prefectures}
+                error={!!empErrors?.companyPref}
+                onChange={(e) => {
+                  field.onChange(e);
+                  setValue('employerInfo.companyCity', ''); // 都道府県が変わったら市区町村をクリア
+                }}
+              />
+            )}
           />
         </FormField>
         <FormField label="所在地 市区町村" required error={empErrors?.companyCity?.message}>
-          <FormInput
-            {...register('employerInfo.companyCity')}
-            placeholder="例: 千代田区"
-            error={!!empErrors?.companyCity}
+          <Controller
+            name="employerInfo.companyCity"
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                {...field}
+                options={selectedPrefecture ? getCityOptions(selectedPrefecture) : []}
+                error={!!empErrors?.companyCity}
+                disabled={!selectedPrefecture}
+              />
+            )}
           />
         </FormField>
         <FormField label="所在地 町名丁目番地号等" required error={empErrors?.companyAddressLines?.message}>
@@ -134,6 +177,7 @@ export function CompanyBasicFields() {
           <FormInput
             {...register('employerInfo.employeeCount')}
             placeholder="例: 10"
+            maxLength={5}
             error={!!empErrors?.employeeCount}
           />
         </FormField>
@@ -141,7 +185,50 @@ export function CompanyBasicFields() {
           <FormInput
             {...register('employerInfo.foreignEmployeeCount')}
             placeholder="例: 2"
+            maxLength={5}
             error={!!empErrors?.foreignEmployeeCount}
+          />
+        </FormField>
+        <FormField label="技能実習生数" error={empErrors?.trainee1Count?.message}>
+          <FormInput
+            {...register('employerInfo.trainee1Count')}
+            placeholder="例: 0"
+            maxLength={5}
+            error={!!empErrors?.trainee1Count}
+          />
+        </FormField>
+        <FormField label="主たる職種" error={empErrors?.mainOccupation?.message}>
+          <Controller
+            name="employerInfo.mainOccupation"
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                {...field}
+                options={formOptions.mainOccupation}
+                error={!!empErrors?.mainOccupation}
+              />
+            )}
+          />
+        </FormField>
+        <FormField label="役職の有無" error={empErrors?.hasPosition?.message}>
+          <Controller
+            name="employerInfo.hasPosition"
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                {...field}
+                options={formOptions.yesNo}
+                error={!!empErrors?.hasPosition}
+              />
+            )}
+          />
+        </FormField>
+        <FormField label="役職名" error={empErrors?.positionTitle?.message}>
+          <FormInput
+            {...register('employerInfo.positionTitle')}
+            placeholder="例: 部長"
+            maxLength={60}
+            error={!!empErrors?.positionTitle}
           />
         </FormField>
         <FormField label="月額報酬（円）" error={empErrors?.monthlySalary?.message}>
@@ -149,13 +236,6 @@ export function CompanyBasicFields() {
             {...register('employerInfo.monthlySalary')}
             placeholder="例: 200000"
             error={!!empErrors?.monthlySalary}
-          />
-        </FormField>
-        <FormField label="週労働時間" error={empErrors?.workingHoursPerWeek?.message}>
-          <FormInput
-            {...register('employerInfo.workingHoursPerWeek')}
-            placeholder="例: 40"
-            error={!!empErrors?.workingHoursPerWeek}
           />
         </FormField>
       </div>

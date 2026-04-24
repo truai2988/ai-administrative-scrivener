@@ -1,14 +1,18 @@
 'use client';
 
 import React from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
+import { formOptions, getCityOptions } from '@/lib/constants/formOptions';
 
 export function LegalRepresentativeFields() {
-  const { register, formState: { errors } } = useFormContext<CoeApplicationFormData>();
+  const { register, formState: { errors }, control, watch, setValue } = useFormContext<CoeApplicationFormData>();
   const repErrors = errors.legalRepresentative;
+
+  const selectedPrefecture = watch('legalRepresentative.prefecture');
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -37,17 +41,34 @@ export function LegalRepresentativeFields() {
         />
       </FormField>
       <FormField label="都道府県" error={repErrors?.prefecture?.message}>
-        <FormInput
-          {...register('legalRepresentative.prefecture')}
-          placeholder="例: 東京都"
-          error={!!repErrors?.prefecture}
+        <Controller
+          name="legalRepresentative.prefecture"
+          control={control}
+          render={({ field }) => (
+            <FormSelect
+              {...field}
+              options={formOptions.prefectures}
+              error={!!repErrors?.prefecture}
+              onChange={(e) => {
+                field.onChange(e);
+                setValue('legalRepresentative.city', ''); // 都道府県が変わったら市区町村をクリア
+              }}
+            />
+          )}
         />
       </FormField>
       <FormField label="市区町村" error={repErrors?.city?.message}>
-        <FormInput
-          {...register('legalRepresentative.city')}
-          placeholder="例: 千代田区"
-          error={!!repErrors?.city}
+        <Controller
+          name="legalRepresentative.city"
+          control={control}
+          render={({ field }) => (
+            <FormSelect
+              {...field}
+              options={selectedPrefecture ? getCityOptions(selectedPrefecture) : []}
+              error={!!repErrors?.city}
+              disabled={!selectedPrefecture}
+            />
+          )}
         />
       </FormField>
       <FormField label="町名丁目番地号等" error={repErrors?.addressLines?.message}>

@@ -6,6 +6,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
+import { formOptions } from '@/lib/constants/formOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function RelativeListFields() {
@@ -44,10 +46,7 @@ export function RelativeListFields() {
               name={field.name}
               value={field.value}
               onChange={field.onChange}
-              options={[
-                { label: '有', value: '1' },
-                { label: '無', value: '2' },
-              ]}
+              options={formOptions.yesNo}
               error={!!idErrors?.familyInJapan}
             />
           )}
@@ -73,10 +72,16 @@ export function RelativeListFields() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField label="続柄" required error={fieldError?.relationship?.message}>
-                    <FormInput
-                      {...register(`identityInfo.relatives.${index}.relationship` as const)}
-                      placeholder="例: 父"
-                      error={!!fieldError?.relationship}
+                    <Controller
+                      name={`identityInfo.relatives.${index}.relationship` as const}
+                      control={control}
+                      render={({ field }) => (
+                        <FormSelect
+                          {...field}
+                          options={formOptions.relationship}
+                          error={!!fieldError?.relationship}
+                        />
+                      )}
                     />
                   </FormField>
                   <FormField label="氏名" required error={fieldError?.name?.message}>
@@ -95,10 +100,16 @@ export function RelativeListFields() {
                     />
                   </FormField>
                   <FormField label="国籍・地域" required error={fieldError?.nationality?.message}>
-                    <FormInput
-                      {...register(`identityInfo.relatives.${index}.nationality` as const)}
-                      placeholder="例: 中国"
-                      error={!!fieldError?.nationality}
+                    <Controller
+                      name={`identityInfo.relatives.${index}.nationality` as const}
+                      control={control}
+                      render={({ field }) => (
+                        <FormSelect
+                          {...field}
+                          options={formOptions.nationality}
+                          error={!!fieldError?.nationality}
+                        />
+                      )}
                     />
                   </FormField>
                   <FormField label="同居の有無" required error={fieldError?.cohabitation?.message}>
@@ -110,10 +121,7 @@ export function RelativeListFields() {
                           name={field.name}
                           value={field.value}
                           onChange={field.onChange}
-                          options={[
-                            { label: '有', value: '1' },
-                            { label: '無', value: '2' },
-                          ]}
+                          options={formOptions.yesNo}
                           error={!!fieldError?.cohabitation}
                         />
                       )}

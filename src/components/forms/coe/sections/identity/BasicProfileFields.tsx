@@ -72,10 +72,11 @@ export function BasicProfileFields() {
         />
       </FormField>
 
-      <FormField label="職業" required error={idErrors?.occupation?.message}>
+      <FormField label="職業" required error={idErrors?.occupation?.message} hint="40文字以内">
         <FormInput
           {...register('identityInfo.occupation')}
           placeholder="例: エンジニア"
+          maxLength={40}
           error={!!idErrors?.occupation}
         />
       </FormField>

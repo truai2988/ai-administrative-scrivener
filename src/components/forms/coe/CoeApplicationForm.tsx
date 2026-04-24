@@ -87,6 +87,7 @@ const DEFAULT_VALUES: Partial<CoeApplicationFormData> = {
   },
   employerInfo: {
     companyNameJa: '',
+    branchName: '',
     hasCorporateNumber: '1',
     corporateNumber: '',
     employmentInsuranceNumber: '',
@@ -101,7 +102,6 @@ const DEFAULT_VALUES: Partial<CoeApplicationFormData> = {
     employeeCount: '',
     foreignEmployeeCount: '',
     monthlySalary: '',
-    workingHoursPerWeek: '',
     cohabitingFamilies: [],
   },
   legalRepresentative: {

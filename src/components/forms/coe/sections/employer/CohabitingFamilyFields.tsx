@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
 import { Plus, Trash2 } from 'lucide-react';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
+import { formOptions } from '@/lib/constants/formOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function CohabitingFamilyFields() {
@@ -17,14 +19,16 @@ export function CohabitingFamilyFields() {
   });
 
   const handleAddFamily = () => {
-    if (fields.length < 6) {
+    if (fields.length < 5) {
       append({
         name: '',
         relationship: '',
+        relationshipOther: '',
         nationality: '',
         birthDate: '',
-        occupation: '',
-        income: '',
+        cohabitation: '',
+        workplace: '',
+        residenceStatus: '',
       });
     }
   };
@@ -61,17 +65,37 @@ export function CohabitingFamilyFields() {
                     />
                   </FormField>
                   <FormField label="続柄" error={fieldError?.relationship?.message}>
+                    <Controller
+                      name={`employerInfo.cohabitingFamilies.${index}.relationship` as const}
+                      control={control}
+                      render={({ field }) => (
+                        <FormSelect
+                          {...field}
+                          options={formOptions.relationship}
+                          error={!!fieldError?.relationship}
+                        />
+                      )}
+                    />
+                  </FormField>
+                  <FormField label="続柄（その他）" error={fieldError?.relationshipOther?.message}>
                     <FormInput
-                      {...register(`employerInfo.cohabitingFamilies.${index}.relationship` as const)}
-                      placeholder="例: 妻"
-                      error={!!fieldError?.relationship}
+                      {...register(`employerInfo.cohabitingFamilies.${index}.relationshipOther` as const)}
+                      placeholder="その他の続柄を入力"
+                      maxLength={40}
+                      error={!!fieldError?.relationshipOther}
                     />
                   </FormField>
                   <FormField label="国籍・地域" error={fieldError?.nationality?.message}>
-                    <FormInput
-                      {...register(`employerInfo.cohabitingFamilies.${index}.nationality` as const)}
-                      placeholder="例: 日本"
-                      error={!!fieldError?.nationality}
+                    <Controller
+                      name={`employerInfo.cohabitingFamilies.${index}.nationality` as const}
+                      control={control}
+                      render={({ field }) => (
+                        <FormSelect
+                          {...field}
+                          options={formOptions.nationality}
+                          error={!!fieldError?.nationality}
+                        />
+                      )}
                     />
                   </FormField>
                   <FormField label="生年月日" error={fieldError?.birthDate?.message} hint="YYYYMMDD">
@@ -82,18 +106,38 @@ export function CohabitingFamilyFields() {
                       error={!!fieldError?.birthDate}
                     />
                   </FormField>
-                  <FormField label="職業" error={fieldError?.occupation?.message}>
-                    <FormInput
-                      {...register(`employerInfo.cohabitingFamilies.${index}.occupation` as const)}
-                      placeholder="例: 会社員"
-                      error={!!fieldError?.occupation}
+                  <FormField label="同居の有無" error={fieldError?.cohabitation?.message}>
+                    <Controller
+                      name={`employerInfo.cohabitingFamilies.${index}.cohabitation` as const}
+                      control={control}
+                      render={({ field }) => (
+                        <FormSelect
+                          {...field}
+                          options={formOptions.yesNo}
+                          error={!!fieldError?.cohabitation}
+                        />
+                      )}
                     />
                   </FormField>
-                  <FormField label="年収（円）" error={fieldError?.income?.message}>
+                  <FormField label="勤務先名称・通学先名称" error={fieldError?.workplace?.message}>
                     <FormInput
-                      {...register(`employerInfo.cohabitingFamilies.${index}.income` as const)}
-                      placeholder="例: 3000000"
-                      error={!!fieldError?.income}
+                      {...register(`employerInfo.cohabitingFamilies.${index}.workplace` as const)}
+                      placeholder="例: 株式会社〇〇"
+                      maxLength={60}
+                      error={!!fieldError?.workplace}
+                    />
+                  </FormField>
+                  <FormField label="在留資格" error={fieldError?.residenceStatus?.message}>
+                    <Controller
+                      name={`employerInfo.cohabitingFamilies.${index}.residenceStatus` as const}
+                      control={control}
+                      render={({ field }) => (
+                        <FormSelect
+                          {...field}
+                          options={formOptions.residenceStatus}
+                          error={!!fieldError?.residenceStatus}
+                        />
+                      )}
                     />
                   </FormField>
                 </div>
@@ -103,13 +147,13 @@ export function CohabitingFamilyFields() {
         </div>
       )}
 
-      {fields.length < 6 && (
+      {fields.length < 5 && (
         <button
           type="button"
           onClick={handleAddFamily}
           className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-colors text-sm font-medium"
         >
-          <Plus size={16} /> 家族を追加する（最大6名まで）
+          <Plus size={16} /> 家族を追加する（最大5名まで）
         </button>
       )}
     </div>

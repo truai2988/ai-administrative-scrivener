@@ -1,14 +1,18 @@
 'use client';
 
 import React from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
+import { formOptions, getCityOptions } from '@/lib/constants/formOptions';
 
 export function ContactInfoFields() {
-  const { register, formState: { errors } } = useFormContext<CoeApplicationFormData>();
+  const { register, formState: { errors }, control, watch, setValue } = useFormContext<CoeApplicationFormData>();
   const idErrors = errors.identityInfo;
+
+  const selectedPrefecture = watch('identityInfo.japanPrefecture');
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -22,18 +26,35 @@ export function ContactInfoFields() {
       </FormField>
 
       <FormField label="都道府県" required error={idErrors?.japanPrefecture?.message}>
-        <FormInput
-          {...register('identityInfo.japanPrefecture')}
-          placeholder="例: 東京都"
-          error={!!idErrors?.japanPrefecture}
+        <Controller
+          name="identityInfo.japanPrefecture"
+          control={control}
+          render={({ field }) => (
+            <FormSelect
+              {...field}
+              options={formOptions.prefectures}
+              error={!!idErrors?.japanPrefecture}
+              onChange={(e) => {
+                field.onChange(e);
+                setValue('identityInfo.japanCity', ''); // 都道府県が変わったら市区町村をクリア
+              }}
+            />
+          )}
         />
       </FormField>
 
       <FormField label="市区町村" required error={idErrors?.japanCity?.message}>
-        <FormInput
-          {...register('identityInfo.japanCity')}
-          placeholder="例: 千代田区"
-          error={!!idErrors?.japanCity}
+        <Controller
+          name="identityInfo.japanCity"
+          control={control}
+          render={({ field }) => (
+            <FormSelect
+              {...field}
+              options={selectedPrefecture ? getCityOptions(selectedPrefecture) : []}
+              error={!!idErrors?.japanCity}
+              disabled={!selectedPrefecture}
+            />
+          )}
         />
       </FormField>
 

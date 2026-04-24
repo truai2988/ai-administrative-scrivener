@@ -5,6 +5,7 @@ import { useFormContext, Controller, useWatch } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
 import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
+import { formOptions } from '@/lib/constants/formOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function CertificationFields() {
@@ -24,10 +25,7 @@ export function CertificationFields() {
               name={field.name}
               value={field.value}
               onChange={field.onChange}
-              options={[
-                { label: '有', value: '1' },
-                { label: '無', value: '2' },
-              ]}
+              options={formOptions.yesNo}
               error={!!appErrors?.hasJapaneseCertification}
             />
           )}

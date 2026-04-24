@@ -493,15 +493,15 @@ function buildSheet2Row(f: CoeApplicationFormData): string[] {
   const jobSlots = Array.from({ length: 8 }, (_, i) => jobs[i] ?? null);
   const jobCols: string[] = [];
   for (const j of jobSlots) {
-    jobCols.push(''); // 国・地域名
-    jobCols.push(''); // 入社年月不詳
-    jobCols.push(j ? toCSVDate(j.startDate) : ''); // 入社年月
-    jobCols.push(j ? toCSVDate(j.startDate) : ''); // 入社年月
-    jobCols.push(''); // 退社年月不詳
-    jobCols.push(j ? toCSVDate(j.endDate) : ''); // 退社年月
-    jobCols.push(j ? toCSVDate(j.endDate) : ''); // 退社年月
-    jobCols.push(''); // 勤務先英字
-    jobCols.push(j?.companyName ?? ''); // 勤務先漢字
+    jobCols.push(j?.country ?? ''); // 国・地域名
+    jobCols.push(j?.startDateUnknown ?? ''); // 入社年月不詳
+    jobCols.push(j?.startDate ?? ''); // 入社年月(YYYYMM)
+    jobCols.push(j?.startYear ?? ''); // 入社年(月不詳の場合)
+    jobCols.push(j?.endDateUnknown ?? ''); // 退社年月不詳
+    jobCols.push(j?.endDate ?? ''); // 退社年月(YYYYMM)
+    jobCols.push(j?.endYear ?? ''); // 退社年(月不詳の場合)
+    jobCols.push(j?.companyNameEn ?? ''); // 勤務先英字
+    jobCols.push(j?.companyNameJa ?? ''); // 勤務先漢字
   }
 
   // 雇用主同居家族最大5個
@@ -510,13 +510,13 @@ function buildSheet2Row(f: CoeApplicationFormData): string[] {
   const eFamCols: string[] = [];
   for (const fam of eFamSlots) {
     eFamCols.push(fam?.relationship ?? '');
-    eFamCols.push(''); // その他
+    eFamCols.push(fam?.relationshipOther ?? '');
     eFamCols.push(fam?.name ?? '');
     eFamCols.push(fam ? toCSVDate(fam.birthDate) : '');
     eFamCols.push(fam?.nationality ?? '');
-    eFamCols.push(''); // 同居有無
-    eFamCols.push(''); // 勤務先
-    eFamCols.push(''); // 在留資格
+    eFamCols.push(fam?.cohabitation ?? '');
+    eFamCols.push(fam?.workplace ?? '');
+    eFamCols.push(fam?.residenceStatus ?? '');
   }
 
   // 基本的に長大なため、ここでは空文字の配列を用意しつつマッピング可能なものをマッピングする

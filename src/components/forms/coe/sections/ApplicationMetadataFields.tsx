@@ -4,7 +4,8 @@ import React from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { FormField } from '@/components/forms/ui/FormField';
 import { FormInput } from '@/components/forms/ui/FormInput';
-import { FormRadioGroup } from '@/components/forms/ui/FormRadio';
+import { FormSelect } from '@/components/forms/ui/FormSelect';
+import { formOptions } from '@/lib/constants/formOptions';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 
 export function ApplicationMetadataFields() {
@@ -16,19 +17,14 @@ export function ApplicationMetadataFields() {
         <h3 className="subsection-title">その他メタデータ</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="在留カードの受領方法" required error={errors.residenceCardReceiptMethod?.message}>
+          <FormField label="在留資格認定証明書の受領方法" required error={errors.residenceCardReceiptMethod?.message}>
             <Controller
               name="residenceCardReceiptMethod"
               control={control}
               render={({ field }) => (
-                <FormRadioGroup
-                  name={field.name}
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={[
-                    { label: '窓口', value: '1' },
-                    { label: '郵送', value: '2' },
-                  ]}
+                <FormSelect
+                  {...field}
+                  options={formOptions.receiptMethod}
                   error={!!errors.residenceCardReceiptMethod}
                 />
               )}
@@ -40,17 +36,22 @@ export function ApplicationMetadataFields() {
               name="checkIntent"
               control={control}
               render={({ field }) => (
-                <FormRadioGroup
-                  name={field.name}
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={[
-                    { label: '確認済', value: '1' },
-                    { label: '未確認', value: '2' },
-                  ]}
+                <FormSelect
+                  {...field}
+                  options={formOptions.checkIntent}
                   error={!!errors.checkIntent}
                 />
               )}
+            />
+          </FormField>
+
+          <FormField label="通知先メールアドレス" error={errors.notificationEmail?.message} className="md:col-span-2">
+            <FormInput
+              {...register('notificationEmail')}
+              placeholder="例: example@example.com"
+              type="email"
+              maxLength={60}
+              error={!!errors.notificationEmail}
             />
           </FormField>
 
@@ -58,6 +59,7 @@ export function ApplicationMetadataFields() {
             <FormInput
               {...register('freeFormat')}
               placeholder="備考などがあれば入力してください"
+              maxLength={300}
               error={!!errors.freeFormat}
             />
           </FormField>
