@@ -9,7 +9,7 @@ import { FormSelect } from '../../ui/FormSelect';
 import { changeFormOptions, getTechnicalInternWorkOptions } from '@/lib/constants/changeFormOptions';
 
 export function SpecificSkillCertSubForm() {
-  const { register, watch, control, setValue, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
+  const { register, control, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
   const infoError = errors.foreignerInfo;
 
   // useFieldArray for dynamic lists
@@ -192,7 +192,6 @@ export function SpecificSkillCertSubForm() {
         </div>
 
         {internFields.map((field, index) => {
-          const fieldError = infoError?.technicalInternRecords?.[index];
           return (
             <TechnicalInternRecordItem 
               key={field.id} 

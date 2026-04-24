@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { FormField } from '../../ui/FormField';
 import { FormInput } from '../../ui/FormInput';
@@ -9,7 +10,7 @@ import { FormSelect } from '../../ui/FormSelect';
 import { changeFormOptions, getSpecifiedSkilledSubOptions } from '@/lib/constants/changeFormOptions';
 
 export function SpecificIndustrySubForm() {
-  const { register, control, setValue, watch, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
+  const { register, setValue, watch, formState: { errors } } = useFormContext<ChangeOfStatusApplicationFormData>();
   const empError = errors.employerInfo;
 
   // Primitive array handling without useFieldArray
