@@ -1,4 +1,4 @@
-import rawDropdowns from '../../../dropdowns.json';
+import rawDropdowns from '../../../scripts/data-extraction/dropdowns.json';
 import { mapOptions, getCityOptions } from './sharedOptions';
 
 export const coeFormOptions = {

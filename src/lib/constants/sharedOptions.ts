@@ -1,4 +1,4 @@
-import citiesMapData from '../../../cities_map.json';
+import citiesMapData from '../../../scripts/data-extraction/cities_map.json';
 
 export interface SelectOption {
   label: string;
