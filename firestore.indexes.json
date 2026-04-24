@@ -23,6 +23,14 @@
         { "fieldPath": "userId",  "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "company_masters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "organizationId", "order": "ASCENDING" },
+        { "fieldPath": "companyNameJa", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

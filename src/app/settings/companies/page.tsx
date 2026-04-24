@@ -475,9 +475,8 @@ export default function CompanyMastersPage() {
     return currentUser.organizationId ?? DEFAULT_BRANCH_ID;
   })();
 
-  // 戻るリンク（branch_staff は /settings にアクセスできないのでダッシュボードへ）
-  const backHref =
-    currentUser?.role === 'branch_staff' ? '/' : '/settings';
+  // 戻るリンクは常にダッシュボード（ホーム）へ
+  const backHref = '/';
 
   const load = async () => {
     if (!organizationId) return;
