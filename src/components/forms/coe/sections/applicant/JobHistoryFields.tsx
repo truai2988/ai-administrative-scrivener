@@ -56,13 +56,13 @@ export function JobHistoryFields() {
           {fields.map((item, index) => {
             const fieldError = appErrors?.jobHistory?.[index];
             return (
-              <div key={item.id} className="relative p-5 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-4">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-2 mb-2">
-                  <h3 className="text-sm font-semibold text-slate-700">職歴 {index + 1}</h3>
+              <div key={item.id} className="relative p-5 bg-[rgba(15,23,42,0.4)] border border-slate-700/50 rounded-lg flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-slate-700/50 pb-2 mb-2">
+                  <h3 className="text-sm font-semibold text-slate-300">職歴 {index + 1}</h3>
                   <button
                     type="button"
                     onClick={() => remove(index)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors flex items-center gap-1 text-xs"
+                    className="text-red-500 hover:text-red-400 hover:bg-red-900/30 p-1 rounded transition-colors flex items-center gap-1 text-xs"
                   >
                     <Trash2 size={14} /> 削除
                   </button>
@@ -173,7 +173,7 @@ export function JobHistoryFields() {
             <button
               type="button"
               onClick={handleAddJob}
-              className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-colors text-sm font-medium"
+              className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-slate-700/50 text-slate-400 rounded-lg hover:bg-[rgba(15,23,42,0.4)] hover:border-slate-500 transition-colors text-sm font-medium"
             >
               <Plus size={16} /> 職歴を追加する（最大8件まで）
             </button>

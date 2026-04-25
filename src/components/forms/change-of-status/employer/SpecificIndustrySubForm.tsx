@@ -61,9 +61,9 @@ export function SpecificIndustrySubForm() {
       <h3 className="subsection-title">特定産業分野・職種情報 (特定技能)</h3>
 
       {/* 特定産業分野・業務区分 */}
-      <div className="mb-6 border p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
+      <div className="mb-6 border border-slate-700/50 p-4 rounded-xl bg-slate-800/40">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300">特定産業分野と業務区分 (最大3組)</h4>
+          <h4 className="font-semibold text-sm text-slate-300">特定産業分野と業務区分 (最大3組)</h4>
           <button
             type="button"
             onClick={() => setIndustryCount(prev => Math.min(prev + 1, 3))}
@@ -118,8 +118,8 @@ export function SpecificIndustrySubForm() {
       </div>
 
       {/* 職種 */}
-      <div className="mb-6 border p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
-        <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-4">職種</h4>
+      <div className="mb-6 border border-slate-700/50 p-4 rounded-xl bg-slate-800/40">
+        <h4 className="font-semibold text-sm text-slate-300 mb-4">職種</h4>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FormField label="主たる職種" required error={empError?.mainJobType?.message}>
@@ -132,7 +132,7 @@ export function SpecificIndustrySubForm() {
         </div>
 
         <div className="mt-4 flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">従たる職種 (最大3件)</label>
+          <label className="block text-sm font-medium text-slate-300">従たる職種 (最大3件)</label>
           <button
             type="button"
             onClick={() => setOtherJobCount(prev => Math.min(prev + 1, 3))}

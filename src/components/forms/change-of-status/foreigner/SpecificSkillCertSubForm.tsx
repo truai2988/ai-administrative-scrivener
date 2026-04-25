@@ -52,9 +52,9 @@ export function SpecificSkillCertSubForm() {
       </div>
 
       {/* 技能水準証明枠 */}
-      <div className="mb-6 border p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
+      <div className="mb-6 border border-slate-700/50 p-4 rounded-xl bg-slate-800/40">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300">技能水準証明</h4>
+          <h4 className="font-semibold text-sm text-slate-300">技能水準証明</h4>
           <button
             type="button"
             onClick={() => appendSkill({ method: 'exam', examName: '', examLocation: '' })}
@@ -113,9 +113,9 @@ export function SpecificSkillCertSubForm() {
       </div>
 
       {/* 日本語能力証明枠 */}
-      <div className="mb-6 border p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
+      <div className="mb-6 border border-slate-700/50 p-4 rounded-xl bg-slate-800/40">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300">日本語能力証明</h4>
+          <h4 className="font-semibold text-sm text-slate-300">日本語能力証明</h4>
           <button
             type="button"
             onClick={() => appendLang({ method: 'exam', examName: '', examLocation: '' })}
@@ -174,9 +174,9 @@ export function SpecificSkillCertSubForm() {
       </div>
 
       {/* 技能実習2号良好修了記録 */}
-      <div className="mb-6 border p-4 rounded-md bg-slate-50 dark:bg-slate-800/50">
+      <div className="mb-6 border border-slate-700/50 p-4 rounded-xl bg-slate-800/40">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300">技能実習2号良好修了記録 (最大2件)</h4>
+          <h4 className="font-semibold text-sm text-slate-300">技能実習2号良好修了記録 (最大2件)</h4>
           <button
             type="button"
             onClick={() => {

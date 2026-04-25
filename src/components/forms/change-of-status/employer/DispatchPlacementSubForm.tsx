@@ -23,17 +23,17 @@ export function DispatchPlacementSubForm() {
       <h3 className="subsection-title">③ 派遣先・引受先等の機関（該当する場合のみ）</h3>
       
       {/* 派遣先 */}
-      <div className="border border-slate-200 rounded-lg overflow-hidden">
+      <div className="border border-slate-700/50 rounded-lg overflow-hidden">
         <button
           type="button"
           onClick={() => setShowDispatch(!showDispatch)}
-          className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-between p-4 bg-[rgba(15,23,42,0.4)] hover:bg-slate-800/60 transition-colors"
         >
-          <span className="font-medium text-sm text-slate-700">（派遣先がある場合）派遣先情報</span>
+          <span className="font-medium text-sm text-slate-300">（派遣先がある場合）派遣先情報</span>
           {showDispatch ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
         </button>
         {showDispatch && (
-          <div className="p-4 bg-white border-t border-slate-200 space-y-4 animate-in slide-in-from-top-2">
+          <div className="p-4 bg-slate-800/40 border-t border-slate-700/50 space-y-4 animate-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label="氏名又は名称" error={empError?.dispatchDestination?.name?.message}>
                 <FormInput {...register('employerInfo.dispatchDestination.name')} placeholder="例: 株式会社派遣先" />
@@ -59,17 +59,17 @@ export function DispatchPlacementSubForm() {
       </div>
 
       {/* 職業紹介事業者 */}
-      <div className="border border-slate-200 rounded-lg overflow-hidden">
+      <div className="border border-slate-700/50 rounded-lg overflow-hidden">
         <button
           type="button"
           onClick={() => setShowPlacement(!showPlacement)}
-          className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-between p-4 bg-[rgba(15,23,42,0.4)] hover:bg-slate-800/60 transition-colors"
         >
-          <span className="font-medium text-sm text-slate-700">（職業紹介を利用した場合）職業紹介事業者情報</span>
+          <span className="font-medium text-sm text-slate-300">（職業紹介を利用した場合）職業紹介事業者情報</span>
           {showPlacement ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
         </button>
         {showPlacement && (
-          <div className="p-4 bg-white border-t border-slate-200 space-y-4 animate-in slide-in-from-top-2">
+          <div className="p-4 bg-slate-800/40 border-t border-slate-700/50 space-y-4 animate-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label="氏名又は名称" error={empError?.placementAgency?.name?.message}>
                 <FormInput {...register('employerInfo.placementAgency.name')} placeholder="例: 株式会社紹介" />
@@ -89,17 +89,17 @@ export function DispatchPlacementSubForm() {
       </div>
 
       {/* 取次機関 */}
-      <div className="border border-slate-200 rounded-lg overflow-hidden">
+      <div className="border border-slate-700/50 rounded-lg overflow-hidden">
         <button
           type="button"
           onClick={() => setShowIntermediary(!showIntermediary)}
-          className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+          className="w-full flex items-center justify-between p-4 bg-[rgba(15,23,42,0.4)] hover:bg-slate-800/60 transition-colors"
         >
-          <span className="font-medium text-sm text-slate-700">（取次機関を利用した場合）外国の取次機関情報</span>
+          <span className="font-medium text-sm text-slate-300">（取次機関を利用した場合）外国の取次機関情報</span>
           {showIntermediary ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
         </button>
         {showIntermediary && (
-          <div className="p-4 bg-white border-t border-slate-200 space-y-4 animate-in slide-in-from-top-2">
+          <div className="p-4 bg-slate-800/40 border-t border-slate-700/50 space-y-4 animate-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label="氏名又は名称" error={empError?.intermediaryAgency?.name?.message}>
                 <FormInput {...register('employerInfo.intermediaryAgency.name')} placeholder="例: 〇〇 Agency" />

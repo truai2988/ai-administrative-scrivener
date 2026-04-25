@@ -24,7 +24,7 @@ export function ComplianceOathsSubForm() {
     const applies = useWatch({ control, name: `${name}.applies` as Path<ChangeOfStatusApplicationFormData> });
     
     return (
-      <div className="p-4 border border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100/50 transition-colors">
+      <div className="p-4 border border-slate-700/50 rounded-lg bg-[rgba(15,23,42,0.4)] hover:bg-slate-800/60 transition-colors">
         <FormField label={label} required error={error?.applies?.message}>
           <Controller
             name={`${name}.applies` as Path<ChangeOfStatusApplicationFormData>}
@@ -52,7 +52,7 @@ export function ComplianceOathsSubForm() {
                 {...register(`${name}.detail` as Path<ChangeOfStatusApplicationFormData>)}
                 placeholder="内容を具体的に記載してください"
                 error={!!error?.detail}
-                className="bg-white border-red-300 focus:ring-red-500"
+                className="bg-slate-800 border-red-900/50 focus:ring-red-500 text-slate-200"
               />
             </FormField>
             <p className="text-xs text-red-500 mt-2 font-medium">※該当する場合、審査に重大な影響を及ぼす可能性があります。</p>
@@ -64,8 +64,8 @@ export function ComplianceOathsSubForm() {
 
   // 単純な誓約・確認(boolean)コンポーネント
   const OathItem = ({ name, label, error }: { name: string, label: string, error?: { message?: string } }) => (
-    <div className="p-4 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-between gap-4">
-      <span className="text-sm text-slate-700">{label}</span>
+    <div className="p-4 border border-slate-700/50 rounded-lg bg-[rgba(15,23,42,0.4)] flex items-center justify-between gap-4">
+      <span className="text-sm text-slate-300">{label}</span>
       <div className="shrink-0">
         <Controller
           name={name as Path<ChangeOfStatusApplicationFormData>}

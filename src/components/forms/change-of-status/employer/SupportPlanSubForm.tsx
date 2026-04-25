@@ -23,7 +23,7 @@ export function SupportPlanSubForm() {
         <h3 className="subsection-title">⑤ 1号特定技能外国人支援計画等</h3>
       </div>
 
-      <div className="bg-slate-50 p-6 rounded-lg border border-slate-200">
+      <div className="bg-slate-800/40 p-6 rounded-lg border border-slate-700/50">
         <FormField label="登録支援機関への支援の全部委託の有無" required error={empError?.delegateSupportEntirely?.message}>
           <Controller
             name="employerInfo.delegateSupportEntirely"
@@ -75,8 +75,8 @@ export function SupportPlanSubForm() {
         <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
           <h4 className="cert-block-label">自社支援における体制確認（受入れ機関内部）</h4>
           
-          <div className="bg-white p-4 border border-slate-200 rounded-lg space-y-4">
-            <h6 className="text-sm font-medium text-slate-800">支援責任者</h6>
+          <div className="bg-[rgba(15,23,42,0.4)] p-4 border border-white/10 rounded-lg space-y-4">
+            <h6 className="text-sm font-medium text-slate-300">支援責任者</h6>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField label="氏名" required error={empError?.supportPersonnel?.supervisorName?.message}>
                 <FormInput {...register('employerInfo.supportPersonnel.supervisorName')} placeholder="例: 山田 責任" />
@@ -87,8 +87,8 @@ export function SupportPlanSubForm() {
             </div>
           </div>
 
-          <div className="bg-white p-4 border border-slate-200 rounded-lg space-y-4">
-            <h6 className="text-sm font-medium text-slate-800">支援担当者</h6>
+          <div className="bg-[rgba(15,23,42,0.4)] p-4 border border-white/10 rounded-lg space-y-4">
+            <h6 className="text-sm font-medium text-slate-300">支援担当者</h6>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField label="氏名" required error={empError?.supportPersonnel?.officerName?.message}>
                 <FormInput {...register('employerInfo.supportPersonnel.officerName')} placeholder="例: 鈴木 担当" />
