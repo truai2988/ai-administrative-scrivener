@@ -17,7 +17,7 @@ import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
 
 // ─── Toast Message Component ─────────────────────────────────────────────────
-function ToastNotification({ message, onClose }: { message: string; onClose: () => void }) {
+function ToastNotification({ message, subMessage, onClose }: { message: string; subMessage?: string | null; onClose: () => void }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 3500);
     return () => clearTimeout(timer);
@@ -36,7 +36,7 @@ function ToastNotification({ message, onClose }: { message: string; onClose: () 
       </div>
       <div>
         <p className="text-sm font-bold">{message}</p>
-        <p className="text-xs text-slate-500 font-medium">要望があり次第実装予定</p>
+        {subMessage && <p className="text-xs text-slate-500 font-medium">{subMessage}</p>}
       </div>
       <button onClick={onClose} className="ml-2 p-1 text-slate-500 hover:text-white transition-colors rounded-lg">
         <X className="h-4 w-4" />
@@ -95,6 +95,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastSubMessage, setToastSubMessage] = useState<string | null>(null);
   // お問い合わせ受信笱パネルの開閉状態 (scrivenerのみ)
   const [showInquiryInbox, setShowInquiryInbox] = useState(false);
 
@@ -151,6 +152,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
   const showComingSoon = useCallback((message: string) => {
     setToastMessage(message);
+    setToastSubMessage('要望があり次第実装予定');
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -419,6 +421,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                     setData(prev => prev.filter(f => !selectedIds.has(f.id)));
                     setSelectedIds(new Set());
                     setToastMessage('削除が完了しました');
+                    setToastSubMessage(null);
                   } catch (error) {
                     console.error('削除エラー:', error);
                     alert('削除に失敗しました');
@@ -676,7 +679,11 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           {toastMessage && (
             <ToastNotification
               message={toastMessage}
-              onClose={() => setToastMessage(null)}
+              subMessage={toastSubMessage}
+              onClose={() => {
+                setToastMessage(null);
+                setToastSubMessage(null);
+              }}
             />
           )}
         </AnimatePresence>
