@@ -1,4 +1,4 @@
-import { RenewalApplicationForm } from '@/types/renewalApplication';
+import { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import {
   boolToYesNo,
   formatDateToYYYYMMDD,
@@ -9,16 +9,16 @@ import {
 
 /**
  * 申請情報入力(在留期間更新許可申請).csv のデータを生成します。
- * 対象となる項目数は全78項目（インデックス 0〜77）です。
+ * 政府テンプレート準拠: 全76項目（インデックス 0〜75）
  * 
- * @param data - RenewalApplicationForm (申請フォームの全データ)
+ * @param data - RenewalApplicationFormData (Zodスキーマ準拠の申請フォーム全データ)
  * @returns CSVフォーマットの文字列 (ヘッダー1行 + データ1行)
  */
-export const generateBasicCsv = (data: RenewalApplicationForm): string => {
+export const generateBasicCsv = (data: RenewalApplicationFormData): string => {
   const f = data.foreignerInfo;
 
-  // 必須要件: 78個の要素を持つ配列を生成
-  const row: string[] = new Array(78).fill('');
+  // 政府テンプレート準拠: 76個の要素を持つ配列を生成
+  const row: string[] = new Array(76).fill('');
 
   // 0: 身分事項_国籍・地域
   row[0] = f.nationality || '';
@@ -96,15 +96,6 @@ export const generateBasicCsv = (data: RenewalApplicationForm): string => {
       row[offset + 4] = boolToYesNo(rel.cohabitation);
       row[offset + 5] = rel.workplace || '';
       row[offset + 6] = rel.residenceCardNumber || '';
-    } else {
-      // データがない場合は空文字をセット（初期化済みですが明示的に）
-      row[offset] = '';
-      row[offset + 1] = '';
-      row[offset + 2] = '';
-      row[offset + 3] = '';
-      row[offset + 4] = '';
-      row[offset + 5] = '';
-      row[offset + 6] = '';
     }
   }
 
@@ -113,30 +104,20 @@ export const generateBasicCsv = (data: RenewalApplicationForm): string => {
     row[70] = '窓口での受領を希望';
   } else if (f.residenceCardReceiptMethod === 'post') {
     row[70] = '郵送による受領を希望';
-  } else {
-    row[70] = '';
   }
 
   // 71: 受領方法等_申請対象者の住居地
   row[71] = f.applicantResidencePlace || '';
-  
   // 72: 受領方法等_受領官署
   row[72] = f.receivingOffice || '';
-  
   // 73: 受領方法等_通知送信用メールアドレス
   row[73] = f.notificationEmail || '';
-  
   // 74: 入力情報確認_申請に先立ち、申請者本人に申請の意思を確認してください。
   row[74] = boolToYesNo(f.checkIntent);
-  
   // 75: 入力情報確認_フリー欄
   row[75] = f.freeFormat || '';
 
-  // 76〜77: CSV末尾の空列（必要に応じて出力）
-  row[76] = '';
-  row[77] = '';
-
-  // ヘッダー行 (78項目)
+  // ヘッダー行 (政府テンプレート準拠: 76項目)
   const headers: string[] = [
     '身分事項_国籍・地域', '身分事項_生年月日', '身分事項_氏名', '身分事項_性別',
     '身分事項_配偶者の有無', '身分事項_職業', '身分事項_本国における居住地',
@@ -170,7 +151,6 @@ export const generateBasicCsv = (data: RenewalApplicationForm): string => {
     '受領方法等_通知送信用メールアドレス',
     '入力情報確認_申請に先立ち、申請者本人に申請の意思を確認してください。',
     '入力情報確認_フリー欄',
-    '', '' // 76, 77
   );
 
   return createCsvString(headers, row);

@@ -1,12 +1,9 @@
-'use client';
-
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormContext, useFieldArray, Controller, useWatch, Path } from 'react-hook-form';
 import { Building2, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
-import { INDUSTRY_FIELD_OPTIONS } from '@/types/renewalApplication';
-import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
+import { renewalFormOptions, getSpecifiedSkilledSubOptions } from '@/lib/constants/renewalFormOptions';
 import { FormField } from '../ui/FormField';
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
@@ -144,6 +141,19 @@ export function EmployerInfoSection({
   const hasDifferentTreatment = watch('employerInfo.hasDifferentTreatment');
   const hasJobHistory = watch('employerInfo.hasJobHistory');
 
+  // ─ カスケード連動: 特定産業分野→業務区分 ─
+  const selectedIndustryField = watch('employerInfo.industryFields.0');
+  const jobCategoryOptions = useMemo(() => getSpecifiedSkilledSubOptions(selectedIndustryField), [selectedIndustryField]);
+
+  // 特定産業分野が変更されたら業務区分をリセット
+  const prevIndustryRef = useRef(selectedIndustryField);
+  useEffect(() => {
+    if (prevIndustryRef.current !== selectedIndustryField && prevIndustryRef.current !== undefined) {
+      setValue('employerInfo.jobCategories', []);
+    }
+    prevIndustryRef.current = selectedIndustryField;
+  }, [selectedIndustryField, setValue]);
+
   // アコーディオン制御ステート
   const [showDispatch, setShowDispatch] = useState(false);
   const [showPlacement, setShowPlacement] = useState(false);
@@ -250,16 +260,13 @@ export function EmployerInfoSection({
               control={control}
               render={({ field }) => (
                 <FormSelect
-                  options={INDUSTRY_FIELD_OPTIONS.map((o) => ({
-                    value: o.value,
-                    label: o.label,
-                  }))}
+                  options={renewalFormOptions.specifiedSkilledField}
                   value={field.value}
                   onChange={(val) => {
-                    // Update the array with the single selected value as item 0
                     field.onChange(val);
                   }}
                   error={!!emp?.industryFields}
+                  placeholder="分野を選択"
                 />
               )}
             />
@@ -280,18 +287,20 @@ export function EmployerInfoSection({
 
           <FormField
             label="従事する業務の区分"
-            hint="複数ある場合はカンマ(,)区切り"
+            required
             error={emp?.jobCategories?.message}
           >
             <Controller
-              name="employerInfo.jobCategories"
+              name="employerInfo.jobCategories.0"
               control={control}
               render={({ field }) => (
-                <FormInput
-                  value={field.value?.join(',') || ''}
-                  onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                  placeholder="例: 機械加工, 仕上げ"
+                <FormSelect
+                  options={jobCategoryOptions}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
                   error={!!emp?.jobCategories}
+                  disabled={!selectedIndustryField || jobCategoryOptions.length === 0}
+                  placeholder={selectedIndustryField ? '業務区分を選択' : '先に特定産業分野を選択してください'}
                 />
               )}
             />

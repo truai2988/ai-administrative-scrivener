@@ -1,4 +1,4 @@
-import { RenewalApplicationForm } from '@/types/renewalApplication';
+import { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import { generateBasicCsv } from './generateBasicCsv';
 import { generateSpecificCsv } from './generateSpecificCsv';
 import { generateSimultaneousCsv } from './generateSimultaneousCsv';
@@ -6,10 +6,10 @@ import { strToShiftJISBlob } from './csvUtils';
 
 /**
  * フォームデータから3種類のCSV（在留期間更新許可申請、区分V、同時申請）のBlobを生成します。
- * @param data - RenewalApplicationForm のデータ
+ * @param data - RenewalApplicationFormData のデータ
  * @returns 3つのBlobオブジェクトを含むプロミスまたはオブジェクト
  */
-export const generateApplicationCsvs = async (data: RenewalApplicationForm) => {
+export const generateApplicationCsvs = async (data: RenewalApplicationFormData) => {
   // 1. 在留期間更新許可申請のCSV文字列を生成
   const basicCsvStr = generateBasicCsv(data);
 

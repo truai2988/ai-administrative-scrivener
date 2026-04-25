@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { Plus, Trash2, User, Sparkles, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
@@ -13,7 +13,97 @@ import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 import { useOcrExtract } from '@/hooks/useOcrExtract';
-import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
+import { renewalFormOptions, getStayPeriodByStatus, getTechnicalInternWorkOptions } from '@/lib/constants/renewalFormOptions';
+
+// ═══════════════════════════════════════════════════════════════════════
+// 技能実習2号良好修了記録の1行コンポーネント（カスケード連動）
+// 職種を選択すると、対応する作業一覧が連動で絞り込まれる
+// ═══════════════════════════════════════════════════════════════════════
+function InternRecordRow({
+  idx,
+  rec,
+  control,
+  register,
+  watch,
+  setValue,
+  onRemove,
+}: {
+  idx: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rec: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  control: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  watch: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setValue: any;
+  onRemove: () => void;
+}) {
+  const selectedJobType = watch(`foreignerInfo.technicalInternRecords.${idx}.jobType`);
+  const workOptions = useMemo(() => getTechnicalInternWorkOptions(selectedJobType), [selectedJobType]);
+
+  // 職種が変わったら作業をリセット
+  const prevJobRef = useRef(selectedJobType);
+  useEffect(() => {
+    if (prevJobRef.current !== selectedJobType && prevJobRef.current !== undefined) {
+      setValue(`foreignerInfo.technicalInternRecords.${idx}.workType`, '');
+    }
+    prevJobRef.current = selectedJobType;
+  }, [selectedJobType, setValue, idx]);
+
+  return (
+    <div className="relative-row">
+      <div className="relative-row-header">
+        <span className="relative-row-number">記録 #{idx + 1}</span>
+        <button type="button" className="btn-remove" onClick={onRemove}>
+          <Trash2 size={14} /> 削除
+        </button>
+      </div>
+      <div className="form-grid form-grid--3">
+        <FormField label="職種" error={(rec as {jobType?: {message?: string}} | undefined)?.jobType?.message}>
+          <Controller
+            name={`foreignerInfo.technicalInternRecords.${idx}.jobType`}
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                options={renewalFormOptions.technicalInternOccupation}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                error={!!(rec as {jobType?: unknown} | undefined)?.jobType}
+                placeholder="職種を選択"
+              />
+            )}
+          />
+        </FormField>
+        <FormField label="作業" error={(rec as {workType?: {message?: string}} | undefined)?.workType?.message}>
+          <Controller
+            name={`foreignerInfo.technicalInternRecords.${idx}.workType`}
+            control={control}
+            render={({ field }) => (
+              <FormSelect
+                options={workOptions}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                error={!!(rec as {workType?: unknown} | undefined)?.workType}
+                disabled={!selectedJobType || workOptions.length === 0}
+                placeholder={selectedJobType ? '作業を選択' : '先に職種を選択してください'}
+              />
+            )}
+          />
+        </FormField>
+        <FormField label="良好修了の証明" error={(rec as {completionProof?: {message?: string}} | undefined)?.completionProof?.message}>
+          <FormInput
+            {...register(`foreignerInfo.technicalInternRecords.${idx}.completionProof`)}
+            placeholder="例: 技能実習評価試験 専門級合格"
+            error={!!(rec as {completionProof?: unknown} | undefined)?.completionProof}
+          />
+        </FormField>
+      </div>
+    </div>
+  );
+}
 
 interface ForeignerInfoSectionProps {
   isEditable?: boolean;
@@ -59,6 +149,26 @@ export function ForeignerInfoSection({
   const hasResidenceCard = watch('foreignerInfo.hasResidenceCard');
   const hasRelatives = watch('foreignerInfo.hasRelatives');
   const skillMethod = watch('foreignerInfo.skillCertifications.0.method');
+
+  // ─ カスケード連動: 在留資格→在留期間 ─
+  const currentResStatus = watch('foreignerInfo.currentResidenceStatus');
+  const currentStayPeriod = watch('foreignerInfo.currentStayPeriod');
+  const stayPeriodOptions = useMemo(() => getStayPeriodByStatus(currentResStatus), [currentResStatus]);
+  // フォールバック: 既存値がマスタ選択肢に含まれないならテキスト入力にする
+  const stayPeriodNeedsFallback = useMemo(() => {
+    if (!currentStayPeriod) return false;
+    if (stayPeriodOptions.length === 0) return true;
+    return !stayPeriodOptions.some(o => o.value === currentStayPeriod);
+  }, [currentStayPeriod, stayPeriodOptions]);
+
+  // 在留資格が変更されたら在留期間をリセット
+  const prevResStatusRef = useRef(currentResStatus);
+  useEffect(() => {
+    if (prevResStatusRef.current !== currentResStatus && prevResStatusRef.current !== undefined) {
+      setValue('foreignerInfo.currentStayPeriod', '');
+    }
+    prevResStatusRef.current = currentResStatus;
+  }, [currentResStatus, setValue]);
   const langMethod = watch('foreignerInfo.languageCertifications.0.method');
 
   // 代理人・取次者 アコーディオン状態
@@ -605,11 +715,28 @@ export function ForeignerInfoSection({
           </FormField>
 
           <FormField label="在留期間" required error={info?.currentStayPeriod?.message}>
-            <FormInput
-              {...register('foreignerInfo.currentStayPeriod')}
-              placeholder="例: 1年"
-              error={!!info?.currentStayPeriod}
-            />
+            {stayPeriodOptions.length > 0 && !stayPeriodNeedsFallback ? (
+              <Controller
+                name="foreignerInfo.currentStayPeriod"
+                control={control}
+                render={({ field }) => (
+                  <FormSelect
+                    options={stayPeriodOptions}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    error={!!info?.currentStayPeriod}
+                    disabled={!currentResStatus}
+                    placeholder={currentResStatus ? '在留期間を選択' : '先に在留資格を選択してください'}
+                  />
+                )}
+              />
+            ) : (
+              <FormInput
+                {...register('foreignerInfo.currentStayPeriod')}
+                placeholder={currentResStatus ? '在留期間を入力' : '先に在留資格を選択してください'}
+                error={!!info?.currentStayPeriod}
+              />
+            )}
           </FormField>
 
           <FormField label="在留期間の満了日" required error={info?.stayExpiryDate?.message}>
@@ -892,37 +1019,16 @@ export function ForeignerInfoSection({
               {internFields.map((f, idx) => {
                 const rec = info?.technicalInternRecords?.[idx];
                 return (
-                  <div key={f.id} className="relative-row">
-                    <div className="relative-row-header">
-                      <span className="relative-row-number">記録 #{idx + 1}</span>
-                      <button type="button" className="btn-remove" onClick={() => removeIntern(idx)}>
-                        <Trash2 size={14} /> 削除
-                      </button>
-                    </div>
-                    <div className="form-grid form-grid--3">
-                      <FormField label="職種" error={(rec as {jobType?: {message?: string}} | undefined)?.jobType?.message}>
-                        <FormInput
-                          {...register(`foreignerInfo.technicalInternRecords.${idx}.jobType`)}
-                          placeholder="例: 溶接"
-                          error={!!(rec as {jobType?: unknown} | undefined)?.jobType}
-                        />
-                      </FormField>
-                      <FormField label="作業" error={(rec as {workType?: {message?: string}} | undefined)?.workType?.message}>
-                        <FormInput
-                          {...register(`foreignerInfo.technicalInternRecords.${idx}.workType`)}
-                          placeholder="例: 手溶接"
-                          error={!!(rec as {workType?: unknown} | undefined)?.workType}
-                        />
-                      </FormField>
-                      <FormField label="良好修了の証明" error={(rec as {completionProof?: {message?: string}} | undefined)?.completionProof?.message}>
-                        <FormInput
-                          {...register(`foreignerInfo.technicalInternRecords.${idx}.completionProof`)}
-                          placeholder="例: 技能実習評価試験 専門級合格"
-                          error={!!(rec as {completionProof?: unknown} | undefined)?.completionProof}
-                        />
-                      </FormField>
-                    </div>
-                  </div>
+                  <InternRecordRow
+                    key={f.id}
+                    idx={idx}
+                    rec={rec}
+                    control={control}
+                    register={register}
+                    watch={watch}
+                    setValue={setValue}
+                    onRemove={() => removeIntern(idx)}
+                  />
                 );
               })}
             </div>
