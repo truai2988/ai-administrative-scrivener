@@ -43,9 +43,7 @@ export function RelativeListFields() {
           control={control}
           render={({ field }) => (
             <FormRadioGroup
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
+              {...field}
               options={coeFormOptions.yesNo}
               error={!!idErrors?.familyInJapan}
             />
@@ -118,9 +116,7 @@ export function RelativeListFields() {
                       control={control}
                       render={({ field }) => (
                         <FormRadioGroup
-                          name={field.name}
-                          value={field.value}
-                          onChange={field.onChange}
+                          {...field}
                           options={coeFormOptions.yesNo}
                           error={!!fieldError?.cohabitation}
                         />

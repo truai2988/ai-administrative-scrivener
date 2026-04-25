@@ -73,9 +73,7 @@ export function CompanyBasicFields() {
             control={control}
             render={({ field }) => (
               <FormRadioGroup
-                name={field.name}
-                value={field.value}
-                onChange={field.onChange}
+                {...field}
                 options={coeFormOptions.yesNo}
                 error={!!empErrors?.hasCorporateNumber}
               />

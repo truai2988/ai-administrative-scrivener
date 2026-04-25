@@ -137,13 +137,12 @@ export function EmploymentContractSubForm() {
             control={control}
             render={({ field }) => (
               <FormRadioGroup
-                name="employerInfo.paymentMethod"
+                
                 options={[
                   { value: 'bank_transfer', label: '口座振込' },
                   { value: 'cash', label: '現金' },
                 ]}
-                value={field.value}
-                onChange={field.onChange}
+                {...field}
                 error={!!empError?.paymentMethod}
               />
             )}

@@ -245,7 +245,7 @@ function RenewalApplicationFormInner({
   const methods = useForm<RenewalApplicationFormData>({
     resolver: zodResolver(renewalApplicationSchema),
     defaultValues: mergedDefaultValues,
-    mode: 'onBlur',
+    mode: 'onTouched',
   });
 
   const { formState: { errors }, reset } = methods;

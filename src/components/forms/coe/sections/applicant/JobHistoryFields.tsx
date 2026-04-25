@@ -40,9 +40,7 @@ export function JobHistoryFields() {
           control={control}
           render={({ field }) => (
             <FormRadioGroup
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
+              {...field}
               options={[
                 { label: '有', value: '1' },
                 { label: '無', value: '2' },

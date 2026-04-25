@@ -356,8 +356,7 @@ export function SimultaneousApplicationSection({
                       return (
                         <FormSelect
                           options={cityOptions}
-                          value={field.value ?? ''}
-                          onChange={field.onChange}
+                          {...field}
                           error={!!actErr?.workplaceCity}
                           disabled={!selectedPrefecture || cityOptions.length === 0}
                         />

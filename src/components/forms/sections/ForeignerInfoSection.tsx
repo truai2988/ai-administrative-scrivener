@@ -69,8 +69,7 @@ function InternRecordRow({
             render={({ field }) => (
               <FormSelect
                 options={renewalFormOptions.technicalInternOccupation}
-                value={field.value ?? ''}
-                onChange={field.onChange}
+                {...field}
                 error={!!(rec as {jobType?: unknown} | undefined)?.jobType}
                 placeholder="職種を選択"
               />
@@ -84,8 +83,7 @@ function InternRecordRow({
             render={({ field }) => (
               <FormSelect
                 options={workOptions}
-                value={field.value ?? ''}
-                onChange={field.onChange}
+                {...field}
                 error={!!(rec as {workType?: unknown} | undefined)?.workType}
                 disabled={!selectedJobType || workOptions.length === 0}
                 placeholder={selectedJobType ? '作業を選択' : '先に職種を選択してください'}
@@ -427,8 +425,7 @@ export function ForeignerInfoSection({
               render={({ field }) => (
                 <FormSelect
                   options={renewalFormOptions.nationality}
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
+                  {...field}
                   error={!!info?.nationality}
                   style={isOcrFilled('foreignerInfo.nationality') ? { background: 'transparent', borderColor: '#3b82f6', borderStyle: 'solid', borderWidth: '2px' } : undefined}
                 />
@@ -450,10 +447,9 @@ export function ForeignerInfoSection({
               control={control}
               render={({ field }) => (
                 <FormRadioGroup
-                  name="foreignerInfo.gender"
+                  
                   options={renewalFormOptions.gender}
-                  value={field.value}
-                  onChange={field.onChange}
+                  {...field}
                   error={!!info?.gender}
                   isOcrHighlighted={isOcrFilled('foreignerInfo.gender')}
                 />
@@ -493,10 +489,9 @@ export function ForeignerInfoSection({
               control={control}
               render={({ field }) => (
                 <FormRadioGroup
-                  name="foreignerInfo.maritalStatus"
+                  
                   options={renewalFormOptions.maritalStatus}
-                  value={field.value}
-                  onChange={field.onChange}
+                  {...field}
                   error={!!info?.maritalStatus}
                   isOcrHighlighted={isOcrFilled('foreignerInfo.maritalStatus')}
                 />
@@ -568,8 +563,7 @@ export function ForeignerInfoSection({
                 return (
                   <FormSelect
                     options={cityOptions}
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
+                    {...field}
                     error={!!info?.japanCity}
                     disabled={!selectedPrefecture || cityOptions.length === 0}
                   />
@@ -705,8 +699,7 @@ export function ForeignerInfoSection({
               render={({ field }) => (
                 <FormSelect
                   options={renewalFormOptions.residenceStatus}
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
+                  {...field}
                   error={!!info?.currentResidenceStatus}
                   style={isOcrFilled('foreignerInfo.currentResidenceStatus') ? { background: 'transparent', borderColor: '#3b82f6', borderStyle: 'solid', borderWidth: '2px' } : undefined}
                 />
@@ -722,8 +715,7 @@ export function ForeignerInfoSection({
                 render={({ field }) => (
                   <FormSelect
                     options={stayPeriodOptions}
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
+                    {...field}
                     error={!!info?.currentStayPeriod}
                     disabled={!currentResStatus}
                     placeholder={currentResStatus ? '在留期間を選択' : '先に在留資格を選択してください'}
@@ -803,8 +795,7 @@ export function ForeignerInfoSection({
                 render={({ field }) => (
                   <FormSelect
                     options={renewalFormOptions.desiredStayPeriod}
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
+                    {...field}
                     error={!!info?.desiredStayPeriod}
                     style={isOcrFilled('foreignerInfo.desiredStayPeriod') ? { background: 'transparent', borderColor: '#3b82f6', borderStyle: 'solid', borderWidth: '2px' } : undefined}
                   />
@@ -918,10 +909,9 @@ export function ForeignerInfoSection({
             control={control}
             render={({ field }) => (
               <FormRadioGroup
-                name="foreignerInfo.specificSkillCategory"
+                
                 options={renewalFormOptions.specificSkillCategory}
-                value={field.value}
-                onChange={field.onChange}
+                {...field}
                 error={!!info?.specificSkillCategory}
               />
             )}
@@ -943,8 +933,7 @@ export function ForeignerInfoSection({
                 render={({ field }) => (
                   <FormSelect
                     options={renewalFormOptions.skillCertMethod}
-                    value={field.value}
-                    onChange={field.onChange}
+                    {...field}
                     error={!!info?.skillCertifications?.[0]?.method}
                   />
                 )}
@@ -1050,8 +1039,7 @@ export function ForeignerInfoSection({
                 render={({ field }) => (
                   <FormSelect
                     options={renewalFormOptions.skillCertMethod}
-                    value={field.value}
-                    onChange={field.onChange}
+                    {...field}
                     error={!!info?.languageCertifications?.[0]?.method}
                   />
                 )}
@@ -1446,8 +1434,7 @@ export function ForeignerInfoSection({
                     return (
                       <FormSelect
                         options={cityOptions}
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
+                        {...field}
                         error={!!(info?.agent as {city?: unknown} | undefined)?.city}
                         disabled={!selectedPrefecture || cityOptions.length === 0}
                       />
@@ -1558,8 +1545,7 @@ export function ForeignerInfoSection({
                     return (
                       <FormSelect
                         options={cityOptions}
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
+                        {...field}
                         error={!!(info?.agencyRep as {city?: unknown} | undefined)?.city}
                         disabled={!selectedPrefecture || cityOptions.length === 0}
                       />

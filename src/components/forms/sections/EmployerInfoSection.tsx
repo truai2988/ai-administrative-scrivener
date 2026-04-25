@@ -296,8 +296,7 @@ export function EmployerInfoSection({
               render={({ field }) => (
                 <FormSelect
                   options={jobCategoryOptions}
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
+                  {...field}
                   error={!!emp?.jobCategories}
                   disabled={!selectedIndustryField || jobCategoryOptions.length === 0}
                   placeholder={selectedIndustryField ? '業務区分を選択' : '先に特定産業分野を選択してください'}
@@ -460,8 +459,7 @@ export function EmployerInfoSection({
               render={({ field }) => (
                 <FormSelect
                   options={renewalFormOptions.paymentMethod}
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
+                  {...field}
                   error={!!emp?.paymentMethod}
                 />
               )}
@@ -597,8 +595,7 @@ export function EmployerInfoSection({
                 return (
                   <FormSelect
                     options={cityOptions}
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
+                    {...field}
                     error={!!emp?.companyCity}
                     disabled={!selectedPrefecture || cityOptions.length === 0}
                   />
@@ -734,8 +731,7 @@ export function EmployerInfoSection({
                 return (
                   <FormSelect
                     options={cityOptions}
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
+                    {...field}
                     error={!!emp?.workplaceCity}
                     disabled={!selectedPrefecture || cityOptions.length === 0}
                   />
@@ -1046,8 +1042,7 @@ export function EmployerInfoSection({
                       return (
                         <FormSelect
                           options={cityOptions}
-                          value={field.value ?? ''}
-                          onChange={field.onChange}
+                          {...field}
                           error={!!saErr?.city}
                           disabled={!selectedPrefecture || cityOptions.length === 0}
                         />
@@ -1096,8 +1091,7 @@ export function EmployerInfoSection({
                       return (
                         <FormSelect
                           options={cityOptions}
-                          value={field.value ?? ''}
-                          onChange={field.onChange}
+                          {...field}
                           error={!!saErr?.officeCity}
                           disabled={!selectedPrefecture || cityOptions.length === 0}
                         />
@@ -1408,7 +1402,7 @@ export function EmployerInfoSection({
                   render={({ field }) => {
                     const selectedPrefecture = watch('employerInfo.dispatchDestination.prefecture');
                     const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
-                    return <FormSelect options={cityOptions} value={field.value ?? ''} onChange={field.onChange} error={!!dispatchErr?.city} disabled={!selectedPrefecture || cityOptions.length === 0} />;
+                    return <FormSelect options={cityOptions} {...field} error={!!dispatchErr?.city} disabled={!selectedPrefecture || cityOptions.length === 0} />;
                   }}
                 />
               </FormField>
@@ -1454,7 +1448,7 @@ export function EmployerInfoSection({
                   render={({ field }) => {
                     const selectedPrefecture = watch('employerInfo.placementAgency.prefecture');
                     const cityOptions = selectedPrefecture ? renewalFormOptions.getCityOptions(selectedPrefecture) || [] : [];
-                    return <FormSelect options={cityOptions} value={field.value ?? ''} onChange={field.onChange} error={!!placeErr?.city} disabled={!selectedPrefecture || cityOptions.length === 0} />;
+                    return <FormSelect options={cityOptions} {...field} error={!!placeErr?.city} disabled={!selectedPrefecture || cityOptions.length === 0} />;
                   }}
                 />
               </FormField>

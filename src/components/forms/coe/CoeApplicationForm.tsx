@@ -148,7 +148,7 @@ export function CoeApplicationForm({
   const methods = useForm<CoeApplicationFormData>({
     resolver: zodResolver(coeApplicationSchema),
     defaultValues: { ...DEFAULT_VALUES, ...initialValues } as CoeApplicationFormData,
-    mode: 'onBlur',
+    mode: 'onTouched',
   });
 
   const { formState: { errors }, control, getValues } = methods;

@@ -213,7 +213,7 @@ export function ChangeOfStatusForm({
     resolver: zodResolver(changeOfStatusApplicationSchema),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     defaultValues: mergedDefaultValues as any,
-    mode: 'onBlur',
+    mode: 'onTouched',
   });
 
   const { formState: { errors }, reset } = methods;

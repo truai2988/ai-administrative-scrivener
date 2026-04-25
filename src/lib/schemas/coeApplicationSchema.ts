@@ -58,7 +58,7 @@ const optionalPhone = z.string().regex(/^(|\d{1,12})$/, '半角数字12文字以
 // ─── 身分事項 (Identity Info) ─────────────────────────────────────────────────
 export const identityInfoSchema = z.object({
   // CSV: 申請情報入力(在留資格認定証明書交付申請).csv に相当
-  nationality: z.enum(getEnumValues(coeFormOptions.nationality)).describe('国籍・地域'),
+  nationality: z.enum(getEnumValues(coeFormOptions.nationality), { message: '選択してください' }).describe('国籍・地域'),
   birthDate: pastDateString8.min(1, '必須項目です').describe('生年月日'),
   // CSV仕様: 半角英字(大文字入力)、104文字以内、スペース区切り
   nameEn: requiredString
@@ -66,9 +66,9 @@ export const identityInfoSchema = z.object({
     .regex(/^[A-Z\s]+$/, '半角英字(大文字)・スペースのみで入力してください')
     .describe('氏名'),
   nameKanji: z.string().max(40, '40文字以内で入力してください').optional().describe('氏名（母国語）'),
-  gender: z.enum(['1', '2']).describe('性別 (1:男, 2:女)'),
+  gender: z.enum(['1', '2'], { message: '選択してください' }).describe('性別 (1:男, 2:女)'),
   birthPlace: requiredString.max(40, '40文字以内で入力してください').describe('出生地'),
-  maritalStatus: z.enum(['1', '2']).describe('配偶者の有無 (1:有, 2:無)'),
+  maritalStatus: z.enum(['1', '2'], { message: '選択してください' }).describe('配偶者の有無 (1:有, 2:無)'),
   occupation: requiredString.max(40, '40文字以内で入力してください').describe('職業'),
   // CSV仕様: 全角、80文字以内
   homeCountryAddress: requiredString.max(80, '80文字以内で入力してください').describe('本国における居住地'),
@@ -89,39 +89,39 @@ export const identityInfoSchema = z.object({
   // CSV仕様: YYYYMMDD、半角数字8文字
   passportExpiryDate: dateString8.optional().describe('旅券 (2)有効期限'),
 
-  entryPurpose: z.enum(getEnumValues(coeFormOptions.entryPurpose)).describe('入国目的（在留資格）'),
+  entryPurpose: z.enum(getEnumValues(coeFormOptions.entryPurpose), { message: '選択してください' }).describe('入国目的（在留資格）'),
   entryPurposeOther: z.string().max(40, '40文字以内で入力してください').optional().describe('入国目的（その他）'),
-  entryPort: z.enum(getEnumValues(coeFormOptions.entryPort)).describe('入国予定港'),
+  entryPort: z.enum(getEnumValues(coeFormOptions.entryPort), { message: '選択してください' }).describe('入国予定港'),
   entryDate: futureDateString8.describe('入国予定年月日'),
   stayPeriod: requiredString.max(40, '40文字以内で入力してください').describe('滞在予定期間'),
 
-  accompanyingPersons: z.enum(['1', '2']).describe('同伴者の有無 (1:有, 2:無)'),
+  accompanyingPersons: z.enum(['1', '2'], { message: '選択してください' }).describe('同伴者の有無 (1:有, 2:無)'),
   visaApplicationPlace: requiredString.max(40, '40文字以内で入力してください').describe('査証申請予定地'),
 
   pastEntryCount: z.string().regex(/^(|\d{1,3})$/, '3桁以内の数字で入力してください').optional().describe('過去の出入国歴 回数'),
   latestEntryDate: pastDateString8.optional().describe('過去の出入国歴 直近の出入国歴（入国）'),
   latestDepartureDate: pastDateString8.optional().describe('過去の出入国歴 直近の出入国歴（出国）'),
 
-  pastApplicationRecord: z.enum(['1', '2']).describe('過去の在留資格認定証明書交付申請歴 (1:有, 2:無)'),
+  pastApplicationRecord: z.enum(['1', '2'], { message: '選択してください' }).describe('過去の在留資格認定証明書交付申請歴 (1:有, 2:無)'),
   pastApplicationCount: z.string().regex(/^(|\d{1,3})$/, '3桁以内の数字で入力してください').optional().describe('過去の在留資格認定証明書交付申請歴 回数'),
   pastApplicationApprovalCount: z.string().regex(/^(|\d{1,3})$/, '3桁以内の数字で入力してください').optional().describe('過去の在留資格認定証明書交付申請歴 不交付となった回数'),
 
-  criminalRecord: z.enum(['1', '2']).describe('犯罪を理由とする処分を受けたことの有無 (1:有, 2:無)'),
+  criminalRecord: z.enum(['1', '2'], { message: '選択してください' }).describe('犯罪を理由とする処分を受けたことの有無 (1:有, 2:無)'),
   // CSV仕様: 40文字以内
   criminalRecordDetail: z.string().max(40, '40文字以内で入力してください').optional().describe('処分の内容'),
 
-  departureOrderHistory: z.enum(['1', '2']).describe('退去強制又は出国命令による出国の有無 (1:有, 2:無)'),
+  departureOrderHistory: z.enum(['1', '2'], { message: '選択してください' }).describe('退去強制又は出国命令による出国の有無 (1:有, 2:無)'),
   departureOrderCount: z.string().regex(/^(|\d{1,3})$/, '3桁以内の数字で入力してください').optional().describe('退去強制又は出国命令による出国の有無 回数'),
   latestDepartureOrderDate: pastDateString8.optional().describe('退去強制又は出国命令による出国の有無 直近の出国日'),
 
-  familyInJapan: z.enum(['1', '2']).describe('在日親族（父・母・配偶者・子・兄弟姉妹など）及び同居者の有無 (1:有, 2:無)'),
+  familyInJapan: z.enum(['1', '2'], { message: '選択してください' }).describe('在日親族（父・母・配偶者・子・兄弟姉妹など）及び同居者の有無 (1:有, 2:無)'),
   // CSV仕様: 在日親族（最大6名）
   relatives: z.array(z.object({
     relationship: requiredString.max(40).describe('続柄'), // プルダウンから選択
     name: requiredString.max(26, '26文字以内で入力してください').describe('氏名'), // CSV仕様: 全角、26文字以内
     birthDate: pastDateString8.min(1, '必須項目です').describe('生年月日'), // YYYYMMDD 半角数字8文字
     nationality: requiredString.max(40).describe('国籍・地域'), // プルダウンから選択
-    cohabitation: z.enum(['1', '2']).describe('同居予定の有無 (1:有, 2:無)'), // プルダウンから選択
+    cohabitation: z.enum(['1', '2'], { message: '選択してください' }).describe('同居予定の有無 (1:有, 2:無)'), // プルダウンから選択
     workplace: z.string().max(60, '60文字以内で入力してください').optional().describe('勤務先名称・通学先名称'), // CSV仕様: 全角、60文字以内
     residenceCardNumber: z.string().regex(/^(|[A-Z0-9]{12})$/, '半角英数字(大文字)12文字で入力してください').optional().describe('在留カード番号'), // CSV仕様: 半角英数字(大文字入力)、12文字
   })).max(6).optional().describe('在日親族リスト（最大6名）'),
@@ -143,7 +143,7 @@ export const applicantSpecificInfoSchema = z.object({
   activityContent: z.string().optional().describe('活動内容'),
 
   // 最終学歴
-  academicBackground: z.enum(['1', '2', '3', '4', '5', '6', '7']).describe('最終学歴(1) プルダウン'),
+  academicBackground: z.enum(['1', '2', '3', '4', '5', '6', '7'], { message: '選択してください' }).describe('最終学歴(1) プルダウン'),
   academicBackgroundDetail: z.string().optional().describe('最終学歴(2) プルダウン'),
   academicBackgroundOther: z.string().max(40, '40文字以内で入力してください').optional().describe('最終学歴(2) その他'),
   // CSV仕様: 60文字以内
@@ -175,7 +175,7 @@ export const applicantSpecificInfoSchema = z.object({
   
   // 職歴（最大8件）
   // CSV仕様: プルダウンから選択（外国におけるものを含む）
-  hasJobHistory: z.enum(['1', '2']).describe('職歴の有無 (1:有, 2:無)'),
+  hasJobHistory: z.enum(['1', '2'], { message: '選択してください' }).describe('職歴の有無 (1:有, 2:無)'),
   jobHistory: z.array(z.object({
     country: z.string().optional().describe('国・地域名'), // プルダウン
     startDateUnknown: z.string().optional().describe('入社年月不詳'), // プルダウン
@@ -200,7 +200,7 @@ export const applicantSpecificInfoSchema = z.object({
   })).max(10).optional().describe('大会出場歴（最大10件）'),
 
   // 資格、日本語能力など
-  hasJapaneseCertification: z.enum(['1', '2']).optional().describe('日本語能力証明 (1:有, 2:無)'),
+  hasJapaneseCertification: z.enum(['1', '2'], { message: '選択してください' }).optional().describe('日本語能力証明 (1:有, 2:無)'),
   japaneseCertificationName: z.string().max(40).optional().describe('合格した試験名'),
   japaneseCertificationGrade: z.string().max(40).optional().describe('級'),
 });
@@ -256,7 +256,7 @@ export const employerInfoSchema = z.object({
   companyNameJa: requiredString.max(60, '60文字以内で入力してください').describe('勤務先、所属機関又は通学先(1)名称'),
   // CSV仕様: 60文字以内
   branchName: z.string().max(60, '60文字以内で入力してください').optional().describe('支店・事業所名'),
-  hasCorporateNumber: z.enum(['1', '2']).describe('法人番号の有無 (1:有, 2:無)'),
+  hasCorporateNumber: z.enum(['1', '2'], { message: '選択してください' }).describe('法人番号の有無 (1:有, 2:無)'),
   // CSV仕様: 半角数字、13桁
   corporateNumber: z.string().regex(/^(|\d{13})$/, '法人番号は半角数字13桁です').describe('法人番号'),
   // CSV仕様: 半角数字、11桁
@@ -338,8 +338,8 @@ export const coeApplicationSchema = z.object({
   agencyRep: agencyRepSchema.optional(),
 
   // その他申請書作成用メタデータ
-  residenceCardReceiptMethod: z.enum(['1', '2']).describe('在留資格認定証明書の受領方法 (1:窓口, 2:郵送)'),
-  checkIntent: z.enum(['1', '2']).describe('申請意思の確認 (1:確認済, 2:未確認)'),
+  residenceCardReceiptMethod: z.enum(['1', '2'], { message: '選択してください' }).describe('在留資格認定証明書の受領方法 (1:窓口, 2:郵送)'),
+  checkIntent: z.enum(['1', '2'], { message: '選択してください' }).describe('申請意思の確認 (1:確認済, 2:未確認)'),
   // CSV仕様: 300文字以内
   freeFormat: z.string().max(300, '300文字以内で入力してください').optional().describe('フリー欄'),
   // CSV仕様: 半角英数字記号、60文字以内

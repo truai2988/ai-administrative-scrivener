@@ -40,13 +40,12 @@ export function BasicInfoSubForm() {
             control={control}
             render={({ field }) => (
               <FormRadioGroup
-                name="foreignerInfo.gender"
+                
                 options={[
                   { value: 'male', label: '男' },
                   { value: 'female', label: '女' },
                 ]}
-                value={field.value}
-                onChange={field.onChange}
+                {...field}
                 error={!!infoError?.gender}
               />
             )}
@@ -92,13 +91,12 @@ export function BasicInfoSubForm() {
             control={control}
             render={({ field }) => (
               <FormRadioGroup
-                name="foreignerInfo.maritalStatus"
+                
                 options={[
                   { value: 'married', label: '有' },
                   { value: 'unmarried', label: '無' },
                 ]}
-                value={field.value}
-                onChange={field.onChange}
+                {...field}
                 error={!!infoError?.maritalStatus}
               />
             )}
