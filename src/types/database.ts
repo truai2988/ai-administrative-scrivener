@@ -237,3 +237,28 @@ export interface CompanyMaster {
   createdAt: string;
   updatedAt: string;
 }
+
+// ─── AiDiagnosticRule (AI診断カスタムルール) ──────────────────────────────────
+/**
+ * Firestore: ai_diagnostic_rules コレクション
+ * 行政書士・本部管理者が独自に追加するAI診断チェックルール。
+ * テキスト入力またはPDFアップロードで登録し、AI診断時にシステムプロンプトへ動的に結合される。
+ */
+export type AiDiagnosticRuleType = 'text' | 'pdf';
+
+export interface AiDiagnosticRule {
+  id: string;                        // Firestore Document ID
+  title: string;                     // ルール名（例：「最低賃金の基準引き上げ」）
+  type: AiDiagnosticRuleType;        // ルールの種別
+  // type === 'text' の場合
+  content?: string;                  // マークダウンや自然言語テキスト
+  // type === 'pdf' の場合
+  pdfUrl?: string;                   // Firebase Storage 上のダウンロードURL
+  pdfStoragePath?: string;           // Firebase Storage 上のオブジェクトパス
+  pdfFileName?: string;              // 元ファイル名（表示用）
+  pdfExtractedText?: string;         // PDFから抽出したテキスト（AI読込用キャッシュ）
+  enabled: boolean;                  // 有効/無効（トグルで切替可能）
+  createdAt: string;                 // ISO 8601
+  updatedAt: string;                 // ISO 8601
+  createdBy: string;                 // ユーザーUID
+}

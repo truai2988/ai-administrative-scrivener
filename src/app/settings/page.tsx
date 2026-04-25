@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Settings, Save, Loader2, ArrowLeft, ShieldAlert, Building2 } from 'lucide-react';
+import { Settings, Save, Loader2, ArrowLeft, ShieldAlert, UserCircle } from 'lucide-react';
 import {
   getAssignmentTemplates,
   saveAssignmentTemplates,
@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [templates, setTemplates] = useState<Record<ApplicationKind, TabAssignmentTemplate> | null>(null);
+  const [activeTemplateTab, setActiveTemplateTab] = useState<ApplicationKind | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -56,6 +57,10 @@ export default function SettingsPage() {
       try {
         const data = await getAssignmentTemplates();
         setTemplates(data);
+        const keys = Object.keys(data) as ApplicationKind[];
+        if (keys.length > 0) {
+          setActiveTemplateTab(keys[0]);
+        }
       } catch (err) {
         console.error('[Settings] Load error:', err);
         showToast('error', '設定の読み込みに失敗しました');
@@ -120,7 +125,7 @@ export default function SettingsPage() {
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <Settings size={22} className="text-indigo-600" />
-                アサイン設定
+                設定
               </h1>
               <p className="text-xs text-slate-500 mt-1 font-medium">申請フローや業務ルールのカスタマイズ</p>
             </div>
@@ -150,61 +155,79 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          <div className="p-6 space-y-8">
-            {(Object.keys(templates) as ApplicationKind[]).map((kind) => {
-              const tmpl = templates[kind];
-              return (
-                <div key={kind} className="bg-slate-50 rounded-xl p-6 border border-slate-100">
-                  <h3 className="text-md font-bold mb-4 text-slate-700 flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-500 rounded-full inline-block"></span>
-                    {tmpl.description}
-                  </h3>
-                  <div className="space-y-4">
-                    {TAB_IDS.map((tabId) => (
-                      <div key={tabId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-lg border border-slate-200">
-                        <label className="text-sm font-bold text-slate-600 min-w-[180px]">
-                          {TAB_LABELS[tabId]}
-                        </label>
-                        <select
-                          value={tmpl.roles[tabId] ?? ''}
-                          onChange={(e) => handleRoleChange(kind, tabId, e.target.value)}
-                          className="flex-1 max-w-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
-                        >
-                          <option value="">担当者なし（行政書士のみ）</option>
-                          {ASSIGNABLE_ROLES.map(({ role, label }) => (
-                            <option key={role} value={role}>
-                              {label} ({role})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
+          <div className="border-b border-slate-200">
+            <div className="flex overflow-x-auto">
+              {(Object.keys(templates) as ApplicationKind[]).map((kind) => (
+                <button
+                  key={kind}
+                  onClick={() => setActiveTemplateTab(kind)}
+                  className={`px-6 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
+                    activeTemplateTab === kind
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  {templates[kind].description}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-6">
+            {activeTemplateTab && templates[activeTemplateTab] && (
+              <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                <h3 className="text-md font-bold mb-4 text-slate-700 flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-indigo-500 rounded-full inline-block"></span>
+                  {templates[activeTemplateTab].description} のデフォルト担当者
+                </h3>
+                <div className="space-y-4">
+                  {TAB_IDS.map((tabId) => (
+                    <div key={tabId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-lg border border-slate-200">
+                      <label className="text-sm font-bold text-slate-600 min-w-[180px]">
+                        {TAB_LABELS[tabId]}
+                      </label>
+                      <select
+                        value={templates[activeTemplateTab].roles[tabId] ?? ''}
+                        onChange={(e) => handleRoleChange(activeTemplateTab, tabId, e.target.value)}
+                        className="flex-1 max-w-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                      >
+                        <option value="">担当者なし（行政書士のみ）</option>
+                        {ASSIGNABLE_ROLES.map(({ role, label }) => (
+                          <option key={role} value={role}>
+                            {label} ({role})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ─── 企業マスタ管理への導線 ─── */}
+
+
+
+
+        {/* ─── プロフィール設定への導線 ─── */}
         <div className="mt-6 bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50">
             <h2 className="text-lg font-bold flex items-center gap-2">
-              <Building2 size={18} className="text-indigo-500" />
-              企業マスタ管理
+              <UserCircle size={18} className="text-indigo-500" />
+              プロフィール設定
             </h2>
             <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-              申請フォームの「法人基本情報」で使用するプルダウン選択肢（雇用主情報）を事前登録・管理します。
-              登録済みの企業を選択すると、法人名・住所・代表者名などが一括自動入力されます。
+              ユーザー名や連絡先、パスワードなどのアカウント基本情報を確認・変更できます。
             </p>
           </div>
           <div className="p-6">
             <Link
-              href="/settings/companies"
+              href="/settings/profile"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-colors"
             >
-              <Building2 size={16} />
-              企業マスタ一覧を管理する
+              <UserCircle size={16} />
+              プロフィール設定を開く
             </Link>
           </div>
         </div>

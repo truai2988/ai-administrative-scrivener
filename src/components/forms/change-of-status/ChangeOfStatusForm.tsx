@@ -191,7 +191,7 @@ export function ChangeOfStatusForm({
 }: ChangeOfStatusFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const aiDiag = useAiDiagnostics({ recordId });
+  const aiDiag = useAiDiagnostics({ recordId, applicationType: 'change_of_status' });
   const { toasts, dismiss } = useToast();
   const { currentUser } = useAuth();
 

@@ -69,8 +69,9 @@ const GEMINI_RESPONSE_SCHEMA = {
 // ─── システムプロンプト ────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `あなたは日本の入管業務に精通した厳格な行政書士です。
-在留期間更新許可申請書のデータを受け取り、以下の審査基準に基づいて厳密にチェックを行い、
+在留資格に関する申請書データを受け取り、以下の審査基準に基づいて厳密にチェックを行い、
 問題点・懸念点・改善提案を diagnostics 配列として返却してください。
+このチェックは、在留期間更新・在留資格変更・在留資格認定証明書交付のいずれの申請書にも対応します。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 【最優先: 入力データ品質チェック（Input Cleansing）】
@@ -254,14 +255,36 @@ export async function POST(
     //    - id が 'unsaved' の場合はリクエストボディから直接取得（未保存フォームのフォールバック）
     //    - それ以外は Firestore からデータを取得
     let formData: Record<string, unknown>;
+    let body: Record<string, unknown> = {};
+
+    try {
+      body = await req.json();
+    } catch {
+      // bodyが空の場合は無視
+    }
+
+    // applicationType に基づいてコレクション名を決定
+    const applicationType = (body.applicationType as string) || 'renewal';
+    const collectionMap: Record<string, string> = {
+      renewal: 'renewal_applications',
+      coe: 'coe_applications',
+      change_of_status: 'change_of_status_applications',
+    };
+    const collectionName = collectionMap[applicationType] || 'renewal_applications';
+
+    const applicationTypeLabel: Record<string, string> = {
+      renewal: '在留期間更新許可申請書',
+      coe: '在留資格認定証明書交付申請書',
+      change_of_status: '在留資格変更許可申請書',
+    };
+    const typeLabel = applicationTypeLabel[applicationType] || '申請書';
 
     if (id === 'unsaved') {
       // 未保存フォームの場合: ボディからデータを取得
-      const body = await req.json();
-      formData = body.formData ?? {};
+      formData = (body.formData as Record<string, unknown>) ?? {};
     } else {
       // 保存済みの申請書レコードから取得
-      const docRef = db.collection('renewal_applications').doc(id);
+      const docRef = db.collection(collectionName).doc(id);
       const doc = await docRef.get();
 
       if (!doc.exists) {
@@ -272,7 +295,40 @@ export async function POST(
       formData = (data.formData as Record<string, unknown>) ?? {};
     }
 
-    // 3. Gemini API 呼び出し
+    // 3. カスタム診断ルールをFirestoreから取得し、システムプロンプトに動的結合
+    let finalSystemPrompt = SYSTEM_PROMPT;
+
+    try {
+      const rulesSnapshot = await db
+        .collection('ai_diagnostic_rules')
+        .where('enabled', '==', true)
+        .get();
+
+      if (!rulesSnapshot.empty) {
+        const customRulesText = rulesSnapshot.docs.map((ruleDoc, index) => {
+          const rule = ruleDoc.data();
+          const ruleTitle = rule.title || `カスタムルール${index + 1}`;
+          const ruleContent = rule.type === 'pdf'
+            ? (rule.pdfExtractedText || '（テキスト抽出なし）')
+            : (rule.content || '');
+          return `[ルール${index + 1}: ${ruleTitle}]\n${ruleContent}`;
+        }).join('\n\n');
+
+        finalSystemPrompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【追加カスタムルール（事務所独自の基準）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+以下は事務所固有の追加チェック基準です。上記の基本基準と同等の厳密さで適用してください。
+問題を検知した場合は、上記と同じ diagnostics 形式で出力してください。
+
+${customRulesText}`;
+      }
+    } catch (rulesErr) {
+      // カスタムルール取得失敗はログのみ（基本診断は続行）
+      console.warn('[ai-check] カスタムルールの取得に失敗:', rulesErr);
+    }
+
+    // 4. Gemini API 呼び出し
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -285,7 +341,7 @@ export async function POST(
     const model = genAI.getGenerativeModel(
       {
         model: 'gemini-2.0-flash',
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction: finalSystemPrompt,
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: GEMINI_RESPONSE_SCHEMA,
@@ -295,7 +351,9 @@ export async function POST(
     );
 
     // フォームデータを構造化されたテキストとして渡す
-    const userPrompt = `以下の在留期間更新許可申請書データを診断してください。
+    const userPrompt = `以下の${typeLabel}データを診断してください。
+
+【申請種別】${typeLabel}
 
 【申請データ（JSON）】
 ${JSON.stringify(formData, null, 2)}
@@ -322,7 +380,7 @@ ${JSON.stringify(formData, null, 2)}
     // 5. 結果をFirestoreに保存（unsaved以外）
     if (id !== 'unsaved') {
       try {
-        await db.collection('renewal_applications').doc(id).update({
+        await db.collection(collectionName).doc(id).update({
           aiDiagnostics: {
             diagnostics,
             checkedAt: new Date().toISOString(),

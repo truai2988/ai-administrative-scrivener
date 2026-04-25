@@ -238,15 +238,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <ScrivenerInboxItem onOpen={() => setShowInquiryInbox(true)} userRole={userRole} />
           )}
 
-          {/* アサイン設定（scrivener用） */}
-          {userRole === 'scrivener' && (
-            <SidebarItem
-              icon={Settings}
-              label="アサイン設定"
-              href="/settings"
-            />
-          )}
-
           {/* 企業マスタ管理（scrivener / hq_admin / branch_staff） */}
           {(userRole === 'scrivener' || userRole === 'hq_admin' || userRole === 'branch_staff') && (
             <SidebarItem
@@ -256,12 +247,14 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
-          {/* プロフィール設定（全ユーザー共通） */}
-          <SidebarItem
-            icon={UserCircle}
-            label="プロフィール設定"
-            href="/settings/profile"
-          />
+          {/* AI診断ルール管理（scrivener / hq_admin） */}
+          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
+            <SidebarItem
+              icon={Sparkles}
+              label="AI診断ルール管理"
+              href="/settings/ai-rules"
+            />
+          )}
 
           {/* 組織・ユーザー管理（scrivener / hq_admin） */}
           {(userRole === 'scrivener' || userRole === 'hq_admin') && (
@@ -273,7 +266,14 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           )}
 
 
-
+          {/* 設定（scrivener用） */}
+          {userRole === 'scrivener' && (
+            <SidebarItem
+              icon={Settings}
+              label="設定"
+              href="/settings"
+            />
+          )}
 
           {/* scrivener専用: データ整合性チェック */}
           {userRole === 'scrivener' && (() => {

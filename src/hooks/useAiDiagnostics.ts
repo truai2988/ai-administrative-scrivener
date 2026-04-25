@@ -4,7 +4,7 @@
  * useAiDiagnostics
  *
  * AI診断APIを呼び出し、結果を状態管理するカスタムフック。
- * RenewalApplicationForm から利用します。
+ * RenewalApplicationForm / CoeApplicationForm / ChangeOfStatusFormから共通で利用します。
  */
 
 import { useState, useCallback } from 'react';
@@ -27,13 +27,19 @@ function calcCounts(diagnostics: DiagnosticItem[]) {
   };
 }
 
-// ─── フック ────────────────────────────────────────────────────────────────────
+// ─── フック ────────────────────────────────────────────────────────────────────────
+
+/** 申請書の種別。API側で取得先コレクションとプロンプトの切り替えに使用 */
+export type AiCheckApplicationType = 'renewal' | 'coe' | 'change_of_status';
+
 interface UseAiDiagnosticsOptions {
   /** 保存済み申請書のレコードID。未保存の場合は undefined */
   recordId?: string;
+  /** 申請書の種別（デフォルト: 'renewal'） */
+  applicationType?: AiCheckApplicationType;
 }
 
-export function useAiDiagnostics({ recordId }: UseAiDiagnosticsOptions) {
+export function useAiDiagnostics({ recordId, applicationType = 'renewal' }: UseAiDiagnosticsOptions) {
   const [state, setState] = useState<AiDiagnosticsState>(INITIAL_STATE);
 
   /**
@@ -61,7 +67,9 @@ export function useAiDiagnostics({ recordId }: UseAiDiagnosticsOptions) {
         const url = `/api/applications/${targetId}/ai-check`;
 
         const body: Record<string, unknown> =
-          targetId === 'unsaved' ? { formData } : {};
+          targetId === 'unsaved'
+            ? { formData, applicationType }
+            : { applicationType };
 
         const res = await fetch(url, {
           method: 'POST',
@@ -103,7 +111,7 @@ export function useAiDiagnostics({ recordId }: UseAiDiagnosticsOptions) {
         }));
       }
     },
-    [recordId]
+    [recordId, applicationType]
   );
 
   /** 状態をリセットして Drawer を閉じる */

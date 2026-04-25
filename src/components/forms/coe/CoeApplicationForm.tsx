@@ -142,7 +142,7 @@ export function CoeApplicationForm({
   organizationId,
 }: CoeApplicationFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('identity');
-  const aiDiag = useAiDiagnostics({ recordId });
+  const aiDiag = useAiDiagnostics({ recordId, applicationType: 'coe' });
   const { toasts, dismiss } = useToast();
 
   const methods = useForm<CoeApplicationFormData>({
