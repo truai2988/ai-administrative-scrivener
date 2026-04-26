@@ -9,7 +9,7 @@ import { UserRole } from '@/types/database';
 import { ExcelDownloadButton } from './ExcelDownloadButton';
 import { ConsentPdfButton } from './ConsentPdfButton';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
-import type { AiDiagnosticSummary } from '@/services/aiDiagnosticStatusService';
+import type { ForeignerAiDiagnosticSummary, AiDiagnosticSummary } from '@/services/aiDiagnosticStatusService';
 
 interface ForeignerListProps {
   data: Foreigner[];
@@ -19,7 +19,7 @@ interface ForeignerListProps {
   showBranch?: boolean;
   getBranchLabel?: (branchId: string) => string;
   userRole?: UserRole;
-  aiDiagnosticMap?: Record<string, AiDiagnosticSummary>;
+  aiDiagnosticMap?: Record<string, ForeignerAiDiagnosticSummary>;
   onUpdate?: (updated: Foreigner) => void;
   onDeleteSelected?: () => void;
 }
@@ -219,6 +219,20 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
               const daysLeft = person.expiryDate ? getDaysRemaining(person.expiryDate) : Infinity;
               const isUrgent = daysLeft < 90;
               const isChecked = selectedIds?.has(person.id) ?? false;
+              const diag = aiDiagnosticMap?.[person.id];
+              
+              const hasAnyDiagIssue = diag && Object.values(diag).some(
+                (d) => d && (d.stale || d.critical > 0 || d.warning > 0)
+              );
+
+              const renderDiagIcon = (d?: AiDiagnosticSummary) => {
+                if (!d) return <span title="未診断"><Sparkles className="w-3.5 h-3.5 text-slate-300" /></span>;
+                if (d.stale) return <span title="要再診断"><RefreshCw className="w-3.5 h-3.5 text-indigo-500" /></span>;
+                if (d.critical > 0) return <span title="重大な問題あり"><AlertCircle className="w-3.5 h-3.5 text-rose-600" /></span>;
+                if (d.warning > 0) return <span title="要注意あり"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /></span>;
+                return <span title="問題なし"><Check className="w-3.5 h-3.5 text-emerald-500" /></span>;
+              };
+
               return (
                 <tr 
                   key={person.id} 
@@ -275,70 +289,6 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                           </>
                         )}
 
-                        {(() => {
-                          const diag = aiDiagnosticMap?.[person.id];
-                          if (!diag) {
-                            // AI診断未実施
-                            return (
-                              <div
-                                title="AI診断: 未実施"
-                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-slate-50 border border-slate-100 text-slate-400 shrink-0 cursor-help"
-                              >
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span className="text-xs font-bold">未診断</span>
-                              </div>
-                            );
-                          }
-                          if (diag.stale) {
-                            // 診断後にフォームが更新された → 要再診断
-                            return (
-                              <div
-                                title="AI診断: フォーム更新あり（要再診断）"
-                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-500 shrink-0 cursor-help transition-all"
-                              >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                <span className="text-xs font-bold">要再診断</span>
-                              </div>
-                            );
-                          }
-                          if (diag.critical > 0) {
-                            // 重大な問題あり
-                            return (
-                              <div
-                                title="AI診断: 重大な問題あり"
-                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 shrink-0 cursor-help transition-all"
-                              >
-                                <AlertCircle className="w-3.5 h-3.5" />
-                                <span className="text-xs font-bold">要対応</span>
-                              </div>
-                            );
-                          }
-                          if (diag.warning > 0) {
-                            // 要注意あり
-                            return (
-                              <div
-                                title="AI診断: 要注意あり"
-                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 shrink-0 cursor-help transition-all"
-                              >
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                                <span className="text-xs font-bold">要確認</span>
-                              </div>
-                            );
-                          }
-                          // 問題なし（suggestionのみ or 0件）
-                          return (
-                            <div
-                              title="AI診断: 問題なし"
-                              className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 shrink-0 cursor-help transition-all"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span className="text-xs font-bold">問題なし</span>
-                            </div>
-                          );
-                        })()}
-
-                        <div className="w-px h-6 bg-slate-200 mx-1"></div>
-
                         <div className="relative inline-block text-left">
                           <button
                             onClick={(e) => {
@@ -346,10 +296,13 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                               setOpenDropdown(openDropdown === `edit-${person.id}` ? null : `edit-${person.id}`);
                             }}
                             title="申請書を作成・編集"
-                            className="flex items-center justify-center gap-1.5 h-8 px-3 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm min-w-[96px]"
+                            className="relative flex items-center justify-center gap-1.5 h-8 px-3 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm min-w-[96px]"
                           >
                             <FilePen className="w-3.5 h-3.5" />
                             書類編集
+                            {hasAnyDiagIssue && (
+                              <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white shadow-sm" />
+                            )}
                           </button>
 
                           {openDropdown === `edit-${person.id}` && (
@@ -368,9 +321,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                     setOpenDropdown(null);
                                     window.open(`/forms/coe/${person.id}`, '_blank');
                                   }}
-                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
+                                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
                                 >
-                                  在留資格認定証明書交付申請
+                                  {renderDiagIcon(diag?.coe)}
+                                  <span>在留資格認定証明書交付申請</span>
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -378,9 +332,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                     setOpenDropdown(null);
                                     window.open(`/forms/renewal/${person.id}`, '_blank');
                                   }}
-                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
+                                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
                                 >
-                                  在留期間更新許可申請
+                                  {renderDiagIcon(diag?.renewal)}
+                                  <span>在留期間更新許可申請</span>
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -388,9 +343,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                     setOpenDropdown(null);
                                     window.open(`/forms/change-of-status/${person.id}`, '_blank');
                                   }}
-                                  className="block w-full text-left px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
+                                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
                                 >
-                                  在留資格変更許可申請
+                                  {renderDiagIcon(diag?.changeOfStatus)}
+                                  <span>在留資格変更許可申請</span>
                                 </button>
                               </div>
                             </>

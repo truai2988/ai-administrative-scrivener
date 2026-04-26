@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useForeigners } from '@/hooks/useForeigners';
 import { foreignerService } from '@/services/foreignerService';
-import { fetchAiDiagnosticSummaries, type AiDiagnosticSummary } from '@/services/aiDiagnosticStatusService';
+import { fetchAiDiagnosticSummaries, type ForeignerAiDiagnosticSummary } from '@/services/aiDiagnosticStatusService';
 import { Foreigner, USER_ROLE_LABELS, UserRole } from '@/types/database';
 import { canCreateForeigner } from '@/utils/permissions';
 import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
@@ -90,7 +90,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const [activeSummaryTab, setActiveSummaryTab] = useState<SummaryTab>('all');
   const { data, stats, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab);
   // AI診断サマリー（トップページ一覧のアイコン表示用）
-  const [aiDiagMap, setAiDiagMap] = useState<Record<string, AiDiagnosticSummary>>({});
+  const [aiDiagMap, setAiDiagMap] = useState<Record<string, ForeignerAiDiagnosticSummary>>({});
   // データ整合性チェックパネル（scrivener専用）
   const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
   // 組織ID → 表示名マップ（動的・APIから取得）

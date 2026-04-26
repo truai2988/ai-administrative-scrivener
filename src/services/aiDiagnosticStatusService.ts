@@ -29,6 +29,13 @@ export interface AiDiagnosticSummary {
   stale: boolean;
 }
 
+/** 外国人1名あたりの申請書タイプ別の AI 診断集約結果 */
+export interface ForeignerAiDiagnosticSummary {
+  coe?: AiDiagnosticSummary;
+  renewal?: AiDiagnosticSummary;
+  changeOfStatus?: AiDiagnosticSummary;
+}
+
 /** Firestore に保存される aiDiagnostics フィールドの構造 */
 interface StoredDiagnostics {
   diagnostics?: Array<{
@@ -61,6 +68,11 @@ function emptySummary(): AiDiagnosticSummary {
   return { critical: 0, warning: 0, suggestion: 0, checkedAt: null, stale: false };
 }
 
+/** 空の外国人サマリーオブジェクト */
+function emptyForeignerSummary(): ForeignerAiDiagnosticSummary {
+  return {};
+}
+
 // ─── メイン関数 ──────────────────────────────────────────────────────────────
 
 /**
@@ -74,17 +86,17 @@ function emptySummary(): AiDiagnosticSummary {
  */
 export async function fetchAiDiagnosticSummaries(
   foreignerIds: string[]
-): Promise<Record<string, AiDiagnosticSummary>> {
+): Promise<Record<string, ForeignerAiDiagnosticSummary>> {
   if (foreignerIds.length === 0) return {};
 
   console.log('[aiDiagStatus] 取得開始: foreignerIds=', foreignerIds.length, '件', foreignerIds.slice(0, 5));
-  const result: Record<string, AiDiagnosticSummary> = {};
+  const result: Record<string, ForeignerAiDiagnosticSummary> = {};
 
-  // 対象の3コレクション
+  // 対象の3コレクションと、出力キーの対応
   const targetCollections = [
-    COLLECTIONS.COE_APPLICATIONS,
-    COLLECTIONS.RENEWAL_APPLICATIONS,
-    COLLECTIONS.CHANGE_OF_STATUS_APPLICATIONS,
+    { collectionName: COLLECTIONS.COE_APPLICATIONS, key: 'coe' as const },
+    { collectionName: COLLECTIONS.RENEWAL_APPLICATIONS, key: 'renewal' as const },
+    { collectionName: COLLECTIONS.CHANGE_OF_STATUS_APPLICATIONS, key: 'changeOfStatus' as const },
   ];
 
   // Firestore `in` クエリの上限は30件のため、チャンク分割して発行
@@ -94,7 +106,7 @@ export async function fetchAiDiagnosticSummaries(
   // 全コレクション × 全チャンクのクエリを並列実行
   const promises: Promise<void>[] = [];
 
-  for (const collectionName of targetCollections) {
+  for (const { collectionName, key } of targetCollections) {
     for (const chunk of chunks) {
       const p = (async () => {
         try {
@@ -113,9 +125,12 @@ export async function fetchAiDiagnosticSummaries(
 
             // 既存エントリを取得または初期化
             if (!result[fId]) {
-              result[fId] = emptySummary();
+              result[fId] = emptyForeignerSummary();
             }
-            const summary = result[fId];
+            if (!result[fId][key]) {
+              result[fId][key] = emptySummary();
+            }
+            const summary = result[fId][key]!;
 
             // 診断項目を集計
             for (const item of stored.diagnostics) {
