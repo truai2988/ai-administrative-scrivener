@@ -15,15 +15,17 @@
 
 @media (min-width: 768px) {
   .renewal-page {
-    padding: 0 0 4rem; /* 余白をなくしフル活用 */
+    padding: 0 1rem 4rem; /* デスクトップでは左右に余白を確保しつつ、上部は密着(top: 0)させる */
   }
 }
 
 .renewal-form {
   width: 100%;
+  max-width: 900px;
   display: flex;
   flex-direction: column;
   gap: 0;
+  margin: 0 auto;
 }
 
 .applicant-context-header {
@@ -2111,17 +2113,20 @@
   flex-direction: column; /* Mobile by default (stacked) */
   gap: 1.5rem;
   width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  justify-content: center;
 }
 @media (min-width: 1024px) {
   .form-split-layout {
     flex-direction: row; /* PC side-by-side */
     align-items: flex-start;
-    gap: 0; /* マージン不要の要望に対応 */
   }
 }
 
 .form-main-content {
-  flex: 1;
+  width: 100%;
+  max-width: 900px;
   min-width: 0; /* Prevents flex items from overflowing */
   display: flex;
   flex-direction: column;
@@ -2135,8 +2140,8 @@
   .form-side-panel {
     width: 380px;
     position: sticky;
-    top: 0; /* マージンなしで上部に固定 */
-    height: 100vh; /* フルハイト表示 */
+    top: 1.5rem;
+    height: calc(100vh - 3rem); /* Leaves some margin */
   }
 }
 
@@ -2146,8 +2151,9 @@
   height: 100%;
   max-height: 800px; /* Limit height on mobile */
   background: linear-gradient(160deg, #0f172a 0%, #1a1f35 100%);
-  border-left: 1px solid rgba(99,102,241,0.5); /* 境界をわかりやすくするため不透明度を上げる */
-  border-radius: 0; /* 角丸なし */
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
   display: flex;
   flex-direction: column;
   overflow: hidden;

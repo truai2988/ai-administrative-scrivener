@@ -19,6 +19,7 @@ import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema'
 import { coeApplicationService } from '@/services/coeApplicationService';
 import { downloadCoeCSV } from '@/lib/utils/coeCsvMapper';
 import { useToast } from '@/components/ui/Toast';
+import isEqual from 'fast-deep-equal';
 
 interface UseCoeFormSubmitOptions {
   /** 既存レコードのID（編集時のみ）。未指定なら新規作成 */
@@ -107,6 +108,7 @@ export function useCoeFormSubmit({
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstMountForWatch = useRef(true);
+  const lastSavedData = useRef<CoeApplicationFormData | null>(null);
 
   useEffect(() => {
     // 初回マウント時や必要な引数が揃っていない場合はスキップ
@@ -131,7 +133,14 @@ export function useCoeFormSubmit({
       try {
         // 現在の最新フォームデータを取得
         const currentData = getValues();
+        
+        // 前回保存したデータと完全一致する場合は書き込みをスキップ（Write削減）
+        if (isEqual(currentData, lastSavedData.current)) {
+          return;
+        }
+
         await coeApplicationService.save(currentData, savedRecordId, foreignerId, organizationId);
+        lastSavedData.current = currentData;
         // UX上頻繁に出ると煩わしいため、成功通知は省略
       } catch (err) {
         console.error('[オートセーブエラー]', err);
@@ -153,6 +162,7 @@ export function useCoeFormSubmit({
     async (data: CoeApplicationFormData): Promise<string> => {
       const id = await coeApplicationService.save(data, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
+      lastSavedData.current = data;
       if (onSuccess) await onSuccess(id);
       return id;
     },

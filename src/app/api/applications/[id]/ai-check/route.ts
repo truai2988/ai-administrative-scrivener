@@ -12,6 +12,7 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import type { ObjectSchema } from '@google/generative-ai';
 import { z } from 'zod';
 import { adminAuth, getAdminDb } from '@/lib/firebase/admin';
+import objectHash from 'object-hash';
 
 // ─── Zodスキーマ定義 ──────────────────────────────────────────────────────────
 
@@ -279,6 +280,8 @@ export async function POST(
     };
     const typeLabel = applicationTypeLabel[applicationType] || '申請書';
 
+    let aiDiagnosticsData: any = null;
+
     if (id === 'unsaved') {
       // 未保存フォームの場合: ボディからデータを取得
       formData = (body.formData as Record<string, unknown>) ?? {};
@@ -293,10 +296,12 @@ export async function POST(
 
       const data = doc.data()!;
       formData = (data.formData as Record<string, unknown>) ?? {};
+      aiDiagnosticsData = data.aiDiagnostics;
     }
 
     // 3. カスタム診断ルールをFirestoreから取得し、システムプロンプトに動的結合
     let finalSystemPrompt = SYSTEM_PROMPT;
+    let customRulesText = '';
 
     try {
       const rulesSnapshot = await db
@@ -305,7 +310,7 @@ export async function POST(
         .get();
 
       if (!rulesSnapshot.empty) {
-        const customRulesText = rulesSnapshot.docs.map((ruleDoc, index) => {
+        customRulesText = rulesSnapshot.docs.map((ruleDoc, index) => {
           const rule = ruleDoc.data();
           const ruleTitle = rule.title || `カスタムルール${index + 1}`;
           const ruleContent = rule.type === 'pdf'
@@ -328,6 +333,23 @@ ${customRulesText}`;
       console.warn('[ai-check] カスタムルールの取得に失敗:', rulesErr);
     }
 
+    // 3.5 ハッシュ生成と早期リターン (キャッシュの利用)
+    // AIモデルやシステムプロンプトのバージョンもソルトとして含めることで将来のアップデートに対応
+    const MODEL_NAME = 'gemini-2.5-flash';
+    const PROMPT_VERSION = '1.0.0'; // プロンプトを変更した場合はこれをインクリメントする
+    
+    const computedHash = objectHash({
+      formData,
+      customRulesText,
+      model: MODEL_NAME,
+      promptVersion: PROMPT_VERSION,
+    });
+
+    if (id !== 'unsaved' && aiDiagnosticsData && aiDiagnosticsData.lastDiagnosticHash === computedHash) {
+      console.log('[ai-check] ⚡ キャッシュヒット: 早期リターンします', { id, computedHash });
+      return NextResponse.json({ diagnostics: aiDiagnosticsData.diagnostics }, { status: 200 });
+    }
+
     // 4. Gemini API 呼び出し
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -340,7 +362,7 @@ ${customRulesText}`;
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel(
       {
-        model: 'gemini-2.5-flash',
+        model: MODEL_NAME,
         systemInstruction: finalSystemPrompt,
         generationConfig: {
           responseMimeType: 'application/json',
@@ -386,6 +408,7 @@ ${JSON.stringify(formData, null, 2)}
             diagnostics,
             checkedAt: new Date().toISOString(),
             checkedBy: authResult.uid,
+            lastDiagnosticHash: computedHash,
           },
         });
         console.log('[ai-check] ✅ Firestore保存成功: ', collectionName, '/', id);

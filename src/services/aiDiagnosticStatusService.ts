@@ -39,6 +39,7 @@ interface StoredDiagnostics {
   }>;
   checkedAt?: string;
   checkedBy?: string;
+  lastDiagnosticHash?: string;
 }
 
 // ─── 内部ユーティリティ ─────────────────────────────────────────────────────

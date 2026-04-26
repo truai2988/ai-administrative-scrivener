@@ -24,6 +24,14 @@ export interface DiagnosticItem {
   message: string;
 }
 
+// ─── Firestore 保存用データ ──────────────────────────────────────────────────
+export interface AiDiagnosticsData {
+  diagnostics: DiagnosticItem[];
+  checkedAt?: string;
+  checkedBy?: string;
+  lastDiagnosticHash?: string;
+}
+
 // ─── APIレスポンス ─────────────────────────────────────────────────────────────
 export interface AiCheckResponse {
   diagnostics: DiagnosticItem[];

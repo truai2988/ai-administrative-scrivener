@@ -20,6 +20,7 @@ import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicatio
 import { renewalApplicationService } from '@/services/renewalApplicationService';
 import { downloadImmigrationCSV } from '@/lib/utils/csvMapper';
 import { useToast } from '@/components/ui/Toast';
+import isEqual from 'fast-deep-equal';
 
 interface UseRenewalFormSubmitOptions {
   /** 既存レコードのID（編集時のみ）。未指定なら新規作成 */
@@ -112,6 +113,7 @@ export function useRenewalFormSubmit({
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstMountForWatch = useRef(true);
+  const lastSavedData = useRef<RenewalApplicationFormData | null>(null);
 
   useEffect(() => {
     // 初回マウント時や必要な引数が揃っていない場合はスキップ
@@ -138,7 +140,14 @@ export function useRenewalFormSubmit({
         const currentData = getValues();
         // コンテキストから渡された assignments を優先してマージ
         const dataWithAssignments = { ...currentData, assignments: assignments || currentData.assignments };
+        
+        // 前回保存したデータと完全一致する場合は書き込みをスキップ（Write削減）
+        if (isEqual(dataWithAssignments, lastSavedData.current)) {
+          return;
+        }
+
         await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
+        lastSavedData.current = dataWithAssignments;
         // UX上頻繁に出ると煩わしいため、成功通知は省略
       } catch (err) {
         console.error('[オートセーブエラー]', err);
@@ -162,6 +171,7 @@ export function useRenewalFormSubmit({
       const dataWithAssignments = { ...data, assignments: assignments || data.assignments };
       const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
+      lastSavedData.current = dataWithAssignments;
       if (onSubmit) await onSubmit(dataWithAssignments);
       return id;
     },

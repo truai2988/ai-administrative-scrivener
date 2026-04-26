@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ChangeOfStatusFormLoader } from '@/components/forms/change-of-status/ChangeOfStatusFormLoader';
+import '../../renewal/renewal-form.css';
 
 export const metadata: Metadata = {
   title: '在留資格変更許可申請書（編集）| Noctiluca',
@@ -14,7 +15,7 @@ export default async function ChangeOfStatusFormDynamicPage({ params }: PageProp
   const { foreignerId } = await params;
 
   return (
-    <main className="change-of-status-page">
+    <main className="renewal-page">
       <ChangeOfStatusFormLoader foreignerId={foreignerId} />
     </main>
   );

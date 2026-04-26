@@ -20,6 +20,7 @@ import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfSt
 import { changeOfStatusApplicationService } from '@/services/changeOfStatusApplicationService';
 import { downloadImmigrationCSV } from '@/lib/utils/csvMapper';
 import { useToast } from '@/components/ui/Toast';
+import isEqual from 'fast-deep-equal';
 
 interface UseChangeOfStatusFormSubmitOptions {
   /** 既存レコードのID（編集時のみ）。未指定なら新規作成 */
@@ -112,6 +113,7 @@ export function useChangeOfStatusFormSubmit({
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstMountForWatch = useRef(true);
+  const lastSavedData = useRef<ChangeOfStatusApplicationFormData | null>(null);
 
   useEffect(() => {
     // 初回マウント時や必要な引数が揃っていない場合はスキップ
@@ -138,7 +140,14 @@ export function useChangeOfStatusFormSubmit({
         const currentData = getValues();
         // コンテキストから渡された assignments を優先してマージ
         const dataWithAssignments = { ...currentData, assignments: assignments || currentData.assignments };
+        
+        // 前回保存したデータと完全一致する場合は書き込みをスキップ（Write削減）
+        if (isEqual(dataWithAssignments, lastSavedData.current)) {
+          return;
+        }
+
         await changeOfStatusApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
+        lastSavedData.current = dataWithAssignments;
         // UX上頻繁に出ると煩わしいため、成功通知は省略
       } catch (err) {
         console.error('[オートセーブエラー]', err);
@@ -162,6 +171,7 @@ export function useChangeOfStatusFormSubmit({
       const dataWithAssignments = { ...data, assignments: assignments || data.assignments };
       const id = await changeOfStatusApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
+      lastSavedData.current = dataWithAssignments;
       if (onSubmit) await onSubmit(dataWithAssignments);
       return id;
     },
