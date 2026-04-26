@@ -265,8 +265,10 @@ export function ChangeOfStatusForm({
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
-      <FormProvider {...methods}>
-        <form noValidate className="renewal-form">
+      <div className="form-split-layout">
+        <div className="form-main-content">
+          <FormProvider {...methods}>
+            <form noValidate className="renewal-form">
           <div className="renewal-form-sticky-top">
             <div className="applicant-context-header flex flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -490,14 +492,16 @@ export function ChangeOfStatusForm({
 
         </form>
       </FormProvider>
-    <AiDiagnosticPanel
-      isOpen={aiDiag.isPanelOpen}
-      status={aiDiag.status}
-      diagnostics={aiDiag.diagnostics}
-      counts={aiDiag.counts}
-      errorMessage={aiDiag.errorMessage}
-      onClose={aiDiag.closePanel}
-    />
+      </div>
+    <div className="form-side-panel">
+      <AiDiagnosticPanel
+        status={aiDiag.status}
+        diagnostics={aiDiag.diagnostics}
+        counts={aiDiag.counts}
+        errorMessage={aiDiag.errorMessage}
+      />
+    </div>
+    </div>
     </>
   );
 }

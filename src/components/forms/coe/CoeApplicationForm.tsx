@@ -197,7 +197,9 @@ export function CoeApplicationForm({
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
-      <FormProvider {...methods}>
+      <div className="form-split-layout">
+        <div className="form-main-content">
+          <FormProvider {...methods}>
         <form onSubmit={(e) => e.preventDefault()} className="renewal-form" noValidate>
           {/* Header and Tabs */}
           <div className="renewal-form-sticky-top">
@@ -371,14 +373,16 @@ export function CoeApplicationForm({
         </div>
       </form>
     </FormProvider>
-    <AiDiagnosticPanel
-      isOpen={aiDiag.isPanelOpen}
-      status={aiDiag.status}
-      diagnostics={aiDiag.diagnostics}
-      counts={aiDiag.counts}
-      errorMessage={aiDiag.errorMessage}
-      onClose={aiDiag.closePanel}
-    />
+    </div>
+    <div className="form-side-panel">
+      <AiDiagnosticPanel
+        status={aiDiag.status}
+        diagnostics={aiDiag.diagnostics}
+        counts={aiDiag.counts}
+        errorMessage={aiDiag.errorMessage}
+      />
+    </div>
+    </div>
     </>
   );
 }

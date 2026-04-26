@@ -12,7 +12,6 @@ import {
   AlertCircle,
   AlertTriangle,
   Lightbulb,
-  X,
   Loader2,
   Sparkles,
   CheckCircle2,
@@ -62,12 +61,10 @@ const CATEGORY_CONFIG: Record<
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface AiDiagnosticPanelProps {
-  isOpen: boolean;
   status: AiDiagnosticsStatus;
   diagnostics: DiagnosticItem[];
   counts: { critical: number; warning: number; suggestion: number };
   errorMessage?: string;
-  onClose: () => void;
 }
 
 // ─── 診断アイテムカード ───────────────────────────────────────────────────────
@@ -120,12 +117,10 @@ function CategoryGroup({
 }
 
 export function AiDiagnosticPanel({
-  isOpen,
   status,
   diagnostics,
   counts,
   errorMessage,
-  onClose,
 }: AiDiagnosticPanelProps) {
 
   // カテゴリ別グループ化
@@ -139,16 +134,9 @@ export function AiDiagnosticPanel({
 
   return (
     <>
-      {/* ─── オーバーレイ ─── */}
-      <div
-        className={`ai-diag-overlay ${isOpen ? 'ai-diag-overlay--visible' : ''}`}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
       {/* ─── Drawerパネル ─── */}
       <aside
-        className={`ai-diag-drawer ${isOpen ? 'ai-diag-drawer--open' : ''}`}
+        className="ai-diag-drawer"
         role="complementary"
         aria-label="AI診断結果パネル"
       >
@@ -158,14 +146,6 @@ export function AiDiagnosticPanel({
             <Sparkles size={18} className="ai-diag-sparkle" />
             <span>AI診断レポート</span>
           </div>
-          <button
-            type="button"
-            className="ai-diag-close-btn"
-            onClick={onClose}
-            aria-label="閉じる"
-          >
-            <X size={18} />
-          </button>
         </div>
 
         {/* ─── ローディング ─── */}
@@ -195,9 +175,6 @@ export function AiDiagnosticPanel({
             <AlertCircle size={32} style={{ color: '#f87171' }} />
             <p className="ai-diag-error-title">診断に失敗しました</p>
             <p className="ai-diag-error-msg">{errorMessage}</p>
-            <button type="button" className="ai-diag-retry-btn" onClick={onClose}>
-              閉じて再試行
-            </button>
           </div>
         )}
 

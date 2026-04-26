@@ -294,8 +294,10 @@ function RenewalApplicationFormInner({
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
-      <FormProvider {...methods}>
-        <form noValidate className="renewal-form">
+      <div className="form-split-layout">
+        <div className="form-main-content">
+          <FormProvider {...methods}>
+            <form noValidate className="renewal-form">
 
           {/* ─── 上部固定エリア（ヘッダー・対象者情報・タブを束ねる） ──────────────── */}
           <div className="renewal-form-sticky-top">
@@ -582,17 +584,18 @@ function RenewalApplicationFormInner({
 
         </form>
       </FormProvider>
+      </div>
 
       {/* ─── AI診断結果 Drawer ─── */}
-      <AiDiagnosticPanel
-        isOpen={aiDiag.isPanelOpen}
-        status={aiDiag.status}
-        diagnostics={aiDiag.diagnostics}
-        counts={aiDiag.counts}
-        errorMessage={aiDiag.errorMessage}
-        onClose={aiDiag.closePanel}
-      />
-
+      <div className="form-side-panel">
+        <AiDiagnosticPanel
+          status={aiDiag.status}
+          diagnostics={aiDiag.diagnostics}
+          counts={aiDiag.counts}
+          errorMessage={aiDiag.errorMessage}
+        />
+      </div>
+      </div>
     </>
   );
 }
