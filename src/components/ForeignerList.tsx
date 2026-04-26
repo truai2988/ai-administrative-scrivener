@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Clock, CheckSquare, Square, MinusSquare, FilePen, Sparkles, XCircle, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { Clock, CheckSquare, Square, MinusSquare, FilePen, Sparkles, XCircle, Check, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { UserRole } from '@/types/database';
 import { ExcelDownloadButton } from './ExcelDownloadButton';
 import { ConsentPdfButton } from './ConsentPdfButton';
@@ -282,9 +282,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                             return (
                               <div
                                 title="AI診断: 未実施"
-                                className="flex items-center justify-center w-14 h-8 rounded-lg bg-slate-50 border border-slate-100 text-slate-300 shrink-0 cursor-help"
+                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-slate-50 border border-slate-100 text-slate-400 shrink-0 cursor-help"
                               >
                                 <Sparkles className="w-3.5 h-3.5" />
+                                <span className="text-xs font-bold">未診断</span>
                               </div>
                             );
                           }
@@ -293,10 +294,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                             return (
                               <div
                                 title="AI診断: フォーム更新あり（要再診断）"
-                                className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-500 shrink-0 cursor-help transition-all"
+                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-500 shrink-0 cursor-help transition-all"
                               >
                                 <RefreshCw className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-black">!</span>
+                                <span className="text-xs font-bold">要再診断</span>
                               </div>
                             );
                           }
@@ -304,11 +305,11 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                             // 重大な問題あり
                             return (
                               <div
-                                title={`AI診断: 重大な問題 ${diag.critical}件\n要注意 ${diag.warning}件`}
-                                className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 shrink-0 cursor-help transition-all"
+                                title="AI診断: 重大な問題あり"
+                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 shrink-0 cursor-help transition-all"
                               >
                                 <AlertCircle className="w-3.5 h-3.5" />
-                                <span className="text-xs font-black">{diag.critical}</span>
+                                <span className="text-xs font-bold">要対応</span>
                               </div>
                             );
                           }
@@ -316,11 +317,11 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                             // 要注意あり
                             return (
                               <div
-                                title={`AI診断: 要注意 ${diag.warning}件`}
-                                className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 shrink-0 cursor-help transition-all"
+                                title="AI診断: 要注意あり"
+                                className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 shrink-0 cursor-help transition-all"
                               >
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span className="text-xs font-black">{diag.warning}</span>
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span className="text-xs font-bold">要確認</span>
                               </div>
                             );
                           }
@@ -328,10 +329,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                           return (
                             <div
                               title="AI診断: 問題なし"
-                              className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 shrink-0 cursor-help transition-all"
+                              className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 shrink-0 cursor-help transition-all"
                             >
                               <Check className="w-3.5 h-3.5" />
-                              <span className="text-xs font-black">✓</span>
+                              <span className="text-xs font-bold">問題なし</span>
                             </div>
                           );
                         })()}

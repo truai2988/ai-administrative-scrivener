@@ -20,17 +20,8 @@ export interface AiDiagnosticsStateExpanded extends AiDiagnosticsState {
 const INITIAL_STATE: AiDiagnosticsStateExpanded = {
   status: 'idle',
   diagnostics: [],
-  counts: { critical: 0, warning: 0, suggestion: 0 },
   isPanelOpen: false,
 };
-
-function calcCounts(diagnostics: DiagnosticItem[]) {
-  return {
-    critical: diagnostics.filter((d) => d.level === 'critical').length,
-    warning: diagnostics.filter((d) => d.level === 'warning').length,
-    suggestion: diagnostics.filter((d) => d.level === 'suggestion').length,
-  };
-}
 
 // ─── フック ────────────────────────────────────────────────────────────────────────
 
@@ -53,7 +44,6 @@ export function useAiDiagnostics({ recordId, applicationType = 'renewal', initia
       return {
         status: 'success',
         diagnostics: initialDiagnostics,
-        counts: calcCounts(initialDiagnostics),
         isPanelOpen: false,
       };
     }
@@ -74,7 +64,6 @@ export function useAiDiagnostics({ recordId, applicationType = 'renewal', initia
           ...prev,
           status: 'success',
           diagnostics: initialDiagnostics,
-          counts: calcCounts(initialDiagnostics),
         };
       });
     }
@@ -144,7 +133,6 @@ export function useAiDiagnostics({ recordId, applicationType = 'renewal', initia
           ...prev,
           status: 'success',
           diagnostics,
-          counts: calcCounts(diagnostics),
         }));
       } catch (err) {
         const message =

@@ -41,10 +41,4 @@ export interface AiDiagnosticsState {
   status: AiDiagnosticsStatus;
   diagnostics: DiagnosticItem[];
   errorMessage?: string;
-  /** レベル別カウント（バッジ表示用） */
-  counts: {
-    critical: number;
-    warning: number;
-    suggestion: number;
-  };
 }

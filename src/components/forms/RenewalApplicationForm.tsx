@@ -6,7 +6,7 @@ import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Sparkles, Download, Check,
+  AlertCircle, Save, Loader2, Download, Check,
   Mail, CheckCircle, XCircle
 } from 'lucide-react';
 import { AiDiagnosticPanel } from './AiDiagnosticPanel';
@@ -332,9 +332,10 @@ function RenewalApplicationFormInner({
                 </div>
               </div>
 
-              <div className="applicant-context-actions flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+              <div className="applicant-context-actions flex items-center gap-2 flex-wrap shrink-0">
                 {!hideHeader && (
                   <>
+                  <TabAssignmentPanel />
 
                   {hasRequestReviewPermission && (
                     <button
@@ -461,43 +462,6 @@ function RenewalApplicationFormInner({
               </div>
             </div>
 
-            {/* ─── 担当者割り当て・AI診断行 ─── */}
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-slate-800/30">
-              {/* ─── 担当者割り当てパネル ─── */}
-              <TabAssignmentPanel />
-              
-              {/* ─── AI診断ボタン ─── */}
-              <button
-                type="button"
-                id="btn-ai-check"
-                className={`ai-check-btn shrink-0 ${aiDiag.status === 'loading' ? 'ai-check-btn--loading' : ''}`}
-                onClick={() => aiDiag.runCheck(methods.getValues())}
-                disabled={aiDiag.status === 'loading'}
-                title="入力内容・整合性・法的リスクをAIが診断します"
-              >
-                {aiDiag.status === 'loading' ? (
-                  <Loader2 size={16} className="spin" />
-                ) : (
-                  <Sparkles size={16} />
-                )}
-                <span className="hidden sm:inline">
-                  {aiDiag.status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
-                </span>
-                <span className="sm:hidden">
-                  {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
-                </span>
-                {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--critical px-2">
-                    要対応 {aiDiag.counts.critical}件
-                  </span>
-                )}
-                {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--warning px-2">
-                    要確認 {aiDiag.counts.warning}件
-                  </span>
-                )}
-              </button>
-            </div>
 
             {/* ─── タブナビゲーション ────────────────────────────────────── */}
             <div className="tab-nav" role="tablist">
@@ -591,8 +555,8 @@ function RenewalApplicationFormInner({
         <AiDiagnosticPanel
           status={aiDiag.status}
           diagnostics={aiDiag.diagnostics}
-          counts={aiDiag.counts}
           errorMessage={aiDiag.errorMessage}
+          onDiagnose={() => aiDiag.runCheck(methods.getValues())}
         />
       </div>
       </div>

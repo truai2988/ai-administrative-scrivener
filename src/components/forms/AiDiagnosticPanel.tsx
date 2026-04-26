@@ -63,8 +63,8 @@ const CATEGORY_CONFIG: Record<
 interface AiDiagnosticPanelProps {
   status: AiDiagnosticsStatus;
   diagnostics: DiagnosticItem[];
-  counts: { critical: number; warning: number; suggestion: number };
   errorMessage?: string;
+  onDiagnose?: () => void;
 }
 
 // ─── 診断アイテムカード ───────────────────────────────────────────────────────
@@ -105,7 +105,6 @@ function CategoryGroup({
       <div className="ai-diag-group-header">
         <Icon size={14} className="ai-diag-group-icon" />
         <span>{label}</span>
-        <span className="ai-diag-group-count">{items.length}件</span>
       </div>
       <div className="ai-diag-group-items">
         {items.map((item, i) => (
@@ -119,8 +118,8 @@ function CategoryGroup({
 export function AiDiagnosticPanel({
   status,
   diagnostics,
-  counts,
   errorMessage,
+  onDiagnose,
 }: AiDiagnosticPanelProps) {
 
   // カテゴリ別グループ化
@@ -142,10 +141,32 @@ export function AiDiagnosticPanel({
       >
         {/* ヘッダー */}
         <div className="ai-diag-header">
-          <div className="ai-diag-header-title">
-            <Sparkles size={18} className="ai-diag-sparkle" />
-            <span>AI診断レポート</span>
-          </div>
+          {onDiagnose ? (
+            <button
+              type="button"
+              className={`ai-check-btn ${status === 'loading' ? 'ai-check-btn--loading' : ''} flex-1 justify-center`}
+              onClick={onDiagnose}
+              disabled={status === 'loading'}
+              title="入力内容・整合性・法的リスクをAIが診断します"
+            >
+              {status === 'loading' ? (
+                <Loader2 size={16} className="spin" />
+              ) : (
+                <Sparkles size={16} />
+              )}
+              <span className="hidden sm:inline">
+                {status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
+              </span>
+              <span className="sm:hidden">
+                {status === 'loading' ? '解析中...' : 'AI診断'}
+              </span>
+            </button>
+          ) : (
+            <div className="ai-diag-header-title">
+              <Sparkles size={18} className="ai-diag-sparkle" />
+              <span>AI診断レポート</span>
+            </div>
+          )}
         </div>
 
         {/* ─── ローディング ─── */}
@@ -180,36 +201,7 @@ export function AiDiagnosticPanel({
 
         {/* ─── 診断完了 ─── */}
         {status === 'success' && (
-          <div className="ai-diag-body">
-            {/* サマリーバッジ */}
-            <div className="ai-diag-summary">
-              {counts.critical > 0 && (
-                <div className="ai-diag-badge ai-diag-badge--critical">
-                  <AlertCircle size={13} />
-                  <span>要対応 {counts.critical}件</span>
-                </div>
-              )}
-              {counts.warning > 0 && (
-                <div className="ai-diag-badge ai-diag-badge--warning">
-                  <AlertTriangle size={13} />
-                  <span>要確認 {counts.warning}件</span>
-                </div>
-              )}
-              {counts.suggestion > 0 && (
-                <div className="ai-diag-badge ai-diag-badge--suggestion">
-                  <Lightbulb size={13} />
-                  <span>改善提案 {counts.suggestion}件</span>
-                </div>
-              )}
-              {allClear && (
-                <div className="ai-diag-badge ai-diag-badge--clear">
-                  <CheckCircle2 size={13} />
-                  <span>問題なし</span>
-                </div>
-              )}
-            </div>
-
-            {/* 全クリアメッセージ */}
+          <div className="ai-diag-body">            {/* 全クリアメッセージ */}
             {allClear ? (
               <div className="ai-diag-all-clear">
                 <CheckCircle2 size={40} style={{ color: '#34d399' }} />
