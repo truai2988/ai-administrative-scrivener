@@ -13,8 +13,9 @@ import {
 } from '@/lib/constants/assignmentTemplates';
 import type { TabId } from '@/lib/schemas/renewalApplicationSchema';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
-import { USER_ROLE_LABELS } from '@/types/database';
+import { USER_ROLE_LABELS, type User } from '@/types/database';
 import Link from 'next/link';
+import { foreignerService } from '@/services/foreignerService';
 
 /** 担当者アサインに使用するロール（行政書士・本部管理者は除外） */
 const ASSIGNABLE_ROLES: { role: string; label: string }[] = [
@@ -100,7 +101,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading || authLoading) {
+  if (loading || authLoading || !currentUser) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
@@ -253,6 +254,16 @@ export default function SettingsPage() {
               </div>
               <RecalculateButton showToast={showToast} />
             </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 pt-6 border-t border-rose-100/50">
+              <div>
+                <h3 className="text-sm font-bold text-slate-700">ステータス整合性の確認・修復</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  承認ステータスと進行状況に矛盾があるデータ（承認済なのに準備中など）を一括で検出・自動修復します。
+                </p>
+              </div>
+              <StatusIntegrityButton showToast={showToast} currentUser={currentUser} />
+            </div>
           </div>
         </div>
       </main>
@@ -274,6 +285,7 @@ function RecalculateButton({ showToast }: { showToast: (type: 'success'|'error',
           if (!res.ok) throw new Error('API Error');
           showToast('success', '再集計が完了しました。画面を更新すると反映されます。');
         } catch (err) {
+          console.error(err);
           showToast('error', '再集計に失敗しました');
         } finally {
           setLoading(false);
@@ -283,6 +295,47 @@ function RecalculateButton({ showToast }: { showToast: (type: 'success'|'error',
     >
       {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldAlert size={16} />}
       再集計を実行
+    </button>
+  );
+}
+
+function StatusIntegrityButton({ showToast, currentUser }: { showToast: (type: 'success'|'error', msg: string) => void, currentUser: User }) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <button
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const data = await foreignerService.getForeignersByRole(currentUser.role, currentUser.organizationId ?? undefined);
+          const mismatches = data.filter(f =>
+            (f.approvalStatus === 'returned' && f.status !== '準備中') ||
+            (f.approvalStatus === 'approved' && f.status !== '申請済')
+          );
+
+          if (mismatches.length === 0) {
+            showToast('success', 'ステータスの不整合は見つかりませんでした。');
+            return;
+          }
+
+          let fixedCount = 0;
+          for (const f of mismatches) {
+            const expectedStatus = f.approvalStatus === 'approved' ? '申請済' : '準備中';
+            await foreignerService.updateForeignerDataAdmin(f.id, { status: expectedStatus });
+            fixedCount++;
+          }
+          showToast('success', `${fixedCount}件の不整合を修復しました。`);
+        } catch (err) {
+          console.error(err);
+          showToast('error', '修復処理に失敗しました。');
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl font-bold text-sm hover:bg-rose-100 transition-colors disabled:opacity-50"
+    >
+      {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldAlert size={16} />}
+      整合性を一括修復
     </button>
   );
 }

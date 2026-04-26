@@ -12,7 +12,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, AlertTriangle, FilePen, MessageSquare, Building2 } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -91,8 +91,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const { data, stats, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab, activeSummaryTab);
   // AI診断サマリー（トップページ一覧のアイコン表示用）
   const [aiDiagMap, setAiDiagMap] = useState<Record<string, ForeignerAiDiagnosticSummary>>({});
-  // データ整合性チェックパネル（scrivener専用）
-  const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
   // 組織ID → 表示名マップ（動的・APIから取得）
   const [organizationLabelMap, setOrganizationLabelMap] = useState<Record<string, string>>({});
 
@@ -276,27 +274,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
-          {/* scrivener専用: データ整合性チェック */}
-          {userRole === 'scrivener' && (() => {
-            const mismatchCount = data.filter(f =>
-              (f.approvalStatus === 'returned' && f.status !== '準備中') ||
-              (f.approvalStatus === 'approved' && f.status !== '申請済')
-            ).length;
-            return (
-              <button
-                onClick={() => setShowIntegrityPanel(true)}
-                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-medium transition-all text-rose-600 hover:bg-rose-50 group"
-              >
-                <AlertTriangle className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-left">ステータス整合性確認</span>
-                {mismatchCount > 0 && (
-                  <span className="px-2 py-0.5 bg-rose-500 text-white text-xs font-black rounded-full">
-                    {mismatchCount}
-                  </span>
-                )}
-              </button>
-            );
-          })()}
         </nav>
 
         {/* Support & Logout - Fixed at bottom */}
@@ -445,102 +422,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           </div>
         )}
 
-        {/* データ整合性チェックパネル（scrivener専用） */}
-        <AnimatePresence>
-          {showIntegrityPanel && userRole === 'scrivener' && (() => {
-            const mismatches = data.filter(f =>
-              (f.approvalStatus === 'returned' && f.status !== '準備中') ||
-              (f.approvalStatus === 'approved' && f.status !== '申請済')
-            );
-            return (
-              <motion.div
-                key="integrity-panel"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6"
-                onClick={() => setShowIntegrityPanel(false)}
-              >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                  onClick={e => e.stopPropagation()}
-                  className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-rose-50 rounded-xl">
-                        <AlertTriangle className="h-5 w-5 text-rose-500" />
-                      </div>
-                      <div>
-                        <h2 className="text-base font-black text-slate-900">ステータス整合性確認</h2>
-                        <p className="text-xs text-slate-500 mt-0.5">ステータスの不整合を検出します</p>
-                      </div>
-                    </div>
-                    <button onClick={() => setShowIntegrityPanel(false)} className="p-2 text-slate-500 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* Body */}
-                  <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
-                    {mismatches.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                          <Shield className="h-7 w-7 text-emerald-500" />
-                        </div>
-                        <p className="font-bold text-slate-700">不整合なし</p>
-                        <p className="text-sm text-slate-500 mt-1">すべてのデータは整合しています</p>
-                      </div>
-                    ) : (
-                      mismatches.map(f => {
-                        const isApprovedMismatch = f.approvalStatus === 'approved' && f.status !== '申請済';
-                        const expectedStatus = isApprovedMismatch ? '申請済' : '準備中';
-                        return (
-                          <div key={f.id} className="flex items-center justify-between gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl">
-                            <div className="min-w-0">
-                              <p className="text-sm font-black text-slate-900 truncate">{f.name}</p>
-                              <p className="text-xs text-rose-600 font-bold mt-0.5">
-                                {f.status} → {expectedStatus} に修復必要
-                              </p>
-                            </div>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const { foreignerService } = await import('@/services/foreignerService');
-                                  await foreignerService.updateForeignerDataAdmin(f.id, { status: expectedStatus });
-                                  setData(prev => prev.map(d => d.id === f.id ? { ...d, status: expectedStatus } : d));
-                                } catch {
-                                  alert('修復に失敗しました');
-                                }
-                              }}
-                              className="shrink-0 px-3 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 active:scale-95 transition-all"
-                            >
-                              修復
-                            </button>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  {/* Footer */}
-                  <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                    <p className="text-xs text-slate-500">
-                      {mismatches.length > 0 ? `${mismatches.length}件の不整合を検出` : '問題なし'}
-                    </p>
-                    <button onClick={() => setShowIntegrityPanel(false)} className="text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">
-                      閉じる
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            );
-          })()}
-        </AnimatePresence>
 
         {/* 共有モーダル */}
         <AnimatePresence>
