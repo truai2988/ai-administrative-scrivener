@@ -58,11 +58,8 @@ export function TabAssignmentPanel() {
         onClick={() => setIsOpen((v) => !v)}
         aria-expanded={isOpen}
       >
-        <UserCog size={15} />
-        <span className="hidden sm:inline">担当者割り当て設定</span>
-        <span className="sm:hidden">担当設定</span>
-
-
+        <UserCog size={14} />
+        <span>担当者</span>
         {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
 
