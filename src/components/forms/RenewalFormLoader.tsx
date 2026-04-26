@@ -94,12 +94,15 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
     ? (storedAssignments as TabAssignments)
     : resolveTemplate('renewal', undefined, templatesRecord);
 
+  const initialAiDiagnostics = (record as any)?.aiDiagnostics?.diagnostics as import('@/types/aiDiagnostics').DiagnosticItem[] | undefined;
+
   return (
     <RenewalApplicationForm
       recordId={record?.id}
       foreignerId={foreignerId}
       initialValues={initialValues}
       initialAssignments={initialAssignments}
+      initialAiDiagnostics={initialAiDiagnostics}
       templatesRecord={templatesRecord}
     />
   );

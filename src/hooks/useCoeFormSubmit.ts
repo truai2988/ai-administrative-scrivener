@@ -27,6 +27,8 @@ interface UseCoeFormSubmitOptions {
   foreignerId?: string;
   /** 所属する組織のID */
   organizationId?: string;
+  /** フォームがユーザーによって変更されたかどうかのフラグ */
+  isDirty?: boolean;
   /** react-hook-form の control（特定のフィールドを監視するため） */
   control?: Control<CoeApplicationFormData>;
   /** react-hook-form の getValues（オートセーブ時に現在の全体フォームデータを取得するため） */
@@ -55,6 +57,7 @@ export function useCoeFormSubmit({
   recordId,
   foreignerId,
   organizationId,
+  isDirty,
   control,
   getValues,
   onSuccess,
@@ -100,6 +103,8 @@ export function useCoeFormSubmit({
     disabled: !control, // フェーズ3統合前など、controlが未指定の場合は監視を無効化
   });
 
+  const watchedAssignmentsStr = JSON.stringify(watchedAssignments);
+
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstMountForWatch = useRef(true);
 
@@ -111,6 +116,9 @@ export function useCoeFormSubmit({
     }
 
     if (!savedRecordId || !getValues) return;
+    
+    // フォームがユーザーによって実際に変更されていない場合は自動保存をスキップ
+    if (!isDirty) return;
 
     // 前回のタイマーをクリア（Debounce）
     if (debounceTimerRef.current) {
@@ -138,7 +146,7 @@ export function useCoeFormSubmit({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [watchedAssignments, savedRecordId, foreignerId, organizationId, getValues, showToast]);
+  }, [watchedAssignmentsStr, savedRecordId, foreignerId, organizationId, getValues, showToast, isDirty]);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(

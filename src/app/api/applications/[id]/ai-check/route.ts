@@ -340,7 +340,7 @@ ${customRulesText}`;
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel(
       {
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         systemInstruction: finalSystemPrompt,
         generationConfig: {
           responseMimeType: 'application/json',
@@ -378,6 +378,7 @@ ${JSON.stringify(formData, null, 2)}
     const { diagnostics } = validated.data;
 
     // 5. 結果をFirestoreに保存（unsaved以外）
+    console.log('[ai-check] 保存判定: id=', id, ', collectionName=', collectionName, ', diagnostics件数=', diagnostics.length);
     if (id !== 'unsaved') {
       try {
         await db.collection(collectionName).doc(id).update({
@@ -387,10 +388,12 @@ ${JSON.stringify(formData, null, 2)}
             checkedBy: authResult.uid,
           },
         });
+        console.log('[ai-check] ✅ Firestore保存成功: ', collectionName, '/', id);
       } catch (saveErr) {
-        // 保存失敗はログのみ（診断結果の返却は優先）
-        console.warn('[ai-check] Firestoreへの保存に失敗:', saveErr);
+        console.warn('[ai-check] ❌ Firestoreへの保存に失敗:', saveErr);
       }
+    } else {
+      console.warn('[ai-check] ⚠️ id=unsaved のためFirestoreに保存しません');
     }
 
     return NextResponse.json({ diagnostics }, { status: 200 });

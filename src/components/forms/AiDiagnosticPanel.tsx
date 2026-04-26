@@ -62,6 +62,7 @@ const CATEGORY_CONFIG: Record<
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface AiDiagnosticPanelProps {
+  isOpen: boolean;
   status: AiDiagnosticsStatus;
   diagnostics: DiagnosticItem[];
   counts: { critical: number; warning: number; suggestion: number };
@@ -118,15 +119,14 @@ function CategoryGroup({
   );
 }
 
-// ─── メインパネル ─────────────────────────────────────────────────────────────
 export function AiDiagnosticPanel({
+  isOpen,
   status,
   diagnostics,
   counts,
   errorMessage,
   onClose,
 }: AiDiagnosticPanelProps) {
-  const isOpen = status !== 'idle';
 
   // カテゴリ別グループ化
   const grouped = useMemo(() => ({

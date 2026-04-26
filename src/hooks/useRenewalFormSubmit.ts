@@ -30,6 +30,8 @@ interface UseRenewalFormSubmitOptions {
   organizationId?: string;
   /** タブごとの担当者割り当て（SectionPermissionContextから渡す） */
   assignments?: TabAssignments;
+  /** フォームがユーザーによって変更されたかどうかのフラグ */
+  isDirty?: boolean;
   /** react-hook-form の control（特定のフィールドを監視するため） */
   control?: Control<RenewalApplicationFormData>;
   /** react-hook-form の getValues（オートセーブ時に現在の全体フォームデータを取得するため） */
@@ -59,6 +61,7 @@ export function useRenewalFormSubmit({
   foreignerId,
   organizationId,
   assignments,
+  isDirty,
   control,
   getValues,
   onSubmit,
@@ -104,6 +107,9 @@ export function useRenewalFormSubmit({
     disabled: !control,
   });
 
+  const watchedAssignmentsStr = JSON.stringify(watchedAssignments);
+  const assignmentsStr = JSON.stringify(assignments);
+
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstMountForWatch = useRef(true);
 
@@ -115,6 +121,9 @@ export function useRenewalFormSubmit({
     }
 
     if (!savedRecordId || !getValues) return;
+    
+    // フォームがユーザーによって実際に変更されていない場合は自動保存をスキップ
+    if (!isDirty) return;
 
     // 前回のタイマーをクリア（Debounce）
     if (debounceTimerRef.current) {
@@ -144,7 +153,8 @@ export function useRenewalFormSubmit({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [watchedAssignments, assignments, savedRecordId, foreignerId, organizationId, getValues, showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedAssignmentsStr, assignmentsStr, savedRecordId, foreignerId, organizationId, getValues, showToast, isDirty]);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(

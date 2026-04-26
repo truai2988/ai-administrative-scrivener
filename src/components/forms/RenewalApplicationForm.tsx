@@ -192,6 +192,8 @@ interface RenewalApplicationFormProps {
   initialAssignments?: TabAssignments;
   /** 外部から渡す初期値（Firestoreデータから読み込み） */
   initialValues?: Partial<RenewalApplicationFormData>;
+  /** DBからロードした初期のAI診断結果（過去の履歴） */
+  initialAiDiagnostics?: import('@/types/aiDiagnostics').DiagnosticItem[];
   /** フォーム上部のタイトルヘッダーを非表示にするかどうか */
   hideHeader?: boolean;
   /** DBから取得した最新のテンプレート設定 */
@@ -204,6 +206,7 @@ function RenewalApplicationFormInner({
   recordId,
   foreignerId,
   initialValues,
+  initialAiDiagnostics,
   hideHeader,
 }: Omit<RenewalApplicationFormProps, 'initialAssignments' | 'templatesRecord'>) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
@@ -211,8 +214,7 @@ function RenewalApplicationFormInner({
   const { toasts, dismiss } = useToast();
   const { isEditable, assignments } = useSectionPermission();
 
-  // AI診断フック
-  const aiDiag = useAiDiagnostics({ recordId });
+  // AI診断フック（savedRecordIdが確定してから呼び出す）
 
   const {
     hasApproveReturnPermission,
@@ -248,7 +250,7 @@ function RenewalApplicationFormInner({
     mode: 'onTouched',
   });
 
-  const { formState: { errors }, reset } = methods;
+  const { formState: { errors, isDirty }, reset } = methods;
 
   // useWatch: React Compiler に安全な方法でフォーム値をサブスクライブ
   const nameEn = useWatch({ control: methods.control, name: 'foreignerInfo.nameEn' });
@@ -273,10 +275,17 @@ function RenewalApplicationFormInner({
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
       assignments,
+      isDirty,
       control: methods.control,
       getValues: methods.getValues,
       onSubmit
     });
+
+  const aiDiag = useAiDiagnostics({ 
+    recordId: savedRecordId || recordId,
+    applicationType: 'renewal',
+    initialDiagnostics: initialAiDiagnostics
+  });
 
   const hasForeignerErrors    = !!errors.foreignerInfo;
   const hasEmployerErrors     = !!errors.employerInfo;
@@ -476,13 +485,13 @@ function RenewalApplicationFormInner({
                   {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
                 </span>
                 {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--critical">
-                    {aiDiag.counts.critical}
+                  <span className="ai-check-btn-badge ai-check-btn-badge--critical px-2">
+                    要対応 {aiDiag.counts.critical}件
                   </span>
                 )}
                 {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--warning">
-                    {aiDiag.counts.warning}
+                  <span className="ai-check-btn-badge ai-check-btn-badge--warning px-2">
+                    要確認 {aiDiag.counts.warning}件
                   </span>
                 )}
               </button>
@@ -576,11 +585,12 @@ function RenewalApplicationFormInner({
 
       {/* ─── AI診断結果 Drawer ─── */}
       <AiDiagnosticPanel
+        isOpen={aiDiag.isPanelOpen}
         status={aiDiag.status}
         diagnostics={aiDiag.diagnostics}
         counts={aiDiag.counts}
         errorMessage={aiDiag.errorMessage}
-        onClose={aiDiag.reset}
+        onClose={aiDiag.closePanel}
       />
 
     </>
@@ -593,6 +603,7 @@ export function RenewalApplicationForm({
   foreignerId,
   initialAssignments,
   initialValues,
+  initialAiDiagnostics,
   hideHeader,
   templatesRecord,
 }: RenewalApplicationFormProps) {
@@ -616,6 +627,7 @@ export function RenewalApplicationForm({
         recordId={recordId}
         foreignerId={foreignerId}
         initialValues={initialValues}
+        initialAiDiagnostics={initialAiDiagnostics}
         hideHeader={hideHeader}
       />
     </SectionPermissionProvider>

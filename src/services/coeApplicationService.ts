@@ -11,6 +11,7 @@ import {
 import { db } from '@/lib/firebase/client';
 import { type CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 import { type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema';
+import { type DiagnosticItem } from '@/types/aiDiagnostics';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapCoeFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
 import { sanitizeForFirestore } from '@/lib/utils/firestoreUtils';
@@ -27,6 +28,8 @@ export interface CoeApplicationRecord {
   formData: CoeApplicationFormData | null;
   /** useFileUpload によって更新されるドキュメントルートの添付ファイルデータ */
   attachments?: AttachmentsMap;
+  /** AI診断結果 */
+  aiDiagnostics?: { diagnostics: DiagnosticItem[] };
   createdAt: string;
   updatedAt: string;
 }

@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { type ChangeOfStatusApplicationFormData, type AttachmentsMap } from '@/lib/schemas/changeOfStatusApplicationSchema';
+import { type DiagnosticItem } from '@/types/aiDiagnostics';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapChangeOfStatusFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
 import { sanitizeForFirestore } from '@/lib/utils/firestoreUtils';
@@ -32,6 +33,8 @@ export interface ChangeOfStatusApplicationRecord {
   formData: ChangeOfStatusApplicationFormData | null;
   /** useFileUpload によって更新されるドキュメントルートの添付ファイルデータ */
   attachments?: AttachmentsMap;
+  /** AI診断結果 */
+  aiDiagnostics?: { diagnostics: DiagnosticItem[] };
   createdAt: string;
   updatedAt: string;
 }

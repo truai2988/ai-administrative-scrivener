@@ -130,6 +130,7 @@ const DEFAULT_VALUES: Partial<CoeApplicationFormData> = {
 
 interface CoeApplicationFormProps {
   initialValues?: Partial<CoeApplicationFormData>;
+  initialAiDiagnostics?: import('@/types/aiDiagnostics').DiagnosticItem[];
   recordId?: string;
   foreignerId?: string;
   organizationId?: string;
@@ -137,12 +138,11 @@ interface CoeApplicationFormProps {
 
 export function CoeApplicationForm({
   initialValues,
+  initialAiDiagnostics,
   recordId,
   foreignerId,
   organizationId,
 }: CoeApplicationFormProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('identity');
-  const aiDiag = useAiDiagnostics({ recordId, applicationType: 'coe' });
   const { toasts, dismiss } = useToast();
 
   const methods = useForm<CoeApplicationFormData>({
@@ -151,7 +151,7 @@ export function CoeApplicationForm({
     mode: 'onTouched',
   });
 
-  const { formState: { errors }, control, getValues } = methods;
+  const { formState: { errors, isDirty }, control, getValues } = methods;
 
   const { currentUser } = useAuth();
 
@@ -167,8 +167,16 @@ export function CoeApplicationForm({
     recordId,
     foreignerId,
     organizationId: organizationId || currentUser?.organizationId || undefined,
+    isDirty,
     control,
     getValues,
+  });
+
+  const [activeTab, setActiveTab] = useState<TabId>('identity');
+  const aiDiag = useAiDiagnostics({ 
+    recordId: savedRecordId || recordId, 
+    applicationType: 'coe',
+    initialDiagnostics: initialAiDiagnostics 
   });
 
   const {
@@ -312,13 +320,13 @@ export function CoeApplicationForm({
                   {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
                 </span>
                 {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--critical">
-                    {aiDiag.counts.critical}
+                  <span className="ai-check-btn-badge ai-check-btn-badge--critical px-2">
+                    要対応 {aiDiag.counts.critical}件
                   </span>
                 )}
                 {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--warning">
-                    {aiDiag.counts.warning}
+                  <span className="ai-check-btn-badge ai-check-btn-badge--warning px-2">
+                    要確認 {aiDiag.counts.warning}件
                   </span>
                 )}
               </button>
@@ -364,11 +372,12 @@ export function CoeApplicationForm({
       </form>
     </FormProvider>
     <AiDiagnosticPanel
+      isOpen={aiDiag.isPanelOpen}
       status={aiDiag.status}
       diagnostics={aiDiag.diagnostics}
       counts={aiDiag.counts}
       errorMessage={aiDiag.errorMessage}
-      onClose={aiDiag.reset}
+      onClose={aiDiag.closePanel}
     />
     </>
   );

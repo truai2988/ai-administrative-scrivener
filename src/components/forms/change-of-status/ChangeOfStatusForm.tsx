@@ -179,6 +179,7 @@ interface ChangeOfStatusFormProps {
   recordId?: string;
   foreignerId?: string;
   initialValues?: Partial<ChangeOfStatusApplicationFormData>;
+  initialAiDiagnostics?: import('@/types/aiDiagnostics').DiagnosticItem[];
   hideHeader?: boolean;
 }
 
@@ -187,11 +188,11 @@ export function ChangeOfStatusForm({
   recordId,
   foreignerId,
   initialValues,
+  initialAiDiagnostics,
   hideHeader,
 }: ChangeOfStatusFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const aiDiag = useAiDiagnostics({ recordId, applicationType: 'change_of_status' });
   const { toasts, dismiss } = useToast();
   const { currentUser } = useAuth();
 
@@ -216,7 +217,7 @@ export function ChangeOfStatusForm({
     mode: 'onTouched',
   });
 
-  const { formState: { errors }, reset } = methods;
+  const { formState: { errors, isDirty }, reset } = methods;
 
   const nameEn = useWatch({ control: methods.control, name: 'foreignerInfo.nameEn' });
   const nameKanji = useWatch({ control: methods.control, name: 'foreignerInfo.nameKanji' });
@@ -235,10 +236,17 @@ export function ChangeOfStatusForm({
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
       assignments: defaultAssignments,
+      isDirty,
       control: methods.control,
       getValues: methods.getValues,
       onSubmit
     });
+
+  const aiDiag = useAiDiagnostics({ 
+    recordId: savedRecordId || recordId, 
+    applicationType: 'change_of_status',
+    initialDiagnostics: initialAiDiagnostics
+  });
 
   const {
     hasApproveReturnPermission,
@@ -429,13 +437,13 @@ export function ChangeOfStatusForm({
                   {aiDiag.status === 'loading' ? '解析中...' : 'AI診断'}
                 </span>
                 {aiDiag.status === 'success' && aiDiag.counts.critical > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--critical">
-                    {aiDiag.counts.critical}
+                  <span className="ai-check-btn-badge ai-check-btn-badge--critical px-2">
+                    要対応 {aiDiag.counts.critical}件
                   </span>
                 )}
                 {aiDiag.status === 'success' && aiDiag.counts.critical === 0 && aiDiag.counts.warning > 0 && (
-                  <span className="ai-check-btn-badge ai-check-btn-badge--warning">
-                    {aiDiag.counts.warning}
+                  <span className="ai-check-btn-badge ai-check-btn-badge--warning px-2">
+                    要確認 {aiDiag.counts.warning}件
                   </span>
                 )}
               </button>
@@ -483,11 +491,12 @@ export function ChangeOfStatusForm({
         </form>
       </FormProvider>
     <AiDiagnosticPanel
+      isOpen={aiDiag.isPanelOpen}
       status={aiDiag.status}
       diagnostics={aiDiag.diagnostics}
       counts={aiDiag.counts}
       errorMessage={aiDiag.errorMessage}
-      onClose={aiDiag.reset}
+      onClose={aiDiag.closePanel}
     />
     </>
   );

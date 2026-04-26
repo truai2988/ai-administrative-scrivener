@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useForeigners } from '@/hooks/useForeigners';
 import { foreignerService } from '@/services/foreignerService';
+import { fetchAiDiagnosticSummaries, type AiDiagnosticSummary } from '@/services/aiDiagnosticStatusService';
 import { Foreigner, USER_ROLE_LABELS, UserRole } from '@/types/database';
 import { canCreateForeigner } from '@/utils/permissions';
 import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
@@ -88,6 +89,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   // サマリーカードタブ選択状態
   const [activeSummaryTab, setActiveSummaryTab] = useState<SummaryTab>('all');
   const { data, stats, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab);
+  // AI診断サマリー（トップページ一覧のアイコン表示用）
+  const [aiDiagMap, setAiDiagMap] = useState<Record<string, AiDiagnosticSummary>>({});
   // データ整合性チェックパネル（scrivener専用）
   const [showIntegrityPanel, setShowIntegrityPanel] = useState(false);
   // 組織ID → 表示名マップ（動的・APIから取得）
@@ -141,6 +144,19 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
       }
     })();
   }, [currentUser]);
+
+  // ─── AI診断サマリーの取得 ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+    const foreignerIds = data.map(f => f.id);
+    console.log('[Dashboard] AI診断サマリー取得開始: foreignerIds=', foreignerIds);
+    fetchAiDiagnosticSummaries(foreignerIds)
+      .then(result => {
+        console.log('[Dashboard] AI診断サマリー取得結果:', result);
+        setAiDiagMap(result);
+      })
+      .catch(err => console.warn('[Dashboard] AI診断サマリーの取得に失敗:', err));
+  }, [data]);
 
 
   // 未ログインチェック（Middlewareを通過しても念のためクライアント側でもチェック）
@@ -286,10 +302,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             return (
               <button
                 onClick={() => setShowIntegrityPanel(true)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-rose-600 hover:bg-rose-50 group"
+                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-medium transition-all text-rose-600 hover:bg-rose-50 group"
               >
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span className="flex-1 text-left">データ整合性チェック</span>
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <span className="flex-1 text-left">ステータス整合性確認</span>
                 {mismatchCount > 0 && (
                   <span className="px-2 py-0.5 bg-rose-500 text-white text-xs font-black rounded-full">
                     {mismatchCount}
@@ -412,6 +428,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 showBranch={isHqAdmin}
                 getBranchLabel={getBranchLabel}
                 userRole={userRole}
+                aiDiagnosticMap={aiDiagMap}
                 onDeleteSelected={async () => {
                   if (!confirm(`${selectedIds.size}件のデータを削除しますか？\nこの操作は取り消せません。`)) return;
                   try {
@@ -476,7 +493,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                         <AlertTriangle className="h-5 w-5 text-rose-500" />
                       </div>
                       <div>
-                        <h2 className="text-base font-black text-slate-900">データ整合性チェック</h2>
+                        <h2 className="text-base font-black text-slate-900">ステータス整合性確認</h2>
                         <p className="text-xs text-slate-500 mt-0.5">ステータスの不整合を検出します</p>
                       </div>
                     </div>

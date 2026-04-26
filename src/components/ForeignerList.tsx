@@ -4,11 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Clock, CheckSquare, Square, MinusSquare, FilePen, Sparkles, XCircle } from 'lucide-react';
+import { Clock, CheckSquare, Square, MinusSquare, FilePen, Sparkles, XCircle, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { UserRole } from '@/types/database';
 import { ExcelDownloadButton } from './ExcelDownloadButton';
 import { ConsentPdfButton } from './ConsentPdfButton';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
+import type { AiDiagnosticSummary } from '@/services/aiDiagnosticStatusService';
 
 interface ForeignerListProps {
   data: Foreigner[];
@@ -18,11 +19,12 @@ interface ForeignerListProps {
   showBranch?: boolean;
   getBranchLabel?: (branchId: string) => string;
   userRole?: UserRole;
+  aiDiagnosticMap?: Record<string, AiDiagnosticSummary>;
   onUpdate?: (updated: Foreigner) => void;
   onDeleteSelected?: () => void;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, onDeleteSelected }) => {
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, aiDiagnosticMap, onDeleteSelected }) => {
   const [filterBranch, setFilterBranch] = useState('');
   const [filterNationality, setFilterNationality] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
@@ -273,26 +275,66 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                           </>
                         )}
 
-                        {person.aiReview ? (
-                          <div
-                            title={`AIリーガルチェック: リスクスコア ${person.aiReview.riskScore}点\n${person.aiReview.reason}`}
-                            className={`flex items-center justify-center gap-1 w-14 h-8 rounded-lg border cursor-help transition-all shrink-0 ${
-                              person.aiReview.riskScore < 30 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                              person.aiReview.riskScore < 70 ? 'bg-amber-50 border-amber-100 text-amber-600' :
-                              'bg-rose-50 border-rose-100 text-rose-600'
-                            }`}
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span className="text-xs font-black">{person.aiReview.riskScore}</span>
-                          </div>
-                        ) : (
-                          <div 
-                            title="AIリーガルチェック: 未実施"
-                            className="flex items-center justify-center w-14 h-8 rounded-lg bg-slate-50 border border-slate-100 text-slate-300 shrink-0"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </div>
-                        )}
+                        {(() => {
+                          const diag = aiDiagnosticMap?.[person.id];
+                          if (!diag) {
+                            // AI診断未実施
+                            return (
+                              <div
+                                title="AI診断: 未実施"
+                                className="flex items-center justify-center w-14 h-8 rounded-lg bg-slate-50 border border-slate-100 text-slate-300 shrink-0 cursor-help"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" />
+                              </div>
+                            );
+                          }
+                          if (diag.stale) {
+                            // 診断後にフォームが更新された → 要再診断
+                            return (
+                              <div
+                                title="AI診断: フォーム更新あり（要再診断）"
+                                className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-500 shrink-0 cursor-help transition-all"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-black">!</span>
+                              </div>
+                            );
+                          }
+                          if (diag.critical > 0) {
+                            // 重大な問題あり
+                            return (
+                              <div
+                                title={`AI診断: 重大な問題 ${diag.critical}件\n要注意 ${diag.warning}件`}
+                                className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 shrink-0 cursor-help transition-all"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                <span className="text-xs font-black">{diag.critical}</span>
+                              </div>
+                            );
+                          }
+                          if (diag.warning > 0) {
+                            // 要注意あり
+                            return (
+                              <div
+                                title={`AI診断: 要注意 ${diag.warning}件`}
+                                className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 shrink-0 cursor-help transition-all"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span className="text-xs font-black">{diag.warning}</span>
+                              </div>
+                            );
+                          }
+                          // 問題なし（suggestionのみ or 0件）
+                          return (
+                            <div
+                              title="AI診断: 問題なし"
+                              className="flex items-center justify-center gap-1 w-14 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 shrink-0 cursor-help transition-all"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span className="text-xs font-black">✓</span>
+                            </div>
+                          );
+                        })()}
 
                         <div className="w-px h-6 bg-slate-200 mx-1"></div>
 
@@ -323,7 +365,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenDropdown(null);
-                                    window.open('/forms/coe/new', '_blank');
+                                    window.open(`/forms/coe/${person.id}`, '_blank');
                                   }}
                                   className="block w-full text-left px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
                                 >
@@ -343,7 +385,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenDropdown(null);
-                                    window.open(`/forms/change-of-status/new?foreignerId=${person.id}`, '_blank');
+                                    window.open(`/forms/change-of-status/${person.id}`, '_blank');
                                   }}
                                   className="block w-full text-left px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
                                 >
