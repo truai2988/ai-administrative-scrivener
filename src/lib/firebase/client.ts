@@ -1,5 +1,10 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence, Firestore } from "firebase/firestore";
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  Firestore 
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { firebaseConfig } from "./config";
 
@@ -13,17 +18,16 @@ if (getApps().length === 0) {
   app = getApp();
 }
 
-db = getFirestore(app);
-
 // Next.js環境（SSR）ではブラウザ側だけで実行させる
 if (typeof window !== "undefined") {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('複数タブが開かれているため、オフラインキャッシュは1つのタブでのみ有効になります。');
-    } else if (err.code === 'unimplemented') {
-      console.warn('このブラウザはオフラインキャッシュ機能をサポートしていません。');
-    }
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
   });
+} else {
+  // SSR時のフォールバック用初期化（キャッシュ無効で動作）
+  db = initializeFirestore(app, {});
 }
 
 const storage = getStorage(app);

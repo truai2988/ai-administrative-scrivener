@@ -9,7 +9,7 @@ interface UseForeignersUser {
   organizationId?: string | null;
 }
 
-export function useForeigners(currentUser: UseForeignersUser | null, initialData: Foreigner[] = [], activeBranchId: string = 'all') {
+export function useForeigners(currentUser: UseForeignersUser | null, initialData: Foreigner[] = [], activeBranchId: string = 'all', statusFilter: string = 'all') {
   const [data, setData] = useState<Foreigner[]>(initialData);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -97,7 +97,8 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       currentUser.role as UserRole,
       isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || DEFAULT_BRANCH_ID),
       50,
-      null
+      null,
+      statusFilter
     ).then(res => {
       if (isMounted) {
         setData(res.docs);
@@ -114,7 +115,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
     });
 
     return () => { isMounted = false; };
-  }, [currentUser, activeBranchId, initialData.length]);
+  }, [currentUser, activeBranchId, statusFilter, initialData.length]);
 
   const loadMore = useCallback(async () => {
     if (!currentUser || !currentUser.role || !hasMore || loadingMore) return;
@@ -125,7 +126,8 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
         currentUser.role as UserRole,
         isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || DEFAULT_BRANCH_ID),
         50,
-        lastDoc
+        lastDoc,
+        statusFilter
       );
       
       setData(prev => {
@@ -141,7 +143,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
     } finally {
       setLoadingMore(false);
     }
-  }, [currentUser, hasMore, loadingMore, lastDoc, activeBranchId]);
+  }, [currentUser, hasMore, loadingMore, lastDoc, activeBranchId, statusFilter]);
 
   // refreshメソッド（何か登録した後に一覧をリフレッシュしたい場合などに備えて）
   const refresh = useCallback(() => {
@@ -151,7 +153,8 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       currentUser.role as UserRole,
       isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || DEFAULT_BRANCH_ID),
       50,
-      null
+      null,
+      statusFilter
     ).then(res => {
       setData(res.docs);
       setLastDoc(res.lastDoc);
@@ -162,7 +165,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       setError(err instanceof Error ? err : new Error('Unknown error in refresh'));
       setLoading(false);
     });
-  }, [currentUser, activeBranchId]);
+  }, [currentUser, activeBranchId, statusFilter]);
 
   return { data, stats, statsLoading, loading, loadingMore, hasMore, error, setData, loadMore, refresh };
 }

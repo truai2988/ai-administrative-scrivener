@@ -15,7 +15,8 @@ import {
   WriteBatch,
   onSnapshot,
   QuerySnapshot,
-  DocumentData
+  DocumentData,
+  QueryConstraint
 } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
 import { Foreigner, UserRole, DEFAULT_BRANCH_ID } from "../types/database";
@@ -29,8 +30,8 @@ const COLLECTION_NAME = "foreigners";
 
 // 集計フィールドの増減を計算するヘルパー
 function getStatsChanges(oldStatus?: string, newStatus?: string): { pending: number, completed: number } {
-  const isPending = (s?: string) => s === 'チェック中' || s === '準備中' || s === '編集中' || s === '差し戻し';
-  const isCompleted = (s?: string) => s === '申請済';
+  const isPending = (s?: string) => s === '準備中' || s === '編集中' || s === 'チェック中' || s === '追加資料待機' || s === '入管審査中' || s === '差し戻し';
+  const isCompleted = (s?: string) => s === '完了' || s === '申請済';
 
   let pending = 0;
   let completed = 0;
@@ -163,29 +164,51 @@ export const foreignerService = {
     role: UserRole,
     branchId: string | undefined,
     pageSize: number,
-    lastDoc?: QueryDocumentSnapshot<DocumentData> | null
+    lastDoc?: QueryDocumentSnapshot<DocumentData> | null,
+    statusFilter: string = 'all'
   ): Promise<{ docs: Foreigner[], lastDoc: QueryDocumentSnapshot<DocumentData> | null, hasMore: boolean }> {
-    let q;
     const baseCol = collection(db, COLLECTION_NAME);
+    const constraints: QueryConstraint[] = [];
 
-    // 管理者で「すべての支部」を見る場合
-    if (canViewAllBranches(role) && !branchId) {
-      if (lastDoc) {
-        q = query(baseCol, orderBy("updatedAt", "desc"), startAfter(lastDoc), limit(pageSize));
-      } else {
-        q = query(baseCol, orderBy("updatedAt", "desc"), limit(pageSize));
-      }
-    } else {
-      // 特定の支部のみを見る場合（管理者で支部タブを選んだ場合、または一般ユーザー）
-      if (!branchId) {
-        throw new Error("[foreignerService] branch_staff requires branchId");
-      }
-      if (lastDoc) {
-        q = query(baseCol, where("branchId", "==", branchId), orderBy("updatedAt", "desc"), startAfter(lastDoc), limit(pageSize));
-      } else {
-        q = query(baseCol, where("branchId", "==", branchId), orderBy("updatedAt", "desc"), limit(pageSize));
-      }
+    // 支部による絞り込み
+    if (!canViewAllBranches(role) || branchId) {
+      if (!branchId) throw new Error("[foreignerService] branch_staff requires branchId");
+      constraints.push(where("branchId", "==", branchId));
     }
+
+    // ステータスタブによる絞り込み
+    if (statusFilter === 'pending') {
+      // 進行中
+      constraints.push(where('status', 'in', ['準備中', '編集中', 'チェック中', '追加資料待機', '入管審査中', '差し戻し']));
+      constraints.push(orderBy("updatedAt", "desc"));
+    } else if (statusFilter === 'completed') {
+      // 完了
+      constraints.push(where('status', 'in', ['完了', '申請済']));
+      constraints.push(orderBy("updatedAt", "desc"));
+    } else if (statusFilter === 'expiring') {
+      // 期限切れ間近
+      const now = new Date();
+      const threshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+      const todayStr = now.toISOString().slice(0, 10);
+      const thresholdStr = threshold.toISOString().slice(0, 10);
+      
+      constraints.push(where('expiryDate', '>=', todayStr));
+      constraints.push(where('expiryDate', '<=', thresholdStr));
+      // 不等号フィルタ（expiryDate）を使う場合、最初のorderByは同じフィールドである必要があります
+      constraints.push(orderBy('expiryDate', 'asc'));
+      constraints.push(orderBy("updatedAt", "desc"));
+    } else {
+      // 全て
+      constraints.push(orderBy("updatedAt", "desc"));
+    }
+
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+    
+    constraints.push(limit(pageSize));
+
+    const q = query(baseCol, ...constraints);
 
     const querySnapshot = await getDocs(q);
     const docs = querySnapshot.docs.map(doc => ({

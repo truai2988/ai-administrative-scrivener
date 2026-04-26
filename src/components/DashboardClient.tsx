@@ -88,7 +88,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const activeTab = 'all';
   // サマリーカードタブ選択状態
   const [activeSummaryTab, setActiveSummaryTab] = useState<SummaryTab>('all');
-  const { data, stats, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab);
+  const { data, stats, loading, loadingMore, hasMore, loadMore, setData } = useForeigners(currentUser, initialData, activeTab, activeSummaryTab);
   // AI診断サマリー（トップページ一覧のアイコン表示用）
   const [aiDiagMap, setAiDiagMap] = useState<Record<string, ForeignerAiDiagnosticSummary>>({});
   // データ整合性チェックパネル（scrivener専用）
@@ -186,26 +186,9 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const isHqAdmin = userRole === 'hq_admin';
   const displayedData = data; // useForeigners が既に activeTab でフィルタリングされたデータを返します
 
-  // サマリータブによるフロントエンドフィルタリング
-  const PENDING_STATUSES = new Set(['準備中', '編集中', 'チェック中', '追加資料待機', '入管審査中', '差し戻し']);
-  const filteredData = (() => {
-    if (activeSummaryTab === 'all') return displayedData;
-    const now = new Date();
-    const threshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-    const todayStr = now.toISOString().slice(0, 10);
-    const thresholdStr = threshold.toISOString().slice(0, 10);
-    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    if (activeSummaryTab === 'expiring') {
-      return displayedData.filter(f => f.expiryDate >= todayStr && f.expiryDate <= thresholdStr);
-    }
-    if (activeSummaryTab === 'pending') {
-      return displayedData.filter(f => PENDING_STATUSES.has(f.status));
-    }
-    if (activeSummaryTab === 'completed') {
-      return displayedData.filter(f => f.status === '完了' && f.updatedAt?.slice(0, 7) === thisMonth);
-    }
-    return displayedData;
-  })();
+  // サマリータブによるフロントエンドフィルタリングは廃止（バックエンドでのクエリフィルタに移行）
+  // displayedData（useForeignersが直接フィルタリングして返したデータ）をそのまま利用する
+  const filteredData = displayedData;
 
   /** branchId → 表示名のマッピング（組織APIから動的取得） */
   const getBranchLabel = (branchId: string): string => {
