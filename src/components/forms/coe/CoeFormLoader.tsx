@@ -14,6 +14,7 @@ import React, { useMemo } from 'react';
 import { useCoeFormData } from '@/hooks/useCoeFormData';
 import { CoeApplicationForm } from './CoeApplicationForm';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { type DiagnosticItem } from '@/types/aiDiagnostics';
 
 function FormSkeleton() {
   return (
@@ -41,7 +42,6 @@ function ErrorState({ message }: { message: string }) {
     </div>
   );
 }
-import { type DiagnosticItem } from '@/types/aiDiagnostics';
 
 interface CoeFormLoaderProps {
   foreignerId: string;
