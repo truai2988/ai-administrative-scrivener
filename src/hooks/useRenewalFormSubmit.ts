@@ -62,9 +62,7 @@ export function useRenewalFormSubmit({
   foreignerId,
   organizationId,
   assignments,
-  isDirty,
   control,
-  getValues,
   onSubmit,
 }: UseRenewalFormSubmitOptions = {}): UseRenewalFormSubmitReturn {
   const [isSaving, setIsSaving] = useState(false);
@@ -113,6 +111,7 @@ export function useRenewalFormSubmit({
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstMountForWatch = useRef(true);
+  const lastSavedAssignments = useRef<TabAssignments | null>(null);
   const lastSavedData = useRef<RenewalApplicationFormData | null>(null);
 
   useEffect(() => {
@@ -122,10 +121,8 @@ export function useRenewalFormSubmit({
       return;
     }
 
-    if (!savedRecordId || !getValues) return;
-    
-    // フォームがユーザーによって実際に変更されていない場合は自動保存をスキップ
-    if (!isDirty) return;
+    const currentAssignments = assignments || watchedAssignments;
+    if (!savedRecordId || !currentAssignments) return;
 
     // 前回のタイマーをクリア（Debounce）
     if (debounceTimerRef.current) {
@@ -138,22 +135,17 @@ export function useRenewalFormSubmit({
       debounceTimerRef.current = null;
       setIsAutoSaving(true);
       try {
-        // 現在の最新フォームデータを取得
-        const currentData = getValues();
-        // コンテキストから渡された assignments を優先してマージ
-        const dataWithAssignments = { ...currentData, assignments: assignments || currentData.assignments };
-        
-        // 前回保存したデータと完全一致する場合は書き込みをスキップ（Write削減）
-        if (isEqual(dataWithAssignments, lastSavedData.current)) {
+        // 前回保存した assignments と完全一致する場合は書き込みをスキップ（Write削減）
+        if (isEqual(currentAssignments, lastSavedAssignments.current)) {
           return;
         }
 
-        await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
-        lastSavedData.current = dataWithAssignments;
+        await renewalApplicationService.updateAssignments(savedRecordId, currentAssignments as TabAssignments);
+        lastSavedAssignments.current = currentAssignments as TabAssignments;
         // UX上頻繁に出ると煩わしいため、成功通知は省略
       } catch (err) {
         console.error('[オートセーブエラー]', err);
-        showToast('error', '自動保存に失敗しました');
+        showToast('error', '担当者の自動保存に失敗しました');
       } finally {
         setIsAutoSaving(false);
       }
@@ -165,13 +157,13 @@ export function useRenewalFormSubmit({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedAssignmentsStr, assignmentsStr, savedRecordId, foreignerId, organizationId, getValues, showToast, isDirty]);
+  }, [watchedAssignmentsStr, assignmentsStr, savedRecordId, showToast]);
 
   // ─── 2.5. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────
-  const flushDataRef = useRef({ getValues, savedRecordId, foreignerId, organizationId, assignments });
+  const flushDataRef = useRef({ savedRecordId, assignments, watchedAssignments });
   useEffect(() => {
-    flushDataRef.current = { getValues, savedRecordId, foreignerId, organizationId, assignments };
-  }, [getValues, savedRecordId, foreignerId, organizationId, assignments]);
+    flushDataRef.current = { savedRecordId, assignments, watchedAssignments };
+  }, [savedRecordId, assignments, watchedAssignments]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -191,13 +183,13 @@ export function useRenewalFormSubmit({
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
         
-        const { getValues, savedRecordId, foreignerId, organizationId, assignments } = flushDataRef.current;
-        if (getValues && savedRecordId && lastSavedData.current) {
-          const currentData = getValues();
-          const dataWithAssignments = { ...currentData, assignments: assignments || currentData.assignments };
-          if (!isEqual(dataWithAssignments, lastSavedData.current)) {
+        const { savedRecordId, assignments, watchedAssignments } = flushDataRef.current;
+        const currentAssignments = assignments || watchedAssignments;
+        
+        if (savedRecordId && currentAssignments) {
+          if (!isEqual(currentAssignments, lastSavedAssignments.current)) {
             // アンマウント時なのでawaitせずバックグラウンドで実行
-            renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId).catch((err) => {
+            renewalApplicationService.updateAssignments(savedRecordId, currentAssignments as TabAssignments).catch((err) => {
               console.error('[アンマウント時オートセーブエラー]', err);
             });
           }

@@ -52,7 +52,7 @@ const GEMINI_RESPONSE_SCHEMA = {
           },
           field: {
             type: SchemaType.STRING,
-            description: '対象フィールド名（例: foreignerInfo.monthlySalary）',
+            description: '入力データJSON内に実在するキーパス。ルートキーは入力データのトップレベルキーと完全一致させること。',
           },
           message: {
             type: SchemaType.STRING,
@@ -171,9 +171,9 @@ const SYSTEM_PROMPT = `あなたは日本の入管業務に精通した厳格な
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 [3-1: 税金・社会保険の未納チェック]
-- 雇用保険・社会保険（健康保険・厚生年金）の適用が false になっている場合は critical を出し、
+- 雇用保険・社会保険（健康保険・厚生年金）の適用（対象パス: employerInfo.isLaborInsuranceApplicable, employerInfo.isSocialInsuranceApplicable）が false になっている場合は critical を出し、
   「在留資格の要件として社会保険の適用は必須です」と指摘すること。
-- 資本金・年間売上金額の記載がない（または0）場合は warning を出し、
+- 資本金・年間売上金額（employerInfo.capital, employerInfo.annualRevenue）の記載がない（または0）場合は warning を出し、
   財政的安定性の証明として記載を促すこと。
 
 [3-2: 生計の安定性チェック]
@@ -206,7 +206,7 @@ const SYSTEM_PROMPT = `あなたは日本の入管業務に精通した厳格な
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - 問題が全くない優良な申請の場合は diagnostics を空配列 [] にすること。
 - 各メッセージは実務的・具体的に書き、行政書士が補正するためのアドバイスを含めること。
-- field は対象のJSONパスに近い形（例: foreignerInfo.nameEn）で記載すること。
+- field は、入力データのJSONに実在する完全なキーパス（例: employerInfo.isSocialInsuranceApplicable）をそのまま記載すること。実在しないパス（例: employmentInfoなど）を勝手に生成（ハルシネーション）しないこと。
 - 氏名分割の提案では「どのように分割すべきか」を必ず具体的に示すこと。
 - 1つの問題に対して1つのアイテムのみ出力すること（重複禁止）。
 - P-1〜P-2の入力品質チェックは、他のどの審査基準よりも優先して最初に評価すること。
@@ -368,7 +368,7 @@ ${customRulesText}`;
     // 3.5 ハッシュ生成と早期リターン (キャッシュの利用)
     // AIモデルやシステムプロンプトのバージョンもソルトとして含めることで将来のアップデートに対応
     const MODEL_NAME = 'gemini-2.5-flash';
-    const PROMPT_VERSION = '1.0.0'; // プロンプトを変更した場合はこれをインクリメントする
+    const PROMPT_VERSION = '1.1.0'; // fieldパスの正確性向上のためプロンプト改修
     
     const computedHash = objectHash({
       formData: minimizedFormData,
@@ -405,9 +405,22 @@ ${customRulesText}`;
     );
 
     // フォームデータを構造化されたテキストとして渡す
+    // トップレベルキーを動的に抽出し、AIにfieldパスの制約として明示する
+    const topLevelKeys = typeof minimizedFormData === 'object' && minimizedFormData !== null
+      ? Object.keys(minimizedFormData as Record<string, unknown>)
+      : [];
+
     const userPrompt = `以下の${typeLabel}データを診断してください。
 
 【申請種別】${typeLabel}
+
+【申請データのトップレベルキー一覧】
+${topLevelKeys.join(', ')}
+
+⚠️ diagnostics の field には、上記のトップレベルキーのいずれかで始まるパスのみを使用すること。
+上記に存在しないルートキー（例: foreignerInfo, employmentInfo, companyInfo 等）は絶対に使わないこと。
+正しい例: "${topLevelKeys[0] || 'identityInfo'}.nameEn"
+誤った例: "foreignerInfo.nameEn"（トップレベルキーに存在しない場合）
 
 【申請データ（JSON）】
 ${JSON.stringify(minimizedFormData, null, 2)}

@@ -9,7 +9,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { type CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
+import { type CoeApplicationFormData, type TabAssignments } from '@/lib/schemas/coeApplicationSchema';
 import { type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema';
 import { type AiDiagnosticsData } from '@/types/aiDiagnostics';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
@@ -191,5 +191,19 @@ export const coeApplicationService = {
 
     await setDoc(docRef, record);
     return newId;
+  },
+
+  /**
+   * 担当者（assignments）のみを安全に部分更新する
+   */
+  async updateAssignments(id: string, assignments: TabAssignments): Promise<void> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const now = new Date().toISOString();
+    
+    // formDataが未定義（draft等）の場合を考慮し、merge: true の setDoc で安全に部分更新する
+    await setDoc(docRef, {
+      formData: { assignments },
+      updatedAt: now,
+    }, { merge: true });
   },
 };

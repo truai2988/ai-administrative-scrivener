@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWatch, type Control, type UseFormGetValues } from 'react-hook-form';
-import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
+import { type CoeApplicationFormData, type TabAssignments } from '@/lib/schemas/coeApplicationSchema';
 import { coeApplicationService } from '@/services/coeApplicationService';
 import { downloadCoeCSV } from '@/lib/utils/coeCsvMapper';
 import { useToast } from '@/components/ui/Toast';
@@ -58,9 +58,7 @@ export function useCoeFormSubmit({
   recordId,
   foreignerId,
   organizationId,
-  isDirty,
   control,
-  getValues,
   onSuccess,
 }: UseCoeFormSubmitOptions = {}): UseCoeFormSubmitReturn {
   const [isSaving, setIsSaving] = useState(false);
@@ -108,6 +106,7 @@ export function useCoeFormSubmit({
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstMountForWatch = useRef(true);
+  const lastSavedAssignments = useRef<TabAssignments | null>(null);
   const lastSavedData = useRef<CoeApplicationFormData | null>(null);
 
   useEffect(() => {
@@ -117,10 +116,7 @@ export function useCoeFormSubmit({
       return;
     }
 
-    if (!savedRecordId || !getValues) return;
-    
-    // フォームがユーザーによって実際に変更されていない場合は自動保存をスキップ
-    if (!isDirty) return;
+    if (!savedRecordId || !watchedAssignments) return;
 
     // 前回のタイマーをクリア（Debounce）
     if (debounceTimerRef.current) {
@@ -133,20 +129,17 @@ export function useCoeFormSubmit({
       debounceTimerRef.current = null;
       setIsAutoSaving(true);
       try {
-        // 現在の最新フォームデータを取得
-        const currentData = getValues();
-        
-        // 前回保存したデータと完全一致する場合は書き込みをスキップ（Write削減）
-        if (isEqual(currentData, lastSavedData.current)) {
+        // 前回保存した assignments と完全一致する場合は書き込みをスキップ（Write削減）
+        if (isEqual(watchedAssignments, lastSavedAssignments.current)) {
           return;
         }
 
-        await coeApplicationService.save(currentData, savedRecordId, foreignerId, organizationId);
-        lastSavedData.current = currentData;
+        await coeApplicationService.updateAssignments(savedRecordId, watchedAssignments as TabAssignments);
+        lastSavedAssignments.current = watchedAssignments as TabAssignments;
         // UX上頻繁に出ると煩わしいため、成功通知は省略
       } catch (err) {
         console.error('[オートセーブエラー]', err);
-        showToast('error', '自動保存に失敗しました');
+        showToast('error', '担当者の自動保存に失敗しました');
       } finally {
         setIsAutoSaving(false);
       }
@@ -157,13 +150,13 @@ export function useCoeFormSubmit({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [watchedAssignmentsStr, savedRecordId, foreignerId, organizationId, getValues, showToast, isDirty]);
+  }, [watchedAssignmentsStr, watchedAssignments, savedRecordId, showToast]);
 
   // ─── 2.5. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────
-  const flushDataRef = useRef({ getValues, savedRecordId, foreignerId, organizationId });
+  const flushDataRef = useRef({ savedRecordId, watchedAssignments });
   useEffect(() => {
-    flushDataRef.current = { getValues, savedRecordId, foreignerId, organizationId };
-  }, [getValues, savedRecordId, foreignerId, organizationId]);
+    flushDataRef.current = { savedRecordId, watchedAssignments };
+  }, [savedRecordId, watchedAssignments]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -183,12 +176,11 @@ export function useCoeFormSubmit({
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
         
-        const { getValues, savedRecordId, foreignerId, organizationId } = flushDataRef.current;
-        if (getValues && savedRecordId && lastSavedData.current) {
-          const currentData = getValues();
-          if (!isEqual(currentData, lastSavedData.current)) {
+        const { savedRecordId, watchedAssignments } = flushDataRef.current;
+        if (savedRecordId && watchedAssignments) {
+          if (!isEqual(watchedAssignments, lastSavedAssignments.current)) {
             // アンマウント時なのでawaitせずバックグラウンドで実行
-            coeApplicationService.save(currentData, savedRecordId, foreignerId, organizationId).catch((err) => {
+            coeApplicationService.updateAssignments(savedRecordId, watchedAssignments as TabAssignments).catch((err) => {
               console.error('[アンマウント時オートセーブエラー]', err);
             });
           }

@@ -18,8 +18,10 @@ import {
   FileSearch,
   Scale,
   ClipboardCheck,
+  MousePointerClick,
 } from 'lucide-react';
 import type { DiagnosticItem, DiagnosticCategory, DiagnosticLevel, AiDiagnosticsStatus } from '@/types/aiDiagnostics';
+import { translateFieldPath } from '@/lib/constants/fieldTranslations';
 
 // ─── レベル設定 ────────────────────────────────────────────────────────────────
 const LEVEL_CONFIG: Record<
@@ -65,24 +67,38 @@ interface AiDiagnosticPanelProps {
   diagnostics: DiagnosticItem[];
   errorMessage?: string;
   onDiagnose?: () => void;
+  /** エラー項目がクリックされたときのハンドラー */
+  onFieldClick?: (fieldPath: string) => void;
 }
 
 // ─── 診断アイテムカード ───────────────────────────────────────────────────────
-function DiagnosticCard({ item }: { item: DiagnosticItem }) {
+function DiagnosticCard({ item, onClick }: { item: DiagnosticItem; onClick?: () => void }) {
   const level = LEVEL_CONFIG[item.level];
   const { Icon } = level;
 
   return (
-    <div className="ai-diag-item" style={{
-      background: level.bgColor,
-      borderColor: level.borderColor,
-    }}>
+    <div 
+      className={`ai-diag-item ${onClick ? 'cursor-pointer hover:bg-slate-800/50 transition-colors' : ''}`}
+      style={{
+        background: level.bgColor,
+        borderColor: level.borderColor,
+      }}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      title={onClick ? "クリックして該当の入力欄へ移動" : undefined}
+    >
       <div className="ai-diag-item-header">
         <Icon size={15} style={{ color: level.color, flexShrink: 0 }} />
         <span className="ai-diag-item-level" style={{ color: level.color }}>
           {level.label}
         </span>
-        <span className="ai-diag-item-field">{item.field}</span>
+        <span className="ai-diag-item-field flex-1 truncate" title={item.field}>
+          {translateFieldPath(item.field)}
+        </span>
+        {onClick && (
+          <MousePointerClick size={14} className="text-slate-500 shrink-0 ml-1 opacity-50" />
+        )}
       </div>
       <p className="ai-diag-item-message">{item.message}</p>
     </div>
@@ -93,9 +109,11 @@ function DiagnosticCard({ item }: { item: DiagnosticItem }) {
 function CategoryGroup({
   category,
   items,
+  onFieldClick,
 }: {
   category: DiagnosticCategory;
   items: DiagnosticItem[];
+  onFieldClick?: (fieldPath: string) => void;
 }) {
   if (items.length === 0) return null;
   const { label, Icon } = CATEGORY_CONFIG[category];
@@ -108,7 +126,11 @@ function CategoryGroup({
       </div>
       <div className="ai-diag-group-items">
         {items.map((item, i) => (
-          <DiagnosticCard key={i} item={item} />
+          <DiagnosticCard 
+            key={i} 
+            item={item} 
+            onClick={onFieldClick ? () => onFieldClick(item.field) : undefined} 
+          />
         ))}
       </div>
     </div>
@@ -120,6 +142,7 @@ export function AiDiagnosticPanel({
   diagnostics,
   errorMessage,
   onDiagnose,
+  onFieldClick,
 }: AiDiagnosticPanelProps) {
 
   // カテゴリ別グループ化
@@ -214,9 +237,9 @@ export function AiDiagnosticPanel({
             ) : (
               /* カテゴリ別グループ（法的リスク → 整合性 → 入力 の優先順） */
               <div className="ai-diag-groups">
-                <CategoryGroup category="legal" items={grouped.legal} />
-                <CategoryGroup category="consistency" items={grouped.consistency} />
-                <CategoryGroup category="input" items={grouped.input} />
+                <CategoryGroup category="legal" items={grouped.legal} onFieldClick={onFieldClick} />
+                <CategoryGroup category="consistency" items={grouped.consistency} onFieldClick={onFieldClick} />
+                <CategoryGroup category="input" items={grouped.input} onFieldClick={onFieldClick} />
               </div>
             )}
 

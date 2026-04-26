@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   User, Building2, FileStack,
-  AlertCircle, Save, Loader2, Download, Check,
+  AlertCircle, Save, Loader2, Download,
   Mail, CheckCircle, XCircle
 } from 'lucide-react';
 import { AiDiagnosticPanel } from './AiDiagnosticPanel';
@@ -250,7 +250,7 @@ function RenewalApplicationFormInner({
     mode: 'onTouched',
   });
 
-  const { formState: { errors, isDirty }, reset } = methods;
+  const { formState: { errors }, reset } = methods;
 
   // useWatch: React Compiler に安全な方法でフォーム値をサブスクライブ
   const nameEn = useWatch({ control: methods.control, name: 'foreignerInfo.nameEn' });
@@ -266,7 +266,6 @@ function RenewalApplicationFormInner({
   const { currentUser } = useAuth();
   const {
     isSaving,
-    isAutoSaving,
     isBusy,
     savedRecordId,
     handleSaveOnly,
@@ -275,9 +274,7 @@ function RenewalApplicationFormInner({
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
       assignments,
-      isDirty,
       control: methods.control,
-      getValues: methods.getValues,
       onSubmit
     });
 
@@ -290,6 +287,47 @@ function RenewalApplicationFormInner({
   const hasForeignerErrors    = !!errors.foreignerInfo;
   const hasEmployerErrors     = !!errors.employerInfo;
   const hasSimultaneousErrors = !!errors.simultaneousApplication;
+
+  const handleFieldClick = useCallback((fieldPath: string) => {
+    // AIのパスからルートキーを抽出し、該当タブに切り替える
+    const rootKey = fieldPath.split('.')[0];
+
+    // ハルシネーション対策: ルートキーの正規化マップ
+    const keyMap: Record<string, string> = {
+      employmentInfo: 'employerInfo',
+      companyInfo: 'employerInfo',
+    };
+    const normalizedRoot = keyMap[rootKey] || rootKey;
+
+    // 正規化されたフルパスを構築
+    const normalizedPath = normalizedRoot !== rootKey
+      ? fieldPath.replace(rootKey, normalizedRoot)
+      : fieldPath;
+
+    // ルートキー → タブID のマッピング
+    const tabMap: Record<string, TabId> = {
+      foreignerInfo: 'foreigner',
+      employerInfo: 'employer',
+      simultaneousApplication: 'simultaneous',
+    };
+
+    setActiveTab(tabMap[normalizedRoot] || 'foreigner');
+
+    // ベストエフォートでフィールドにスクロール＆ハイライト
+    setTimeout(() => {
+      const el = document.querySelector(`[name="${normalizedPath}"]`) as HTMLElement
+        || document.querySelector(`[name="${fieldPath}"]`) as HTMLElement;
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        const orig = el.style.outline;
+        el.style.transition = 'outline 0.3s ease';
+        el.style.outline = '3px solid #f87171';
+        setTimeout(() => { el.style.outline = orig; }, 2000);
+      }
+    }, 150);
+  }, [setActiveTab]);
 
   return (
     <>
@@ -311,17 +349,6 @@ function RenewalApplicationFormInner({
                   <div className="applicant-name truncate text-base font-bold text-slate-100 flex items-center gap-3">
                     <div>
                       {applicantName} <span className="applicant-suffix text-sm font-normal text-slate-400">様の申請データ</span>
-                    </div>
-                    <div className="flex items-center">
-                      {isAutoSaving ? (
-                        <span className="form-saving-badge text-slate-500 text-xs flex items-center gap-1">
-                          <Loader2 size={12} className="spin" /> 自動保存中...
-                        </span>
-                      ) : savedRecordId ? (
-                        <span className="form-saved-badge text-teal-600 text-xs flex items-center gap-1">
-                          <Check size={12} /> 保存済み
-                        </span>
-                      ) : null}
                     </div>
                   </div>
                   <div className="applicant-type flex items-center flex-wrap gap-2 mt-0.5">
@@ -557,6 +584,7 @@ function RenewalApplicationFormInner({
           diagnostics={aiDiag.diagnostics}
           errorMessage={aiDiag.errorMessage}
           onDiagnose={() => aiDiag.runCheck(methods.getValues())}
+          onFieldClick={handleFieldClick}
         />
       </div>
       </div>
