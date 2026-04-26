@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Check, Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { AiDiagnosticPanel } from '../AiDiagnosticPanel';
 import { TabAssignmentPanel } from '../TabAssignmentPanel';
@@ -158,7 +158,6 @@ export function CoeApplicationForm({
   const {
     isSaving,
     isExporting,
-    isAutoSaving,
     isBusy,
     savedRecordId,
     handleSaveOnly,
@@ -206,10 +205,18 @@ export function CoeApplicationForm({
     };
     const normalizedRoot = keyMap[rootKey] || rootKey;
 
-    // 正規化されたフルパスを構築
-    const normalizedPath = normalizedRoot !== rootKey
-      ? fieldPath.replace(rootKey, normalizedRoot)
-      : fieldPath;
+    // ハルシネーション対策: COE固有のフルパス正規化マップ
+    // Renewal/変更申請では jobCategories だが、COEでは specifiedSkilledSubCategory に相当
+    const fullPathMap: Record<string, string> = {
+      'employerInfo.jobCategories': 'employerInfo.specifiedSkilledSubCategory',
+      'employerInfo.jobCategories.0': 'employerInfo.specifiedSkilledSubCategory',
+      'employerInfo.industryFields': 'employerInfo.specifiedSkilledField',
+      'employerInfo.specifiedSkilledCategory': 'employerInfo.specifiedSkilledSubCategory',
+    };
+
+    // フルパス正規化を優先適用
+    const resolvedPath = fullPathMap[fieldPath]
+      ?? (normalizedRoot !== rootKey ? fieldPath.replace(rootKey, normalizedRoot) : fieldPath);
 
     // ルートキー → タブID のマッピング
     const tabMap: Record<string, TabId> = {
@@ -223,11 +230,11 @@ export function CoeApplicationForm({
       freeFormat: 'metadata',
     };
 
-    setActiveTab(tabMap[normalizedRoot] || 'identity');
+    setActiveTab(tabMap[resolvedPath.split('.')[0]] || tabMap[normalizedRoot] || 'identity');
 
     // ベストエフォートでフィールドにスクロール＆ハイライト
     setTimeout(() => {
-      const el = document.querySelector(`[name="${normalizedPath}"]`) as HTMLElement
+      const el = document.querySelector(`[name="${resolvedPath}"]`) as HTMLElement
         || document.querySelector(`[name="${fieldPath}"]`) as HTMLElement;
 
       if (el) {
@@ -240,6 +247,7 @@ export function CoeApplicationForm({
       }
     }, 150);
   }, [setActiveTab]);
+
 
   return (
     <>

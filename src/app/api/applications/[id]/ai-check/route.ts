@@ -194,7 +194,15 @@ const SYSTEM_PROMPT = `あなたは日本の入管業務に精通した厳格な
   単純労働を想起させるキーワードが含まれる場合は critical を出し、
   「在留資格『特定技能』は単純労働に該当する業務を主とすることはできません。
   入管審査で不許可となる可能性が高いため、職務内容の記載を見直すことを強く推奨します」と指摘すること。
-- jobCategories（業務区分）が空の場合は critical を出すこと。
+- 業務区分が未選択・空の場合は critical を出すこと。
+  フィールドパスは申請種別によって異なるため、以下に従って正確に指定すること:
+  * 在留期間更新・在留資格変更の場合: field = "employerInfo.jobCategories"
+  * 在留資格認定証明書交付（COE）の場合: field = "employerInfo.specifiedSkilledSubCategory"
+  メッセージ例:「業務区分は必須項目です。主たる職務内容がどのような業務区分に該当するのか
+  具体的に記載してください。特に特定技能の場合、不許可事由となる可能性が高いです。」
+  なお、入力データに "specifiedSkilledSubCategory" キーが存在する場合はCOE申請として判定し、
+  "jobCategories" キーが存在する場合は更新・変更申請として判定すること。
+
 
 [3-5: 犯罪歴・問題行動]
 - criminalRecord が true の場合、criminalRecordDetail が未記載であれば critical を出すこと。
@@ -368,7 +376,7 @@ ${customRulesText}`;
     // 3.5 ハッシュ生成と早期リターン (キャッシュの利用)
     // AIモデルやシステムプロンプトのバージョンもソルトとして含めることで将来のアップデートに対応
     const MODEL_NAME = 'gemini-2.5-flash';
-    const PROMPT_VERSION = '1.1.0'; // fieldパスの正確性向上のためプロンプト改修
+    const PROMPT_VERSION = '1.2.0'; // COE業務区分フィールドパスの申請種別分岐に対応
     
     const computedHash = objectHash({
       formData: minimizedFormData,
