@@ -132,7 +132,7 @@ export function useRenewalFormSubmit({
       clearTimeout(debounceTimerRef.current);
     }
 
-    // 1500ms 後に自動保存を実行
+    // 5000ms 後に自動保存を実行
     debounceTimerRef.current = setTimeout(async () => {
       setIsAutoSaving(true);
       try {
@@ -155,7 +155,7 @@ export function useRenewalFormSubmit({
       } finally {
         setIsAutoSaving(false);
       }
-    }, 1500);
+    }, 5000);
 
     return () => {
       if (debounceTimerRef.current) {
