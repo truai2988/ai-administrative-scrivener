@@ -16,6 +16,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { CompanyMaster } from '@/types/database';
@@ -33,7 +34,8 @@ export const companyMasterService = {
     const q = query(
       col,
       where('organizationId', '==', organizationId),
-      orderBy('companyNameJa', 'asc')
+      orderBy('companyNameJa', 'asc'),
+      limit(50)
     );
     const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompanyMaster));

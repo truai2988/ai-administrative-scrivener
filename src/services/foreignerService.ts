@@ -81,7 +81,7 @@ export const foreignerService = {
    * 全外国人を取得（一覧用）- 後方互換性のため残す
    */
   async getAllForeigners(): Promise<Foreigner[]> {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
+    const q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"), limit(50));
     const querySnapshot = await getDocs(q);
     
     return querySnapshot.docs.map(doc => ({
@@ -100,7 +100,7 @@ export const foreignerService = {
 
     if (canViewAllBranches(role)) {
       // 本部管理者・行政書士: 全データ取得
-      q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
+      q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"), limit(50));
     } else {
       // 支部事務員: 自支部のデータのみ
       if (!branchId) {
@@ -110,7 +110,8 @@ export const foreignerService = {
       q = query(
         collection(db, COLLECTION_NAME),
         where("branchId", "==", branchId),
-        orderBy("updatedAt", "desc")
+        orderBy("updatedAt", "desc"),
+        limit(50)
       );
     }
 
@@ -132,7 +133,7 @@ export const foreignerService = {
     let q;
 
     if (canViewAllBranches(role)) {
-      q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"));
+      q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"), limit(50));
     } else {
       if (!branchId) {
         console.error("[foreignerService] branch_staff requires branchId");
@@ -141,7 +142,8 @@ export const foreignerService = {
       q = query(
         collection(db, COLLECTION_NAME),
         where("branchId", "==", branchId),
-        orderBy("updatedAt", "desc")
+        orderBy("updatedAt", "desc"),
+        limit(50)
       );
     }
 
@@ -583,7 +585,8 @@ export const foreignerService = {
     const q = query(
       collection(db, COLLECTION_NAME),
       where("approvalStatus", "==", "pending_review"),
-      orderBy("updatedAt", "desc")
+      orderBy("updatedAt", "desc"),
+      limit(50)
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
