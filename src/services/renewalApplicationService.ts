@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { type RenewalApplicationFormData, type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema';
-import { type DiagnosticItem, type AiDiagnosticsData } from '@/types/aiDiagnostics';
+import { type AiDiagnosticsData } from '@/types/aiDiagnostics';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
 import { sanitizeForFirestore } from '@/lib/utils/firestoreUtils';

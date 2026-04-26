@@ -237,6 +237,32 @@ async function verifyAuth(req: NextRequest): Promise<
   }
 }
 
+// ─── ペイロード最小化ヘルパー ───────────────────────────────────────────────────
+
+function removeEmptyData(obj: unknown): unknown {
+  if (obj === null || obj === undefined || obj === '') return undefined;
+  if (Array.isArray(obj)) {
+    const arr = obj.map(removeEmptyData).filter((val) => val !== undefined);
+    return arr.length > 0 ? arr : undefined;
+  }
+  if (typeof obj === 'object') {
+    if (Object.prototype.toString.call(obj) !== '[object Object]') {
+      return obj;
+    }
+    const newObj: Record<string, unknown> = {};
+    let hasKeys = false;
+    for (const key in obj as Record<string, unknown>) {
+      const val = removeEmptyData((obj as Record<string, unknown>)[key]);
+      if (val !== undefined) {
+        newObj[key] = val;
+        hasKeys = true;
+      }
+    }
+    return hasKeys ? newObj : undefined;
+  }
+  return obj;
+}
+
 // ─── POST ハンドラ ─────────────────────────────────────────────────────────────
 
 export async function POST(
@@ -280,7 +306,10 @@ export async function POST(
     };
     const typeLabel = applicationTypeLabel[applicationType] || '申請書';
 
-    let aiDiagnosticsData: any = null;
+    let aiDiagnosticsData: {
+      diagnostics?: unknown;
+      lastDiagnosticHash?: string;
+    } | null = null;
 
     if (id === 'unsaved') {
       // 未保存フォームの場合: ボディからデータを取得
@@ -298,6 +327,9 @@ export async function POST(
       formData = (data.formData as Record<string, unknown>) ?? {};
       aiDiagnosticsData = data.aiDiagnostics;
     }
+
+    // 送信ペイロードの最小化（空データの削除）
+    const minimizedFormData = removeEmptyData(formData) || {};
 
     // 3. カスタム診断ルールをFirestoreから取得し、システムプロンプトに動的結合
     let finalSystemPrompt = SYSTEM_PROMPT;
@@ -339,7 +371,7 @@ ${customRulesText}`;
     const PROMPT_VERSION = '1.0.0'; // プロンプトを変更した場合はこれをインクリメントする
     
     const computedHash = objectHash({
-      formData,
+      formData: minimizedFormData,
       customRulesText,
       model: MODEL_NAME,
       promptVersion: PROMPT_VERSION,
@@ -378,7 +410,7 @@ ${customRulesText}`;
 【申請種別】${typeLabel}
 
 【申請データ（JSON）】
-${JSON.stringify(formData, null, 2)}
+${JSON.stringify(minimizedFormData, null, 2)}
 
 上記のデータを審査基準に従い厳密にチェックし、diagnostics配列として結果を返してください。`;
 

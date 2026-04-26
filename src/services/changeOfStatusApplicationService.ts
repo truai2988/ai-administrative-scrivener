@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { type ChangeOfStatusApplicationFormData, type AttachmentsMap } from '@/lib/schemas/changeOfStatusApplicationSchema';
-import { type DiagnosticItem, type AiDiagnosticsData } from '@/types/aiDiagnostics';
+import { type AiDiagnosticsData } from '@/types/aiDiagnostics';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapChangeOfStatusFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
 import { sanitizeForFirestore } from '@/lib/utils/firestoreUtils';

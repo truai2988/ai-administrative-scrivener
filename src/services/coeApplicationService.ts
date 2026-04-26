@@ -11,7 +11,7 @@ import {
 import { db } from '@/lib/firebase/client';
 import { type CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 import { type AttachmentsMap } from '@/lib/schemas/renewalApplicationSchema';
-import { type DiagnosticItem, type AiDiagnosticsData } from '@/types/aiDiagnostics';
+import { type AiDiagnosticsData } from '@/types/aiDiagnostics';
 import { COLLECTIONS, APPLICATION_STATUS } from '@/constants/firestore';
 import { mapCoeFormDataToForeigner } from '@/lib/utils/foreignerSyncMapper';
 import { sanitizeForFirestore } from '@/lib/utils/firestoreUtils';
