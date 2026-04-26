@@ -134,6 +134,8 @@ export function useChangeOfStatusFormSubmit({
 
     // 5000ms 後に自動保存を実行
     debounceTimerRef.current = setTimeout(async () => {
+      // タイマーが発火した時点でキューから外す（これ以降のページ離脱は警告不要）
+      debounceTimerRef.current = null;
       setIsAutoSaving(true);
       try {
         // 現在の最新フォームデータを取得
@@ -164,6 +166,45 @@ export function useChangeOfStatusFormSubmit({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedAssignmentsStr, assignmentsStr, savedRecordId, foreignerId, organizationId, getValues, showToast, isDirty]);
+
+  // ─── 2.5. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────
+  const flushDataRef = useRef({ getValues, savedRecordId, foreignerId, organizationId, assignments });
+  useEffect(() => {
+    flushDataRef.current = { getValues, savedRecordId, foreignerId, organizationId, assignments };
+  }, [getValues, savedRecordId, foreignerId, organizationId, assignments]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (debounceTimerRef.current) {
+        e.preventDefault();
+        e.returnValue = ''; // ほとんどのブラウザで標準の警告ダイアログが表示される
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // アンマウント時（ページ遷移など）に未保存キューがあれば即座に保存実行
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+        
+        const { getValues, savedRecordId, foreignerId, organizationId, assignments } = flushDataRef.current;
+        if (getValues && savedRecordId && lastSavedData.current) {
+          const currentData = getValues();
+          const dataWithAssignments = { ...currentData, assignments: assignments || currentData.assignments };
+          if (!isEqual(dataWithAssignments, lastSavedData.current)) {
+            // アンマウント時なのでawaitせずバックグラウンドで実行
+            changeOfStatusApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId).catch((err) => {
+              console.error('[アンマウント時オートセーブエラー]', err);
+            });
+          }
+        }
+      }
+    };
+  }, []);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(

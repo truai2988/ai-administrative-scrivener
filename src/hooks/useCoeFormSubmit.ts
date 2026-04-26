@@ -129,6 +129,8 @@ export function useCoeFormSubmit({
 
     // 5000ms 後に自動保存を実行
     debounceTimerRef.current = setTimeout(async () => {
+      // タイマーが発火した時点でキューから外す（これ以降のページ離脱は警告不要）
+      debounceTimerRef.current = null;
       setIsAutoSaving(true);
       try {
         // 現在の最新フォームデータを取得
@@ -156,6 +158,44 @@ export function useCoeFormSubmit({
       }
     };
   }, [watchedAssignmentsStr, savedRecordId, foreignerId, organizationId, getValues, showToast, isDirty]);
+
+  // ─── 2.5. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────
+  const flushDataRef = useRef({ getValues, savedRecordId, foreignerId, organizationId });
+  useEffect(() => {
+    flushDataRef.current = { getValues, savedRecordId, foreignerId, organizationId };
+  }, [getValues, savedRecordId, foreignerId, organizationId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (debounceTimerRef.current) {
+        e.preventDefault();
+        e.returnValue = ''; // ほとんどのブラウザで標準の警告ダイアログが表示される
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // アンマウント時（ページ遷移など）に未保存キューがあれば即座に保存実行
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+        
+        const { getValues, savedRecordId, foreignerId, organizationId } = flushDataRef.current;
+        if (getValues && savedRecordId && lastSavedData.current) {
+          const currentData = getValues();
+          if (!isEqual(currentData, lastSavedData.current)) {
+            // アンマウント時なのでawaitせずバックグラウンドで実行
+            coeApplicationService.save(currentData, savedRecordId, foreignerId, organizationId).catch((err) => {
+              console.error('[アンマウント時オートセーブエラー]', err);
+            });
+          }
+        }
+      }
+    };
+  }, []);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(
