@@ -231,9 +231,58 @@ export default function SettingsPage() {
             </Link>
           </div>
         </div>
+
+        {/* ─── システムメンテナンス ─── */}
+        <div className="mt-6 bg-white rounded-2xl shadow-xs border border-rose-200 overflow-hidden">
+          <div className="p-6 border-b border-rose-100 bg-rose-50/30">
+            <h2 className="text-lg font-bold flex items-center gap-2 text-rose-600">
+              <ShieldAlert size={18} />
+              システムメンテナンス
+            </h2>
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              データベースの不整合や表示のズレが発生した場合の強制リセットツールです。
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-700">ダッシュボード数値の再集計</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  一覧画面上部のタブ（進行中の申請、完了など）の数字が実際のリスト件数と合わない場合、このボタンを押して全データを数え直してください。
+                </p>
+              </div>
+              <RecalculateButton showToast={showToast} />
+            </div>
+          </div>
+        </div>
       </main>
 
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
+  );
+}
+
+function RecalculateButton({ showToast }: { showToast: (type: 'success'|'error', msg: string) => void }) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <button
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const res = await fetch('/api/admin/recalculate-stats', { method: 'POST' });
+          if (!res.ok) throw new Error('API Error');
+          showToast('success', '再集計が完了しました。画面を更新すると反映されます。');
+        } catch (err) {
+          showToast('error', '再集計に失敗しました');
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl font-bold text-sm hover:bg-rose-100 transition-colors disabled:opacity-50"
+    >
+      {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldAlert size={16} />}
+      再集計を実行
+    </button>
   );
 }

@@ -109,6 +109,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       }
     }).catch(err => {
       if (isMounted) {
+        setData([]);
         setError(err instanceof Error ? err : new Error('Unknown error in useForeigners'));
         setLoading(false);
       }
@@ -162,6 +163,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
       setLoading(false);
       setError(null);
     }).catch(err => {
+      setData([]);
       setError(err instanceof Error ? err : new Error('Unknown error in refresh'));
       setLoading(false);
     });

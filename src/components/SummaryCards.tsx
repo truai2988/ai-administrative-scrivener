@@ -44,7 +44,7 @@ const tabs: {
   },
   {
     id: 'completed',
-    label: '今月の完了',
+    label: '完了した申請',
     icon: CheckCircle,
     badgeKey: 'completed',
     activeColor: 'bg-emerald-600 text-white',
