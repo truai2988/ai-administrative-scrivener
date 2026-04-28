@@ -387,6 +387,36 @@
   box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.1);
 }
 
+/* --- Click-to-Fill: フィルモード時のフィールドハイライト --- */
+.form-input--fill-target {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  background: rgba(99, 102, 241, 0.06) !important;
+  cursor: crosshair !important;
+  animation: ctf-pulse 2s ease-in-out infinite;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.form-input--fill-target:hover {
+  border-color: rgba(99, 102, 241, 0.8) !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), 0 4px 12px rgba(99, 102, 241, 0.1) !important;
+}
+@keyframes ctf-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  50%      { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08); }
+}
+
+/* --- Click-to-Fill: 代入成功時のフラッシュ --- */
+.form-input--fill-flash {
+  border-color: rgba(52, 211, 153, 0.7) !important;
+  background: rgba(52, 211, 153, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2), 0 0 16px rgba(52, 211, 153, 0.15) !important;
+  animation: ctf-flash 0.6s ease-out forwards;
+}
+@keyframes ctf-flash {
+  0%   { background: rgba(52, 211, 153, 0.25); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.3); }
+  100% { background: rgba(52, 211, 153, 0.06); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
 /* セレクト */
 .form-select {
   appearance: none;
@@ -2144,7 +2174,16 @@
     position: sticky;
     top: 1.5rem;
     height: calc(100vh - 3rem); /* Leaves some margin */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99,102,241,0.3) transparent;
   }
+  .form-side-panel::-webkit-scrollbar { width: 4px; }
+  .form-side-panel::-webkit-scrollbar-track { background: transparent; }
+  .form-side-panel::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 999px; }
 }
 
 /* --- Panel Container --------------------------------------- */

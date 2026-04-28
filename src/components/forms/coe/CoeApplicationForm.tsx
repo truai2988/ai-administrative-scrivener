@@ -6,7 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { AiDiagnosticPanel } from '../AiDiagnosticPanel';
+import { AiExtractionSidebar, ClickToFillProvider } from '@/components/AiExtractionSidebar';
 import { TabAssignmentPanel } from '../TabAssignmentPanel';
+
 import {
   coeApplicationSchema,
   type CoeApplicationFormData,
@@ -172,6 +174,7 @@ export function CoeApplicationForm({
   });
 
   const [activeTab, setActiveTab] = useState<TabId>('identity');
+  const [isExtractionOpen, setIsExtractionOpen] = useState(false);
   const aiDiag = useAiDiagnostics({ 
     recordId: savedRecordId || recordId, 
     applicationType: 'coe',
@@ -252,9 +255,10 @@ export function CoeApplicationForm({
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <FormProvider {...methods}>
+      <ClickToFillProvider>
       <div className="form-split-layout">
         <div className="form-main-content">
-          <FormProvider {...methods}>
         <form onSubmit={(e) => e.preventDefault()} className="renewal-form" noValidate>
           {/* Header and Tabs */}
           <div className="renewal-form-sticky-top">
@@ -383,9 +387,12 @@ export function CoeApplicationForm({
           {activeTab === 'metadata' && <ApplicationMetadataFields />}
         </div>
       </form>
-    </FormProvider>
     </div>
     <div className="form-side-panel">
+      <AiExtractionSidebar
+        isOpen={isExtractionOpen}
+        onToggle={() => setIsExtractionOpen((v) => !v)}
+      />
       <AiDiagnosticPanel
         status={aiDiag.status}
         diagnostics={aiDiag.diagnostics}
@@ -395,6 +402,8 @@ export function CoeApplicationForm({
       />
     </div>
     </div>
+    </ClickToFillProvider>
+    </FormProvider>
     </>
   );
 }

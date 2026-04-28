@@ -20,6 +20,7 @@ export function proxy(request: NextRequest) {
     "/login",
     "/foreigner/entry",  // 外国人本人が入力するフォーム
     "/forms/renewal",    // 在留期間更新許可申請書フォーム
+    "/sandbox",          // 開発用プロトタイプ
     "/api",
     "/_next",
     "/favicon.ico",

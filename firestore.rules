@@ -41,6 +41,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
       allow write: if false;
+
+      // ── マッピング学習データ（Click-to-Fill Auto-Fill 用） ──
+      // 自身のサブコレクションのみ読み書き可
+      match /mappingPreferences/{docId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
 
 
