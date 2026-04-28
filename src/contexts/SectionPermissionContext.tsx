@@ -35,8 +35,8 @@ interface SectionPermissionContextType {
   assignUser: (tabId: TabId, userId: string) => void;
   /** 全タブの担当者をまとめて割り当てる */
   assignAllUsers: (newAssignments: TabAssignments) => void;
-  /** 担当者割り当てUI（TabAssignmentPanel）を表示・操作できるか（scrivener専用） */
-  isScrivener: boolean;
+  /** 担当者割り当てUI（TabAssignmentPanel）を表示・操作できるか（行政書士・東京本部専用） */
+  canAssignUsers: boolean;
   /** DBから取得した最新のテンプレート設定 */
   templatesRecord: Record<ApplicationKind, TabAssignmentTemplate>;
 }
@@ -46,7 +46,7 @@ const SectionPermissionContext = createContext<SectionPermissionContextType>({
   assignments: {},
   assignUser: () => {},
   assignAllUsers: () => {},
-  isScrivener: true,
+  canAssignUsers: false,
   templatesRecord: DEFAULT_ASSIGNMENT_TEMPLATES,
 });
 
@@ -74,11 +74,10 @@ export function SectionPermissionProvider({
   const [assignments, setAssignments] = useState<TabAssignments>(initialAssignments);
 
   /**
-   * isScrivener: 担当者割り当てパネル（TabAssignmentPanel）の表示・操作権限
-   * → scrivener（行政書士）のみが担当者割り当てを変更できる専権。
-   * hq_admin は全タブ編集可能だが、割り当て設定の変更は行政書士のみ。
+   * canAssignUsers: 担当者割り当てパネル（TabAssignmentPanel）の表示・操作権限
+   * → scrivener（行政書士）および hq_admin（本部管理者）が担当者割り当てを変更できる。
    */
-  const isScrivener = currentUserRole === 'scrivener';
+  const canAssignUsers = currentUserRole === 'scrivener' || currentUserRole === 'hq_admin';
 
   const isEditable = useCallback(
     (tabId: TabId): boolean => {
@@ -96,7 +95,7 @@ export function SectionPermissionProvider({
 
   /**
    * タブに担当者を割り当てる
-   * 行政書士のみ呼び出せる想定（UI側でも制御）
+   * 行政書士・東京本部のみ呼び出せる想定（UI側でも制御）
    */
   const assignUser = useCallback(
     (tabId: TabId, userId: string) => {
@@ -119,8 +118,8 @@ export function SectionPermissionProvider({
   );
 
   const value = useMemo(
-    () => ({ isEditable, assignments, assignUser, assignAllUsers, isScrivener, templatesRecord }),
-    [isEditable, assignments, assignUser, assignAllUsers, isScrivener, templatesRecord]
+    () => ({ isEditable, assignments, assignUser, assignAllUsers, canAssignUsers, templatesRecord }),
+    [isEditable, assignments, assignUser, assignAllUsers, canAssignUsers, templatesRecord]
   );
 
   return (

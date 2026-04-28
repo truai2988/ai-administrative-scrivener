@@ -19,7 +19,6 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
   ({ error, className = '', onMouseDown, ...props }, ref) => {
     const ctf = useClickToFillContext();
     const isInFillMode = ctf?.isInFillMode ?? false;
-    const isFlashing = ctf?.flashField === props.name;
 
     const handleMouseDown = (e: React.MouseEvent<HTMLInputElement>) => {
       if (isInFillMode && props.name) {
@@ -33,7 +32,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
     return (
       <input
         ref={ref}
-        className={`form-input ${error ? 'form-input--error' : ''} ${isInFillMode ? 'form-input--fill-target' : ''} ${isFlashing ? 'form-input--fill-flash' : ''} ${className}`}
+        className={`form-input ${error ? 'form-input--error' : ''} ${isInFillMode ? 'form-input--fill-target' : ''} ${className}`}
         onMouseDown={handleMouseDown}
         suppressHydrationWarning
         {...props}

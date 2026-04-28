@@ -9,8 +9,8 @@ import {
   Mail, CheckCircle, XCircle
 } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
-import { AiDiagnosticPanel } from '../AiDiagnosticPanel';
 import { TabAssignmentPanel } from '../TabAssignmentPanel';
+import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import {
   changeOfStatusApplicationSchema,
   type ChangeOfStatusApplicationFormData,
@@ -22,6 +22,10 @@ import { SimultaneousTab } from './simultaneous/SimultaneousTab';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
 import { useChangeOfStatusFormSubmit } from '@/hooks/useChangeOfStatusFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
+import { SectionPermissionProvider } from '@/contexts/SectionPermissionContext';
+import { resolveTemplate } from '@/lib/constants/assignmentTemplates';
+import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
+import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import { mergeWithDefaults } from '@/lib/utils/formUtils';
 import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
@@ -182,9 +186,11 @@ interface ChangeOfStatusFormProps {
   initialValues?: Partial<ChangeOfStatusApplicationFormData>;
   initialAiDiagnostics?: import('@/types/aiDiagnostics').DiagnosticItem[];
   hideHeader?: boolean;
+  initialAssignments?: TabAssignments;
+  templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
-export function ChangeOfStatusForm({
+export function ChangeOfStatusFormInner({
   onSubmit,
   recordId,
   foreignerId,
@@ -194,7 +200,8 @@ export function ChangeOfStatusForm({
 }: ChangeOfStatusFormProps) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const { toasts, dismiss } = useToast();
+  const { toasts, dismiss, show: showToast } = useToast();
+  // currentUser is handled by the wrapper now
   const { currentUser } = useAuth();
 
   const visibleTabs = TABS; // No roles restricted for now
@@ -265,7 +272,7 @@ export function ChangeOfStatusForm({
 
   // ── ジャンプ先学習機能 ──────────────────────────────────────────
   const jumpLearning = useDiagnosticJumpLearning({
-    onToast: (msg) => console.log(`[Toast] ${msg}`),
+    onToast: (msg) => showToast('success', msg),
   });
 
   const handleFieldClick = useCallback((fieldPath: string) => {
@@ -501,21 +508,57 @@ export function ChangeOfStatusForm({
 
         </form>
       </FormProvider>
-      </div>
-    <div className="form-side-panel">
-      <AiDiagnosticPanel
-        status={aiDiag.status}
-        diagnostics={aiDiag.diagnostics}
-        errorMessage={aiDiag.errorMessage}
-        onDiagnose={() => aiDiag.runCheck(methods.getValues())}
-        onFieldClick={handleFieldClick}
-        onStartLinking={jumpLearning.startLinking}
-        isLinkingMode={jumpLearning.isLinkingMode}
-        linkingField={jumpLearning.linkingField}
-        learnedFields={jumpLearning.learnedFields}
+      </div> {/* form-main-content */}
+
+      {/* ─── AIアシスタント Side Panel ─── */}
+      <AiAssistantSidePanel
+        diagnosticProps={{
+          status: aiDiag.status,
+          diagnostics: aiDiag.diagnostics,
+          errorMessage: aiDiag.errorMessage,
+          onDiagnose: () => aiDiag.runCheck(methods.getValues()),
+          onFieldClick: handleFieldClick,
+          onStartLinking: jumpLearning.startLinking,
+          isLinkingMode: jumpLearning.isLinkingMode,
+          linkingField: jumpLearning.linkingField,
+          learnedFields: jumpLearning.learnedFields
+        }}
       />
-    </div>
-    </div>
+      </div> {/* form-split-layout */}
     </>
+  );
+}
+
+export function ChangeOfStatusForm({
+  onSubmit,
+  recordId,
+  foreignerId,
+  initialValues,
+  initialAssignments,
+  initialAiDiagnostics,
+  hideHeader,
+  templatesRecord,
+}: ChangeOfStatusFormProps) {
+  const { currentUser } = useAuth();
+  const userRole = currentUser?.role ?? 'branch_staff';
+
+  const effectiveInitialAssignments =
+    initialAssignments ?? (recordId ? {} : resolveTemplate('change', undefined, templatesRecord));
+
+  return (
+    <SectionPermissionProvider
+      currentUserRole={userRole}
+      initialAssignments={effectiveInitialAssignments}
+      templatesRecord={templatesRecord}
+    >
+      <ChangeOfStatusFormInner
+        onSubmit={onSubmit}
+        recordId={recordId}
+        foreignerId={foreignerId}
+        initialValues={initialValues}
+        initialAiDiagnostics={initialAiDiagnostics}
+        hideHeader={hideHeader}
+      />
+    </SectionPermissionProvider>
   );
 }

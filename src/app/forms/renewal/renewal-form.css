@@ -405,17 +405,7 @@
   50%      { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08); }
 }
 
-/* --- Click-to-Fill: 代入成功時のフラッシュ --- */
-.form-input--fill-flash {
-  border-color: rgba(52, 211, 153, 0.7) !important;
-  background: rgba(52, 211, 153, 0.12) !important;
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2), 0 0 16px rgba(52, 211, 153, 0.15) !important;
-  animation: ctf-flash 0.6s ease-out forwards;
-}
-@keyframes ctf-flash {
-  0%   { background: rgba(52, 211, 153, 0.25); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.3); }
-  100% { background: rgba(52, 211, 153, 0.06); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
-}
+
 
 /* セレクト */
 .form-select {
@@ -2282,7 +2272,18 @@
 .ai-diag-retry-btn:hover { background: rgba(248,113,113,0.2); }
 
 /* --- 診断完了ボディ ---------------------------------------- */
-.ai-diag-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.ai-diag-body { 
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  overflow-y: auto; 
+  min-height: 0; /* ← これが重要！親の高さを超えないようにする */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99,102,241,0.3) transparent;
+}
+.ai-diag-body::-webkit-scrollbar       { width: 4px; }
+.ai-diag-body::-webkit-scrollbar-track { background: transparent; }
+.ai-diag-body::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 999px; }
 
 /* --- サマリーバッジ行 --------------------------------------- */
 .ai-diag-summary {
@@ -2312,16 +2313,9 @@
 
 /* --- カテゴリグループ --------------------------------------- */
 .ai-diag-groups {
-  flex: 1; overflow-y: auto;
   padding: 1rem 1.25rem;
   display: flex; flex-direction: column; gap: 1.25rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(99,102,241,0.3) transparent;
 }
-.ai-diag-groups::-webkit-scrollbar       { width: 4px; }
-.ai-diag-groups::-webkit-scrollbar-track { background: transparent; }
-.ai-diag-groups::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 999px; }
-
 .ai-diag-group         { display: flex; flex-direction: column; gap: 0.6rem; }
 .ai-diag-group-header  {
   display: flex; align-items: center; gap: 0.4rem;
@@ -2474,6 +2468,309 @@
 @keyframes spin-slow-kf {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+/* --- クイックルール追加フォーム ------------------------------ */
+
+/* ルール追加エリア（グループ一覧の下） */
+.ai-diag-quick-rule-area {
+  flex-shrink: 0;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* 「新しい診断ルールをAIに教える」ボタン */
+.ai-diag-add-rule-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a78bfa;
+  background: rgba(139,92,246,0.06);
+  border: 1px dashed rgba(139,92,246,0.3);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ai-diag-add-rule-btn:hover {
+  color: #c4b5fd;
+  background: rgba(139,92,246,0.12);
+  border-color: rgba(139,92,246,0.5);
+}
+
+/* フォームコンテナ */
+.ai-diag-quick-rule {
+  position: relative;
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 0.5rem;
+  /* overflow: hidden を削除してポップオーバーが切れないようにする */
+}
+
+/* フォームヘッダー */
+.ai-diag-quick-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.875rem;
+  background: rgba(139,92,246,0.1);
+  border-bottom: 1px solid rgba(139,92,246,0.2);
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c4b5fd;
+}
+.ai-diag-quick-rule-close {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0.3rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ai-diag-quick-rule-close:hover {
+  color: #94a3b8;
+  background: rgba(255,255,255,0.06);
+}
+
+/* フォームボディ */
+.ai-diag-quick-rule-body {
+  padding: 0.75rem 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* フォームフィールド */
+.ai-diag-quick-rule-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.ai-diag-quick-rule-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ai-diag-quick-rule-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.03em;
+}
+
+/* ヒントポップオーバー */
+.ai-diag-quick-rule-hint-container {
+  display: inline-flex;
+  align-items: center;
+}
+.ai-diag-quick-rule-hint-icon {
+  color: #8b5cf6;
+  cursor: help;
+  transition: color 0.2s;
+}
+.ai-diag-quick-rule-hint-icon:hover {
+  color: #a78bfa;
+}
+.ai-diag-quick-rule-hint-popover {
+  position: absolute;
+  bottom: calc(100% - 2rem);
+  left: 0;
+  width: 100%;
+  padding: 1rem;
+  background: #1e293b;
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(5px);
+  transition: all 0.2s ease;
+  z-index: 100;
+  pointer-events: none;
+}
+.ai-diag-quick-rule-hint-container:hover .ai-diag-quick-rule-hint-popover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.ai-diag-quick-rule-hint-title {
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.5rem;
+  font-size: 0.78rem;
+}
+.ai-diag-quick-rule-hint-item {
+  margin-bottom: 0.5rem;
+}
+.ai-diag-quick-rule-hint-item:last-child {
+  margin-bottom: 0;
+}
+.ai-diag-quick-rule-hint-item strong {
+  display: block;
+  color: #a78bfa;
+  margin-bottom: 0.15rem;
+  font-size: 0.7rem;
+}
+.ai-diag-quick-rule-hint-item p {
+  color: #cbd5e1;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* テキスト入力 */
+.ai-diag-quick-rule-input {
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.375rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+.ai-diag-quick-rule-input:focus {
+  border-color: rgba(139,92,246,0.5);
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.1);
+}
+.ai-diag-quick-rule-input::placeholder {
+  color: #475569;
+  font-weight: 400;
+}
+.ai-diag-quick-rule-input:disabled {
+  opacity: 0.5;
+}
+
+/* テキストエリア */
+.ai-diag-quick-rule-textarea {
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #e2e8f0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.375rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  resize: vertical;
+  min-height: 4rem;
+  line-height: 1.6;
+}
+.ai-diag-quick-rule-textarea:focus {
+  border-color: rgba(139,92,246,0.5);
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.1);
+}
+.ai-diag-quick-rule-textarea::placeholder {
+  color: #475569;
+  font-family: inherit;
+}
+.ai-diag-quick-rule-textarea:disabled {
+  opacity: 0.5;
+}
+
+/* エラーメッセージ */
+.ai-diag-quick-rule-error {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.25);
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  color: #fca5a5;
+}
+
+/* アクションボタン行 */
+.ai-diag-quick-rule-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+/* キャンセルボタン */
+.ai-diag-quick-rule-cancel {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.ai-diag-quick-rule-cancel:hover {
+  color: #94a3b8;
+}
+.ai-diag-quick-rule-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 送信ボタン */
+.ai-diag-quick-rule-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(139,92,246,0.7);
+  border: 1px solid rgba(139,92,246,0.5);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-diag-quick-rule-submit:hover:not(:disabled) {
+  background: rgba(139,92,246,0.85);
+  border-color: rgba(139,92,246,0.7);
+}
+.ai-diag-quick-rule-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 成功トースト */
+.ai-diag-quick-rule-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(52,211,153,0.3);
+  border-radius: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #34d399;
+  animation: toast-fade-in 0.3s ease;
+}
+@keyframes toast-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* context-headerのflex対応 */

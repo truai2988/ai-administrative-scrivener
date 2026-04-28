@@ -12,6 +12,7 @@ import { FormSelect } from '../ui/FormSelect';
 import { FormTextarea } from '../ui/FormTextarea';
 import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SimultaneousApplicationSectionProps {
   isEditable?: boolean;
@@ -53,8 +54,12 @@ export function SimultaneousApplicationSection({
   const attachments = useWatch({ control, name: 'attachments.simultaneous' }) || initialAttachments || [];
   const hasAttachments = attachments.length > 0;
   
-  // 編集モードかつ（書類が添付されている OR 手動入力がオン）の場合のみフィールドを有効化
-  const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled);
+  // 行政書士・本部は手動入力を常に許可する
+  const { currentUser } = useAuth();
+  const hasFullAccess = currentUser?.role === 'scrivener' || currentUser?.role === 'hq_admin';
+
+  // 編集モードかつ（書類が添付されている OR 手動入力がオン OR フルアクセス権限）の場合のみフィールドを有効化
+  const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled || hasFullAccess);
 
   return (
     <div className={`section-container${!isEditable ? ' section-container--readonly' : ''}`}>
@@ -89,7 +94,7 @@ export function SimultaneousApplicationSection({
           ]}
         />
         
-        {isEditable && !hasAttachments && (
+        {isEditable && !hasAttachments && !hasFullAccess && (
           <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
             <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fbbf24', fontSize: '0.85rem' }}>
               <input 

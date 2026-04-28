@@ -9,7 +9,7 @@ import {
   AlertCircle, Save, Loader2, Download,
   Mail, CheckCircle, XCircle
 } from 'lucide-react';
-import { AiDiagnosticPanel } from './AiDiagnosticPanel';
+import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import {
   renewalApplicationSchema,
@@ -212,7 +212,7 @@ function RenewalApplicationFormInner({
 }: Omit<RenewalApplicationFormProps, 'initialAssignments' | 'templatesRecord'>) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const { toasts, dismiss } = useToast();
+  const { toasts, dismiss, show: showToast } = useToast();
   const { isEditable, assignments } = useSectionPermission();
 
   // AI診断フック（savedRecordIdが確定してから呼び出す）
@@ -289,9 +289,8 @@ function RenewalApplicationFormInner({
   const hasEmployerErrors     = !!errors.employerInfo;
   const hasSimultaneousErrors = !!errors.simultaneousApplication;
 
-  // ── ジャンプ先学習機能 ──────────────────────────────────────────
   const jumpLearning = useDiagnosticJumpLearning({
-    onToast: (msg) => console.log(`[Toast] ${msg}`),
+    onToast: (msg) => showToast('success', msg),
   });
 
   const handleFieldClick = useCallback((fieldPath: string) => {
@@ -588,20 +587,20 @@ function RenewalApplicationFormInner({
       </FormProvider>
       </div>
 
-      {/* ─── AI診断結果 Drawer ─── */}
-      <div className="form-side-panel">
-        <AiDiagnosticPanel
-          status={aiDiag.status}
-          diagnostics={aiDiag.diagnostics}
-          errorMessage={aiDiag.errorMessage}
-          onDiagnose={() => aiDiag.runCheck(methods.getValues())}
-          onFieldClick={handleFieldClick}
-          onStartLinking={jumpLearning.startLinking}
-          isLinkingMode={jumpLearning.isLinkingMode}
-          linkingField={jumpLearning.linkingField}
-          learnedFields={jumpLearning.learnedFields}
-        />
-      </div>
+      {/* ─── AIアシスタント Side Panel ─── */}
+      <AiAssistantSidePanel
+        diagnosticProps={{
+          status: aiDiag.status,
+          diagnostics: aiDiag.diagnostics,
+          errorMessage: aiDiag.errorMessage,
+          onDiagnose: () => aiDiag.runCheck(methods.getValues()),
+          onFieldClick: handleFieldClick,
+          onStartLinking: jumpLearning.startLinking,
+          isLinkingMode: jumpLearning.isLinkingMode,
+          linkingField: jumpLearning.linkingField,
+          learnedFields: jumpLearning.learnedFields
+        }}
+      />
       </div>
     </>
   );

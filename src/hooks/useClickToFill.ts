@@ -56,8 +56,6 @@ export interface UseClickToFillReturn<T extends FieldValues> {
   extractedData: ExtractedItem[];
   /** マッピング履歴 */
   mappingLog: MappingEntry[];
-  /** フラッシュ中のフィールドパス */
-  flashField: string | null;
   /** 抽出データを初期化・更新する */
   initData: (items: ExtractedItem[]) => void;
   /** アイテムを保持する（左ペインのカードクリック） */
@@ -93,7 +91,6 @@ export function useClickToFill<T extends FieldValues>(
   const [heldItemId, setHeldItemId] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<ExtractedItem[]>([]);
   const [mappingLog, setMappingLog] = useState<MappingEntry[]>([]);
-  const [flashField, setFlashField] = useState<string | null>(null);
 
   // 学習辞書: breadcrumbKey → fieldPath
   const [learnedMappings, setLearnedMappings] = useState<MappingDictionary>({});
@@ -215,10 +212,6 @@ export function useClickToFill<T extends FieldValues>(
         { from: heldData, to: fieldPath, value: valueToFill },
       ]);
 
-      // フラッシュアニメーション
-      setFlashField(fieldPath);
-      setTimeout(() => setFlashField(null), 600);
-
       // 保持状態を解除
       setHeldData(null);
       setHeldItemId(null);
@@ -286,7 +279,6 @@ export function useClickToFill<T extends FieldValues>(
     setMappingLog([]);
     setHeldData(null);
     setHeldItemId(null);
-    setFlashField(null);
   }, []);
 
   return {
@@ -294,7 +286,6 @@ export function useClickToFill<T extends FieldValues>(
     heldItemId,
     extractedData,
     mappingLog,
-    flashField,
     initData,
     holdItem,
     releaseItem,

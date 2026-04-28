@@ -4,7 +4,7 @@
  * TabAssignmentPanel
  * 各タブに担当者を割り当てるUI。
  *
- * - 行政書士のみが操作できる（それ以外は非表示）
+ * - 行政書士および東京本部のみが操作できる（それ以外は非表示）
  * - 新規申請書作成時はテンプレートから自動セットされた状態で開く
  * - 手動変更した場合は「手動変更」バッジに切り替わる
  * - 「テンプレートに戻す」ボタンで自動セット状態に戻せる
@@ -26,7 +26,7 @@ const TAB_LABELS: Record<TabId, string> = {
 const TAB_IDS: TabId[] = ['foreigner', 'employer', 'simultaneous'];
 
 export function TabAssignmentPanel() {
-  const { isScrivener, assignments, assignUser, assignAllUsers, templatesRecord } = useSectionPermission();
+  const { canAssignUsers, assignments, assignUser, assignAllUsers, templatesRecord } = useSectionPermission();
   const [isOpen, setIsOpen] = useState(false);
 
   // 現在のassignmentsがテンプレートのデフォルト値と一致しているか
@@ -47,8 +47,8 @@ export function TabAssignmentPanel() {
     assignAllUsers(newAssignments);
   }, [assignAllUsers, templatesRecord]);
 
-  // 行政書士以外には表示しない
-  if (!isScrivener) return null;
+  // 行政書士・東京本部以外には表示しない
+  if (!canAssignUsers) return null;
 
   return (
     <div className="tab-assignment-panel">
@@ -67,7 +67,7 @@ export function TabAssignmentPanel() {
         <div className="tab-assignment-body">
           <div className="tab-assignment-header-row">
             <p className="tab-assignment-desc">
-              各タブの担当者を指定します。担当者はそのタブのみ編集できます（行政書士は常に全タブ編集可）。
+              各タブの担当者を指定します。担当者はそのタブのみ編集できます（全タブを常に編集できるのは行政書士のみです）。
             </p>
             {/* テンプレートに戻すボタン（手動変更された場合のみ表示） */}
             {!isDefault && (

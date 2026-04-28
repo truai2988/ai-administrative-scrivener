@@ -19,7 +19,6 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
   ({ error, className = '', rows = 4, onMouseDown, ...props }, ref) => {
     const ctf = useClickToFillContext();
     const isInFillMode = ctf?.isInFillMode ?? false;
-    const isFlashing = ctf?.flashField === props.name;
 
     const handleMouseDown = (e: React.MouseEvent<HTMLTextAreaElement>) => {
       if (isInFillMode && props.name) {
@@ -33,7 +32,7 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       <textarea
         ref={ref}
         rows={rows}
-        className={`form-input form-textarea ${error ? 'form-input--error' : ''} ${isInFillMode ? 'form-input--fill-target' : ''} ${isFlashing ? 'form-input--fill-flash' : ''} ${className}`}
+        className={`form-input form-textarea ${error ? 'form-input--error' : ''} ${isInFillMode ? 'form-input--fill-target' : ''} ${className}`}
         onMouseDown={handleMouseDown}
         suppressHydrationWarning
         {...props}

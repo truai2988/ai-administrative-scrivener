@@ -26,7 +26,6 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
   ({ options, placeholder = '選択してください', error, className = '', value, onMouseDown, ...props }, ref) => {
     const ctf = useClickToFillContext();
     const isInFillMode = ctf?.isInFillMode ?? false;
-    const isFlashing = ctf?.flashField === props.name;
 
     const handleMouseDown = (e: React.MouseEvent<HTMLSelectElement>) => {
       if (isInFillMode && props.name) {
@@ -39,7 +38,7 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
     return (
       <select
         ref={ref}
-        className={`form-input form-select ${error ? 'form-input--error' : ''} ${isInFillMode ? 'form-input--fill-target' : ''} ${isFlashing ? 'form-input--fill-flash' : ''} ${className}`}
+        className={`form-input form-select ${error ? 'form-input--error' : ''} ${isInFillMode ? 'form-input--fill-target' : ''} ${className}`}
         value={value === null ? '' : value}
         onMouseDown={handleMouseDown}
         suppressHydrationWarning

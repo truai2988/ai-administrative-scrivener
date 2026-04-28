@@ -118,14 +118,8 @@ export function useDiagnosticJumpLearning(
 
       // トースト通知
       if (onToastRef.current) {
-        onToastRef.current(`🎯 ジャンプ先を学習しました: ${fieldPath}`);
+        onToastRef.current('ジャンプ先を学習しました');
       }
-
-      // ハイライトフィードバック
-      const orig = fieldEl.style.outline;
-      fieldEl.style.transition = 'outline 0.3s ease';
-      fieldEl.style.outline = '3px solid #38bdf8';
-      setTimeout(() => { fieldEl.style.outline = orig; }, 1500);
     };
 
     // capture: true でフォーム内の他のハンドラーより先に処理する

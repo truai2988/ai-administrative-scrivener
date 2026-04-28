@@ -5,8 +5,8 @@ import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
-import { AiDiagnosticPanel } from '../AiDiagnosticPanel';
-import { AiExtractionSidebar, ClickToFillProvider } from '@/components/AiExtractionSidebar';
+import { ClickToFillProvider } from '@/components/AiExtractionSidebar';
+import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
 import { TabAssignmentPanel } from '../TabAssignmentPanel';
 
@@ -24,6 +24,10 @@ import { EmployerInfoSubForm } from './sections/EmployerInfoSubForm';
 import { RepresentativeSubForm } from './sections/RepresentativeSubForm';
 import { ApplicationMetadataFields } from './sections/ApplicationMetadataFields';
 import { useAuth } from '@/contexts/AuthContext';
+import { SectionPermissionProvider } from '@/contexts/SectionPermissionContext';
+import { resolveTemplate } from '@/lib/constants/assignmentTemplates';
+import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
+import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 
 type TabId = 'identity' | 'applicant' | 'employer' | 'representative' | 'metadata';
 
@@ -137,16 +141,18 @@ interface CoeApplicationFormProps {
   recordId?: string;
   foreignerId?: string;
   organizationId?: string;
+  initialAssignments?: TabAssignments;
+  templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
-export function CoeApplicationForm({
+export function CoeApplicationFormInner({
   initialValues,
   initialAiDiagnostics,
   recordId,
   foreignerId,
   organizationId,
 }: CoeApplicationFormProps) {
-  const { toasts, dismiss } = useToast();
+  const { toasts, dismiss, show: showToast } = useToast();
 
   const methods = useForm<CoeApplicationFormData>({
     resolver: zodResolver(coeApplicationSchema),
@@ -156,6 +162,7 @@ export function CoeApplicationForm({
 
   const { formState: { errors, isDirty }, control, getValues } = methods;
 
+  // currentUser is handled by the wrapper now
   const { currentUser } = useAuth();
 
   const {
@@ -175,7 +182,6 @@ export function CoeApplicationForm({
   });
 
   const [activeTab, setActiveTab] = useState<TabId>('identity');
-  const [isExtractionOpen, setIsExtractionOpen] = useState(false);
   const aiDiag = useAiDiagnostics({ 
     recordId: savedRecordId || recordId, 
     applicationType: 'coe',
@@ -199,7 +205,7 @@ export function CoeApplicationForm({
 
   // ── ジャンプ先学習機能 ──────────────────────────────────────────
   const jumpLearning = useDiagnosticJumpLearning({
-    onToast: (msg) => console.log(`[Toast] ${msg}`),
+    onToast: (msg) => showToast('success', msg),
   });
 
   const handleFieldClick = useCallback((fieldPath: string) => {
@@ -400,26 +406,55 @@ export function CoeApplicationForm({
         </div>
       </form>
     </div>
-    <div className="form-side-panel">
-      <AiExtractionSidebar
-        isOpen={isExtractionOpen}
-        onToggle={() => setIsExtractionOpen((v) => !v)}
-      />
-      <AiDiagnosticPanel
-        status={aiDiag.status}
-        diagnostics={aiDiag.diagnostics}
-        errorMessage={aiDiag.errorMessage}
-        onDiagnose={() => aiDiag.runCheck(methods.getValues())}
-        onFieldClick={handleFieldClick}
-        onStartLinking={jumpLearning.startLinking}
-        isLinkingMode={jumpLearning.isLinkingMode}
-        linkingField={jumpLearning.linkingField}
-        learnedFields={jumpLearning.learnedFields}
-      />
-    </div>
+    <AiAssistantSidePanel
+      extractionProps={{}}
+      diagnosticProps={{
+        status: aiDiag.status,
+        diagnostics: aiDiag.diagnostics,
+        errorMessage: aiDiag.errorMessage,
+        onDiagnose: () => aiDiag.runCheck(methods.getValues()),
+        onFieldClick: handleFieldClick,
+        onStartLinking: jumpLearning.startLinking,
+        isLinkingMode: jumpLearning.isLinkingMode,
+        linkingField: jumpLearning.linkingField,
+        learnedFields: jumpLearning.learnedFields
+      }}
+    />
     </div>
     </ClickToFillProvider>
     </FormProvider>
     </>
+  );
+}
+
+export function CoeApplicationForm({
+  initialValues,
+  initialAssignments,
+  initialAiDiagnostics,
+  recordId,
+  foreignerId,
+  organizationId,
+  templatesRecord,
+}: CoeApplicationFormProps) {
+  const { currentUser } = useAuth();
+  const userRole = currentUser?.role ?? 'branch_staff';
+
+  const effectiveInitialAssignments =
+    initialAssignments ?? (recordId ? {} : resolveTemplate('certification', undefined, templatesRecord));
+
+  return (
+    <SectionPermissionProvider
+      currentUserRole={userRole}
+      initialAssignments={effectiveInitialAssignments}
+      templatesRecord={templatesRecord}
+    >
+      <CoeApplicationFormInner
+        initialValues={initialValues}
+        initialAiDiagnostics={initialAiDiagnostics}
+        recordId={recordId}
+        foreignerId={foreignerId}
+        organizationId={organizationId}
+      />
+    </SectionPermissionProvider>
   );
 }

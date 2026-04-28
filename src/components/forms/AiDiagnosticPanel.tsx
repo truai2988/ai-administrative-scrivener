@@ -12,7 +12,7 @@
  *   クリックして学習データを保存する。
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -25,9 +25,13 @@ import {
   ClipboardCheck,
   MousePointerClick,
   Crosshair,
+  Send,
+  BookOpen,
+  HelpCircle,
 } from 'lucide-react';
 import type { DiagnosticItem, DiagnosticCategory, DiagnosticLevel, AiDiagnosticsStatus } from '@/types/aiDiagnostics';
 import { translateFieldPath } from '@/lib/constants/fieldTranslations';
+import { getIdToken } from '@/lib/firebase/auth';
 
 // ─── レベル設定 ────────────────────────────────────────────────────────────────
 const LEVEL_CONFIG: Record<
@@ -68,7 +72,7 @@ const CATEGORY_CONFIG: Record<
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
-interface AiDiagnosticPanelProps {
+export interface AiDiagnosticPanelProps {
   status: AiDiagnosticsStatus;
   diagnostics: DiagnosticItem[];
   errorMessage?: string;
@@ -83,6 +87,140 @@ interface AiDiagnosticPanelProps {
   linkingField?: string | null;
   /** 学習済みフィールドのセット（学習済みかどうかの表示用） */
   learnedFields?: Set<string>;
+}
+
+// ─── クイックルール追加フォーム ───────────────────────────────────────────────
+function QuickRuleAddForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: (msg: string) => void }) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showHints, setShowHints] = useState(false);
+
+  const handleSubmit = useCallback(async () => {
+    if (!title.trim() || !content.trim()) {
+      setError('ルール名と内容は必須です');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const token = await getIdToken();
+      if (!token) throw new Error('ログインセッションが切れています');
+      const res = await fetch('/api/ai-rules', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          content: content.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      onSuccess('新しいルールを学習しました。次回の診断から適用されます。');
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+    } finally {
+      setSaving(false);
+    }
+  }, [title, content, onClose, onSuccess]);
+
+  return (
+    <div className="ai-diag-quick-rule">
+      <div className="ai-diag-quick-rule-header">
+        <BookOpen size={14} />
+        <span>AIに新しいルールを教える</span>
+      </div>
+
+      <div className="ai-diag-quick-rule-body">
+        <div className="ai-diag-quick-rule-field">
+          <label className="ai-diag-quick-rule-label">ルール名</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="例：パスポート番号の形式チェック"
+            className="ai-diag-quick-rule-input"
+            disabled={saving}
+          />
+        </div>
+        <div className="ai-diag-quick-rule-field">
+          <div className="ai-diag-quick-rule-label-row" style={{ justifyContent: 'space-between' }}>
+            <label className="ai-diag-quick-rule-label">ルール内容（AIへの指示文）</label>
+            <button
+              type="button"
+              onClick={() => setShowHints(!showHints)}
+              className="flex items-center gap-1 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              <HelpCircle size={14} />
+              {showHints ? '閉じる' : '記述例を見る'}
+            </button>
+          </div>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={4}
+            placeholder={"例：月給が180,000円を下回る場合は warning を出すこと。\nメッセージ：「2025年10月の最低賃金改定により…」"}
+            className="ai-diag-quick-rule-textarea"
+            disabled={saving}
+          />
+          
+          {showHints && (
+            <div className="ai-diag-quick-rule-hints-inline mt-2 p-3 bg-slate-800/80 border border-indigo-500/30 rounded-md text-slate-300 text-xs leading-relaxed space-y-3">
+              <p className="font-bold text-indigo-300 border-b border-indigo-500/30 pb-1 mb-2">AI指示文の記述例</p>
+              <div>
+                <strong className="block text-indigo-400 mb-1">例1：項目間の整合性チェック</strong>
+                <p>「『現在の在留資格』が「技術・人文知識・国際業務」の場合、『最終学歴』が「大学卒業」以上であるか、もしくは『職歴』に10年以上の記載があるかを必ず確認してください。どちらも満たしていない場合はエラーとして指摘してください。」</p>
+              </div>
+              <div>
+                <strong className="block text-indigo-400 mb-1">例2：行政特有の厳格なフォーマット</strong>
+                <p>「『氏名（英字）』の欄に、カンマ（,）が含まれている場合はエラーにしてください。パスポートのMRZ（機械読取領域）と同じく、スペース区切りのみ許容されます。」</p>
+              </div>
+              <div>
+                <strong className="block text-indigo-400 mb-1">例3：実務上の「よくあるポカミス」</strong>
+                <p>「『日本における連絡先（住所）』と『所属機関等の住所』が完全に一致している場合、リモートワークや個人事業主でない限り不自然です。『所属機関の住所を誤って個人の連絡先に入力していないか確認してください』という警告を出してください。」</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="ai-diag-quick-rule-error">
+            <AlertCircle size={12} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="ai-diag-quick-rule-actions">
+          <button
+            type="button"
+            className="ai-diag-quick-rule-cancel"
+            onClick={onClose}
+            disabled={saving}
+          >
+            キャンセル
+          </button>
+          <button
+            type="button"
+            className="ai-diag-quick-rule-submit"
+            onClick={handleSubmit}
+            disabled={saving || !title.trim() || !content.trim()}
+          >
+            {saving ? (
+              <Loader2 size={13} className="spin" />
+            ) : (
+              <Send size={13} />
+            )}
+            {saving ? '保存中...' : 'ルールを保存'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── 診断アイテムカード ───────────────────────────────────────────────────────
@@ -231,6 +369,16 @@ export function AiDiagnosticPanel({
 
   const allClear = status === 'success' && diagnostics.length === 0;
 
+  // ── タブ・クイックルール追加の状態 ──────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<'results' | 'rules'>('results');
+  const [quickRuleToast, setQuickRuleToast] = useState<string | null>(null);
+
+  const handleQuickRuleSuccess = useCallback((msg: string) => {
+    setQuickRuleToast(msg);
+    setTimeout(() => setQuickRuleToast(null), 4000);
+    setActiveTab('results'); // switch back after saving
+  }, []);
+
   return (
     <>
       {/* ─── Drawerパネル ─── */}
@@ -269,6 +417,45 @@ export function AiDiagnosticPanel({
           )}
         </div>
 
+        {/* ─── タブナビゲーション ─── */}
+        <div className="flex border-b border-indigo-500/20 bg-slate-900/50 shrink-0">
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`flex-1 py-2.5 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 ${
+              activeTab === 'results' ? 'text-indigo-300 border-b-2 border-indigo-400 bg-indigo-500/10' : 'text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <Sparkles size={14} />
+            診断結果
+          </button>
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`flex-1 py-2.5 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 ${
+              activeTab === 'rules' ? 'text-indigo-300 border-b-2 border-indigo-400 bg-indigo-500/10' : 'text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <BookOpen size={14} />
+            AIルール学習
+          </button>
+        </div>
+
+        {activeTab === 'rules' ? (
+          <div className="ai-diag-body">
+            <div className="p-4 pt-6 ai-diag-quick-rule-area border-none">
+              {quickRuleToast && (
+                <div className="ai-diag-quick-rule-toast mb-4">
+                  <CheckCircle2 size={14} />
+                  <span>{quickRuleToast}</span>
+                </div>
+              )}
+              <QuickRuleAddForm
+                onClose={() => setActiveTab('results')}
+                onSuccess={handleQuickRuleSuccess}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
         {/* ─── リンクモード中バナー ─── */}
         {isLinkingMode && (
           <div className="ai-diag-linking-overlay">
@@ -360,6 +547,8 @@ export function AiDiagnosticPanel({
               </p>
             </div>
           </div>
+        )}
+        </>
         )}
       </aside>
     </>
