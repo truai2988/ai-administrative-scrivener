@@ -373,7 +373,6 @@ function SandboxInner() {
               {currentTab.fields.map((field) => {
                 const fieldValue = formValues?.[field.name];
                 const isFilled = fieldValue && fieldValue.length > 0;
-                const isFlashing = ctf.flashField === field.name;
 
                 return (
                   <div
@@ -382,27 +381,13 @@ function SandboxInner() {
                     className={`
                       relative rounded-xl border p-4 transition-all duration-200
                       ${
-                        isFlashing
-                          ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-300/50'
-                          : ctf.isInFillMode
-                            ? 'border-indigo-300 bg-white hover:border-indigo-400 hover:ring-2 hover:ring-indigo-200/50 hover:shadow-lg cursor-crosshair'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        ctf.isInFillMode
+                          ? 'border-indigo-300 bg-white hover:border-indigo-400 hover:ring-2 hover:ring-indigo-200/50 hover:shadow-lg cursor-crosshair'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
                       }
                     `}
                   >
-                    <AnimatePresence>
-                      {isFlashing && (
-                        <motion.div
-                          initial={{ opacity: 0.6 }}
-                          animate={{ opacity: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.6 }}
-                          className="absolute inset-0 rounded-xl bg-emerald-300/30 pointer-events-none"
-                        />
-                      )}
-                    </AnimatePresence>
-
-                    {ctf.isInFillMode && !isFlashing && (
+                    {ctf.isInFillMode && (
                       <motion.div
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ repeat: Infinity, duration: 1.5 }}
@@ -422,7 +407,7 @@ function SandboxInner() {
                         ${isFilled ? 'text-slate-800' : 'text-slate-500'}
                       `}
                     />
-                    {isFilled && !isFlashing && (
+                    {isFilled && (
                       <div className="absolute left-3 top-3">
                         <CheckCircle2 size={14} className="text-emerald-500" />
                       </div>
