@@ -24,6 +24,7 @@ import { useChangeOfStatusFormSubmit } from '@/hooks/useChangeOfStatusFormSubmit
 import { useAuth } from '@/contexts/AuthContext';
 import { mergeWithDefaults } from '@/lib/utils/formUtils';
 import { useForeignerApproval } from '@/hooks/useForeignerApproval';
+import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
 
 import { downloadChangeOfStatusCsv1 } from '@/utils/changeOfStatusCsvGenerator1';
 import { downloadChangeOfStatusCsvU } from '@/utils/changeOfStatusCsvGeneratorU';
@@ -262,21 +263,30 @@ export function ChangeOfStatusForm({
   const hasEmployerErrors     = !!errors.employerInfo;
   const hasSimultaneousErrors = !!errors.simultaneousApplication;
 
-  const handleFieldClick = useCallback((fieldPath: string) => {
-    // AIのパスからルートキーを抽出し、該当タブに切り替える
-    const rootKey = fieldPath.split('.')[0];
+  // ── ジャンプ先学習機能 ──────────────────────────────────────────
+  const jumpLearning = useDiagnosticJumpLearning({
+    onToast: (msg) => console.log(`[Toast] ${msg}`),
+  });
 
-    // ハルシネーション対策: ルートキーの正規化マップ
+  const handleFieldClick = useCallback((fieldPath: string) => {
+    // ── 学習辞書の優先参照 ──────────────────────────────────────
+    const learnedPath = jumpLearning.resolveFieldPath(fieldPath);
+    const effectivePath = learnedPath || fieldPath;
+
+    // AIのパスからルートキーを抽出し、該当タブに切り替える
+    const rootKey = effectivePath.split('.')[0];
+
+    // ハルシネーション対策: ルートキーの正規化マップ（学習済みの場合はスキップ）
     const keyMap: Record<string, string> = {
       employmentInfo: 'employerInfo',
       companyInfo: 'employerInfo',
     };
-    const normalizedRoot = keyMap[rootKey] || rootKey;
+    const normalizedRoot = learnedPath ? rootKey : (keyMap[rootKey] || rootKey);
 
     // 正規化されたフルパスを構築
-    const normalizedPath = normalizedRoot !== rootKey
-      ? fieldPath.replace(rootKey, normalizedRoot)
-      : fieldPath;
+    const normalizedPath = learnedPath
+      ? learnedPath
+      : (normalizedRoot !== rootKey ? fieldPath.replace(rootKey, normalizedRoot) : fieldPath);
 
     // ルートキー → タブID のマッピング
     const tabMap: Record<string, TabId> = {
@@ -290,6 +300,7 @@ export function ChangeOfStatusForm({
     // ベストエフォートでフィールドにスクロール＆ハイライト
     setTimeout(() => {
       const el = document.querySelector(`[name="${normalizedPath}"]`) as HTMLElement
+        || document.querySelector(`[name="${effectivePath}"]`) as HTMLElement
         || document.querySelector(`[name="${fieldPath}"]`) as HTMLElement;
 
       if (el) {
@@ -301,7 +312,7 @@ export function ChangeOfStatusForm({
         setTimeout(() => { el.style.outline = orig; }, 2000);
       }
     }, 150);
-  }, [setActiveTab]);
+  }, [setActiveTab, jumpLearning]);
 
   return (
     <>
@@ -498,6 +509,10 @@ export function ChangeOfStatusForm({
         errorMessage={aiDiag.errorMessage}
         onDiagnose={() => aiDiag.runCheck(methods.getValues())}
         onFieldClick={handleFieldClick}
+        onStartLinking={jumpLearning.startLinking}
+        isLinkingMode={jumpLearning.isLinkingMode}
+        linkingField={jumpLearning.linkingField}
+        learnedFields={jumpLearning.learnedFields}
       />
     </div>
     </div>

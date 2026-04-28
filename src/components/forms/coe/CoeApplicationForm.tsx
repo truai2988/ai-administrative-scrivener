@@ -7,6 +7,7 @@ import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Downl
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { AiDiagnosticPanel } from '../AiDiagnosticPanel';
 import { AiExtractionSidebar, ClickToFillProvider } from '@/components/AiExtractionSidebar';
+import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
 import { TabAssignmentPanel } from '../TabAssignmentPanel';
 
 import {
@@ -196,9 +197,18 @@ export function CoeApplicationForm({
   const nameKanji = useWatch({ control: methods.control, name: 'identityInfo.nameKanji' });
   const applicantName = nameKanji || nameEn || '名称未入力';
 
+  // ── ジャンプ先学習機能 ──────────────────────────────────────────
+  const jumpLearning = useDiagnosticJumpLearning({
+    onToast: (msg) => console.log(`[Toast] ${msg}`),
+  });
+
   const handleFieldClick = useCallback((fieldPath: string) => {
+    // ── 学習辞書の優先参照 ──────────────────────────────────────
+    const learnedPath = jumpLearning.resolveFieldPath(fieldPath);
+    const effectivePath = learnedPath || fieldPath;
+
     // AIのパスからルートキーを抽出し、該当タブに切り替える
-    const rootKey = fieldPath.split('.')[0];
+    const rootKey = effectivePath.split('.')[0];
 
     // ハルシネーション対策: ルートキーの正規化マップ
     const keyMap: Record<string, string> = {
@@ -206,10 +216,9 @@ export function CoeApplicationForm({
       employmentInfo: 'employerInfo',
       companyInfo: 'employerInfo',
     };
-    const normalizedRoot = keyMap[rootKey] || rootKey;
+    const normalizedRoot = learnedPath ? rootKey : (keyMap[rootKey] || rootKey);
 
-    // ハルシネーション対策: COE固有のフルパス正規化マップ
-    // Renewal/変更申請では jobCategories だが、COEでは specifiedSkilledSubCategory に相当
+    // ハルシネーション対策: COE固有のフルパス正規化マップ（学習済みの場合はスキップ）
     const fullPathMap: Record<string, string> = {
       'employerInfo.jobCategories': 'employerInfo.specifiedSkilledSubCategory',
       'employerInfo.jobCategories.0': 'employerInfo.specifiedSkilledSubCategory',
@@ -217,9 +226,11 @@ export function CoeApplicationForm({
       'employerInfo.specifiedSkilledCategory': 'employerInfo.specifiedSkilledSubCategory',
     };
 
-    // フルパス正規化を優先適用
-    const resolvedPath = fullPathMap[fieldPath]
-      ?? (normalizedRoot !== rootKey ? fieldPath.replace(rootKey, normalizedRoot) : fieldPath);
+    // 学習済みパスの場合はそのまま使用、未学習の場合は正規化を適用
+    const resolvedPath = learnedPath
+      ? learnedPath
+      : (fullPathMap[fieldPath]
+        ?? (normalizedRoot !== rootKey ? fieldPath.replace(rootKey, normalizedRoot) : fieldPath));
 
     // ルートキー → タブID のマッピング
     const tabMap: Record<string, TabId> = {
@@ -238,6 +249,7 @@ export function CoeApplicationForm({
     // ベストエフォートでフィールドにスクロール＆ハイライト
     setTimeout(() => {
       const el = document.querySelector(`[name="${resolvedPath}"]`) as HTMLElement
+        || document.querySelector(`[name="${effectivePath}"]`) as HTMLElement
         || document.querySelector(`[name="${fieldPath}"]`) as HTMLElement;
 
       if (el) {
@@ -249,7 +261,7 @@ export function CoeApplicationForm({
         setTimeout(() => { el.style.outline = orig; }, 2000);
       }
     }, 150);
-  }, [setActiveTab]);
+  }, [setActiveTab, jumpLearning]);
 
 
   return (
@@ -399,6 +411,10 @@ export function CoeApplicationForm({
         errorMessage={aiDiag.errorMessage}
         onDiagnose={() => aiDiag.runCheck(methods.getValues())}
         onFieldClick={handleFieldClick}
+        onStartLinking={jumpLearning.startLinking}
+        isLinkingMode={jumpLearning.isLinkingMode}
+        linkingField={jumpLearning.linkingField}
+        learnedFields={jumpLearning.learnedFields}
       />
     </div>
     </div>

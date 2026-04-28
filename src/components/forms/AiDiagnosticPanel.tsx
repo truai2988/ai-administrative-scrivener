@@ -5,6 +5,11 @@
  *
  * AI診断結果を表示するスライドイン Drawer コンポーネント。
  * 画面右側からスライドインし、critical / warning / suggestion を色分けして表示します。
+ *
+ * ■ ジャンプ先学習機能（2026-04 追加）:
+ *   各エラーカードに「🎯 ジャンプ先を修正」ボタンを配置。
+ *   ボタン押下でリンク修正モードに入り、ユーザーが正しいフォームフィールドを
+ *   クリックして学習データを保存する。
  */
 
 import React, { useMemo } from 'react';
@@ -19,6 +24,7 @@ import {
   Scale,
   ClipboardCheck,
   MousePointerClick,
+  Crosshair,
 } from 'lucide-react';
 import type { DiagnosticItem, DiagnosticCategory, DiagnosticLevel, AiDiagnosticsStatus } from '@/types/aiDiagnostics';
 import { translateFieldPath } from '@/lib/constants/fieldTranslations';
@@ -69,24 +75,50 @@ interface AiDiagnosticPanelProps {
   onDiagnose?: () => void;
   /** エラー項目がクリックされたときのハンドラー */
   onFieldClick?: (fieldPath: string) => void;
+  /** ジャンプ先修正モードを開始するハンドラー */
+  onStartLinking?: (diagnosticField: string) => void;
+  /** リンクモード中かどうか */
+  isLinkingMode?: boolean;
+  /** 現在リンク修正対象のフィールド */
+  linkingField?: string | null;
+  /** 学習済みフィールドのセット（学習済みかどうかの表示用） */
+  learnedFields?: Set<string>;
 }
 
 // ─── 診断アイテムカード ───────────────────────────────────────────────────────
-function DiagnosticCard({ item, onClick }: { item: DiagnosticItem; onClick?: () => void }) {
+function DiagnosticCard({
+  item,
+  onClick,
+  onStartLinking,
+  isLinkingMode,
+  isLinkingTarget,
+  isLearned,
+}: {
+  item: DiagnosticItem;
+  onClick?: () => void;
+  onStartLinking?: () => void;
+  isLinkingMode?: boolean;
+  isLinkingTarget?: boolean;
+  isLearned?: boolean;
+}) {
   const level = LEVEL_CONFIG[item.level];
   const { Icon } = level;
 
   return (
-    <div 
-      className={`ai-diag-item ${onClick ? 'cursor-pointer hover:bg-slate-800/50 transition-colors' : ''}`}
+    <div
+      className={[
+        'ai-diag-item',
+        onClick && !isLinkingMode ? 'cursor-pointer hover:bg-slate-800/50 transition-colors' : '',
+        isLinkingTarget ? 'ai-diag-item--linking' : '',
+      ].filter(Boolean).join(' ')}
       style={{
-        background: level.bgColor,
-        borderColor: level.borderColor,
+        background: isLinkingTarget ? 'rgba(56, 189, 248, 0.12)' : level.bgColor,
+        borderColor: isLinkingTarget ? 'rgba(56, 189, 248, 0.6)' : level.borderColor,
       }}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      title={onClick ? "クリックして該当の入力欄へ移動" : undefined}
+      onClick={onClick && !isLinkingMode ? onClick : undefined}
+      role={onClick && !isLinkingMode ? 'button' : undefined}
+      tabIndex={onClick && !isLinkingMode ? 0 : undefined}
+      title={onClick && !isLinkingMode ? "クリックして該当の入力欄へ移動" : undefined}
     >
       <div className="ai-diag-item-header">
         <Icon size={15} style={{ color: level.color, flexShrink: 0 }} />
@@ -96,11 +128,40 @@ function DiagnosticCard({ item, onClick }: { item: DiagnosticItem; onClick?: () 
         <span className="ai-diag-item-field flex-1 truncate" title={item.field}>
           {translateFieldPath(item.field)}
         </span>
-        {onClick && (
+        {isLearned && (
+          <span className="ai-diag-learned-badge" title="ジャンプ先学習済み">✓</span>
+        )}
+        {onClick && !isLinkingMode && (
           <MousePointerClick size={14} className="text-slate-500 shrink-0 ml-1 opacity-50" />
         )}
       </div>
       <p className="ai-diag-item-message">{item.message}</p>
+
+      {/* ─── ジャンプ先修正ボタン ─── */}
+      {onStartLinking && (
+        <div className="ai-diag-item-actions">
+          {isLinkingTarget ? (
+            <span className="ai-diag-linking-status">
+              <Crosshair size={12} className="spin-slow" />
+              入力欄をクリックしてください…
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="ai-diag-link-fix-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartLinking();
+              }}
+              disabled={isLinkingMode}
+              title="このエラーのジャンプ先を手動で修正します"
+            >
+              <Crosshair size={12} />
+              ジャンプ先を修正
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -110,10 +171,18 @@ function CategoryGroup({
   category,
   items,
   onFieldClick,
+  onStartLinking,
+  isLinkingMode,
+  linkingField,
+  learnedFields,
 }: {
   category: DiagnosticCategory;
   items: DiagnosticItem[];
   onFieldClick?: (fieldPath: string) => void;
+  onStartLinking?: (diagnosticField: string) => void;
+  isLinkingMode?: boolean;
+  linkingField?: string | null;
+  learnedFields?: Set<string>;
 }) {
   if (items.length === 0) return null;
   const { label, Icon } = CATEGORY_CONFIG[category];
@@ -126,10 +195,14 @@ function CategoryGroup({
       </div>
       <div className="ai-diag-group-items">
         {items.map((item, i) => (
-          <DiagnosticCard 
-            key={i} 
-            item={item} 
-            onClick={onFieldClick ? () => onFieldClick(item.field) : undefined} 
+          <DiagnosticCard
+            key={i}
+            item={item}
+            onClick={onFieldClick ? () => onFieldClick(item.field) : undefined}
+            onStartLinking={onStartLinking ? () => onStartLinking(item.field) : undefined}
+            isLinkingMode={isLinkingMode}
+            isLinkingTarget={linkingField === item.field}
+            isLearned={learnedFields?.has(`diag::${item.field}`)}
           />
         ))}
       </div>
@@ -143,6 +216,10 @@ export function AiDiagnosticPanel({
   errorMessage,
   onDiagnose,
   onFieldClick,
+  onStartLinking,
+  isLinkingMode,
+  linkingField,
+  learnedFields,
 }: AiDiagnosticPanelProps) {
 
   // カテゴリ別グループ化
@@ -192,6 +269,14 @@ export function AiDiagnosticPanel({
           )}
         </div>
 
+        {/* ─── リンクモード中バナー ─── */}
+        {isLinkingMode && (
+          <div className="ai-diag-linking-overlay">
+            <Crosshair size={16} className="spin-slow" />
+            <span>フォーム上の正しい入力欄をクリックしてください</span>
+          </div>
+        )}
+
         {/* ─── ローディング ─── */}
         {status === 'loading' && (
           <div className="ai-diag-loading">
@@ -237,9 +322,33 @@ export function AiDiagnosticPanel({
             ) : (
               /* カテゴリ別グループ（法的リスク → 整合性 → 入力 の優先順） */
               <div className="ai-diag-groups">
-                <CategoryGroup category="legal" items={grouped.legal} onFieldClick={onFieldClick} />
-                <CategoryGroup category="consistency" items={grouped.consistency} onFieldClick={onFieldClick} />
-                <CategoryGroup category="input" items={grouped.input} onFieldClick={onFieldClick} />
+                <CategoryGroup
+                  category="legal"
+                  items={grouped.legal}
+                  onFieldClick={onFieldClick}
+                  onStartLinking={onStartLinking}
+                  isLinkingMode={isLinkingMode}
+                  linkingField={linkingField}
+                  learnedFields={learnedFields}
+                />
+                <CategoryGroup
+                  category="consistency"
+                  items={grouped.consistency}
+                  onFieldClick={onFieldClick}
+                  onStartLinking={onStartLinking}
+                  isLinkingMode={isLinkingMode}
+                  linkingField={linkingField}
+                  learnedFields={learnedFields}
+                />
+                <CategoryGroup
+                  category="input"
+                  items={grouped.input}
+                  onFieldClick={onFieldClick}
+                  onStartLinking={onStartLinking}
+                  isLinkingMode={isLinkingMode}
+                  linkingField={linkingField}
+                  learnedFields={learnedFields}
+                />
               </div>
             )}
 
