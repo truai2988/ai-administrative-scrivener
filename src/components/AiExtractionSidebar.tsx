@@ -43,6 +43,7 @@ import { useDocumentExtraction } from '@/hooks/useDocumentExtraction';
 import { useAttachmentContext } from '@/contexts/AttachmentContext';
 import { FileList } from '@/components/ui/SharedFileUploader/FileList';
 import type { AttachmentTabId } from '@/lib/utils/fileUtils';
+import imageCompression from 'browser-image-compression';
 
 // ============================================================
 // Props
@@ -427,6 +428,7 @@ export function AiExtractionSidebar({
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [autoFilledCount, setAutoFilledCount] = useState<number>(0);
   const [selectedHint, setSelectedHint] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState<boolean>(false);
 
   // 動的推奨タグの定義
   const hintsMap: Record<AttachmentTabId, string[]> = {
@@ -481,10 +483,38 @@ export function AiExtractionSidebar({
       
       const tag = selectedHint || undefined;
       
+      let fileToProcess = file;
+
+      // 画像ファイルの場合はクライアントサイド圧縮を実行
+      if (file.type.startsWith('image/')) {
+        setIsCompressing(true);
+        try {
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          };
+          console.log(`[Compression] Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+          const compressedBlob = await imageCompression(file, options);
+          
+          // BlobをFileオブジェクトに変換し、元のファイル名を維持
+          fileToProcess = new File([compressedBlob], file.name, {
+            type: compressedBlob.type,
+            lastModified: Date.now(),
+          });
+          console.log(`[Compression] Compressed size: ${(fileToProcess.size / 1024 / 1024).toFixed(2)} MB`);
+        } catch (error) {
+          console.error('[Compression] 画像の圧縮に失敗しました:', error);
+          // 失敗した場合は元のファイルをそのまま使用する（フォールバック）
+        } finally {
+          setIsCompressing(false);
+        }
+      }
+      
       // 並行処理で Firebase Storage 保存と OCR を実行
       await Promise.all([
-        uploadToTab(file, tabId, tag),
-        extraction.extractFromFile(file)
+        uploadToTab(fileToProcess, tabId, tag),
+        extraction.extractFromFile(fileToProcess)
       ]);
       
       // アップロード開始後に選択状態をクリア
@@ -551,7 +581,7 @@ export function AiExtractionSidebar({
               {/* 📎 アップロードエリア */}
               <UploadArea
                 onFileSelect={handleFileSelect}
-                isLoading={extraction.isLoading || isUploading}
+                isLoading={isCompressing || extraction.isLoading || isUploading}
                 error={extraction.error}
                 hasData={ctf.extractedData.length > 0}
                 fileName={uploadedFileName}
