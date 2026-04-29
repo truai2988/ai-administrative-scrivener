@@ -7,7 +7,7 @@ import { CertificationFields } from './applicant/CertificationFields';
 
 export function ApplicantSpecificInfoSubForm() {
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="subsection">
         <h3 className="subsection-title">修学歴</h3>
         <AcademicBackgroundFields />

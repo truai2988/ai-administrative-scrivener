@@ -20,7 +20,7 @@ export function SupportPlanSubForm() {
   return (
     <div className="subsection">
       <div className="border-b border-slate-50 pb-2">
-        <h3 className="subsection-title">⑤ 1号特定技能外国人支援計画等</h3>
+        <h3 className="subsection-title">1号特定技能外国人支援計画等</h3>
       </div>
 
       <div className="bg-slate-800/40 p-6 rounded-lg border border-slate-700/50">

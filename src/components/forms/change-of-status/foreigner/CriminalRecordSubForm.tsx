@@ -20,7 +20,7 @@ export function CriminalRecordSubForm() {
 
   return (
     <div className="subsection">
-      <h3 className="subsection-title">⑤ 犯罪歴等</h3>
+      <h3 className="subsection-title">犯罪歴等</h3>
       
       <div className="space-y-6">
         <FormField label="犯罪を理由とする処分を受けたことの有無" required error={infoError?.criminalRecord?.message}>

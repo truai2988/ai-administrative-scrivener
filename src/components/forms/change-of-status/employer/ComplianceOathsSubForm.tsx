@@ -90,7 +90,7 @@ export function ComplianceOathsSubForm() {
   return (
     <div className="subsection">
       <div className="border-b border-slate-50 pb-2">
-        <h3 className="subsection-title">④ 特定技能所属機関の欠格事由・誓約等</h3>
+        <h3 className="subsection-title">特定技能所属機関の欠格事由・誓約等</h3>
         <p className="subsection-desc">該当する場合は詳細を記載してください。</p>
       </div>
       

@@ -20,7 +20,7 @@ export function DispatchPlacementSubForm() {
   
   return (
     <div className="subsection">
-      <h3 className="subsection-title">③ 派遣先・引受先等の機関（該当する場合のみ）</h3>
+      <h3 className="subsection-title">派遣先・引受先等の機関（該当する場合のみ）</h3>
       
       {/* 派遣先 */}
       <div className="border border-slate-700/50 rounded-lg overflow-hidden">

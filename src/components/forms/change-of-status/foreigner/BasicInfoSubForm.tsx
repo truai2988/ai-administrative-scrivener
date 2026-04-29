@@ -15,7 +15,7 @@ export function BasicInfoSubForm() {
 
   return (
     <div className="subsection">
-      <h3 className="subsection-title">① 基本属性</h3>
+      <h3 className="subsection-title">基本属性</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="国籍・地域" required error={infoError?.nationality?.message}>

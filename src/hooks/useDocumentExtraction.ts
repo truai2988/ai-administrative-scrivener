@@ -30,35 +30,38 @@ interface ExtractionState {
   mode: string | null;
 }
 
-export interface UseDocumentExtractionReturn extends ExtractionState {
-  /** ファイルを送信して抽出を実行する */
-  extractFromFile: (file: File) => Promise<ExtractedItem[]>;
-  /** エラー状態をクリアする */
-  clearError: () => void;
-  /** 抽出データをクリアする */
-  clearItems: () => void;
-}
-
-// ─── フック本体 ───────────────────────────────────────────────────────────────
-
-export function useDocumentExtraction(): UseDocumentExtractionReturn {
-  const [state, setState] = useState<ExtractionState>({
-    isLoading: false,
-    error: null,
-    items: [],
-    mode: null,
-  });
-
-  /**
-   * ファイルを /api/extract に送信し、構造化データを取得する。
-   * 成功時は ExtractedItem[] を返し、内部 state も更新する。
-   */
-  const extractFromFile = useCallback(async (file: File): Promise<ExtractedItem[]> => {
-    setState({ isLoading: true, error: null, items: [], mode: null });
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+  export interface UseDocumentExtractionReturn extends ExtractionState {
+    /** ファイルを送信して抽出を実行する */
+    extractFromFile: (file: File, useHybridMode?: boolean) => Promise<ExtractedItem[]>;
+    /** エラー状態をクリアする */
+    clearError: () => void;
+    /** 抽出データをクリアする */
+    clearItems: () => void;
+  }
+  
+  // ─── フック本体 ───────────────────────────────────────────────────────────────
+  
+  export function useDocumentExtraction(): UseDocumentExtractionReturn {
+    const [state, setState] = useState<ExtractionState>({
+      isLoading: false,
+      error: null,
+      items: [],
+      mode: null,
+    });
+  
+    /**
+     * ファイルを /api/extract に送信し、構造化データを取得する。
+     * 成功時は ExtractedItem[] を返し、内部 state も更新する。
+     */
+    const extractFromFile = useCallback(async (file: File, useHybridMode: boolean = false): Promise<ExtractedItem[]> => {
+      setState({ isLoading: true, error: null, items: [], mode: null });
+  
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (useHybridMode) {
+          formData.append('useHybridMode', 'true');
+        }
 
       const res = await fetch('/api/extract', {
         method: 'POST',

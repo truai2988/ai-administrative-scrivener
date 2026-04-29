@@ -18,7 +18,7 @@ export function CompanyProfileSubForm() {
 
   return (
     <div className="subsection">
-      <h3 className="subsection-title">① 所属機関（雇用主）の基本情報</h3>
+      <h3 className="subsection-title">所属機関（雇用主）の基本情報</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="法人等名（氏名又は名称）" required error={empError?.companyNameJa?.message} className="md:col-span-2">

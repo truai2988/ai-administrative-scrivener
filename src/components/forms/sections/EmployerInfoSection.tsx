@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormContext, useFieldArray, Controller, useWatch, Path } from 'react-hook-form';
-import { Building2, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 import { renewalFormOptions, getSpecifiedSkilledSubOptions } from '@/lib/constants/renewalFormOptions';
@@ -105,9 +105,7 @@ interface EmployerInfoSectionProps {
 
 export function EmployerInfoSection({
   isEditable = true,
-  applicationId,
   initialAttachments,
-  globalLimitContext,
   organizationId,
 }: EmployerInfoSectionProps) {
   const {
@@ -179,15 +177,9 @@ export function EmployerInfoSection({
         </div>
       )}
       
-      <div className="section-header">
-        <Building2 size={20} className="section-icon" />
-        <h2 className="section-title">所属機関（企業）情報</h2>
-        <p className="section-desc">所属機関等作成用（1〜8）に対応する項目です</p>
-      </div>
-
       {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
-      <div className="subsection subsection--attachments">
-        {isEditable && !hasAttachments && !hasFullAccess && (
+      {isEditable && !hasAttachments && !hasFullAccess && (
+        <div className="subsection subsection--attachments">
           <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
             <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fbbf24', fontSize: '0.85rem' }}>
               <input 
@@ -199,8 +191,8 @@ export function EmployerInfoSection({
               <span>※書類を後日提出し、手動で入力を開始する</span>
             </label>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <fieldset disabled={!isFieldsEnabled} style={{ border: 'none', padding: 0, margin: 0, opacity: isFieldsEnabled ? 1 : 0.5, transition: 'opacity 0.2s', pointerEvents: isFieldsEnabled ? 'auto' : 'none' }}>
 

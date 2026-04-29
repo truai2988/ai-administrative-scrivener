@@ -3,6 +3,7 @@ import {
   initializeFirestore, 
   persistentLocalCache, 
   persistentMultipleTabManager,
+  getFirestore,
   Firestore 
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -18,16 +19,28 @@ if (getApps().length === 0) {
   app = getApp();
 }
 
+
 // Next.js環境（SSR）ではブラウザ側だけで実行させる
 if (typeof window !== "undefined") {
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  });
+  // 開発環境のホットリロード（HMR）時に IndexedDB のリースクラッシュ（Backfill Indexes）
+  // エラーがコンソールを埋め尽くすのを防ぐため、開発環境では通常の getFirestore を使用。
+  if (process.env.NODE_ENV === 'development') {
+    db = getFirestore(app);
+  } else {
+    try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      });
+    } catch {
+      // 既に初期化済みの場合はフォールバック
+      db = getFirestore(app);
+    }
+  }
 } else {
-  // SSR時のフォールバック用初期化（キャッシュ無効で動作）
-  db = initializeFirestore(app, {});
+  // SSR時のフォールバック用初期化
+  db = getFirestore(app);
 }
 
 const storage = getStorage(app);

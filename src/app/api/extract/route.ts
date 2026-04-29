@@ -224,7 +224,12 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
-    const hasDocAi = !!(DOC_AI_PROCESSOR_ID && PROJECT_ID);
+    // コスト削減（API二重課金防止）のため、デフォルトでは Document AI のハイブリッド抽出を無効化し
+    // Gemini Vision 単体での抽出を優先する。
+    // クライアントから明示的にハイブリッドモードが要求された場合、または環境変数で強制されている場合に有効化する。
+    const clientRequestedHybrid = formData.get('useHybridMode') === 'true';
+    const USE_DOCUMENT_AI_HYBRID = process.env.USE_DOCUMENT_AI_HYBRID === 'true' || clientRequestedHybrid;
+    const hasDocAi = !!(DOC_AI_PROCESSOR_ID && PROJECT_ID && USE_DOCUMENT_AI_HYBRID);
     const hasGemini = !!GEMINI_API_KEY;
 
     // ── 両方未設定: モックモード ─────────────────────────────────────────

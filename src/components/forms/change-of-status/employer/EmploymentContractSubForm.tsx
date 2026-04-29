@@ -18,7 +18,7 @@ export function EmploymentContractSubForm() {
 
   return (
     <div className="subsection">
-      <h3 className="subsection-title">② 雇用契約・報酬等の内容</h3>
+      <h3 className="subsection-title">雇用契約・報酬等の内容</h3>
       
       <div className="cert-block">
         <h4 className="cert-block-label">雇用契約期間</h4>

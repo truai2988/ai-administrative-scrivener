@@ -238,7 +238,8 @@ async function verifyAuth(req: NextRequest): Promise<
   try {
     const decoded = await adminAuth.verifyIdToken(idToken);
     return { uid: decoded.uid };
-  } catch {
+  } catch (err) {
+    console.error('[verifyAuth] トークン検証エラー:', err);
     return {
       error: NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 }),
     };

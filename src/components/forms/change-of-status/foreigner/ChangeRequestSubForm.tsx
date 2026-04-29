@@ -28,7 +28,7 @@ export function ChangeRequestSubForm() {
 
   return (
     <div className="subsection">
-      <h3 className="subsection-title">④ 変更の希望・理由</h3>
+      <h3 className="subsection-title">変更の希望・理由</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="希望する在留資格" required error={infoError?.desiredResidenceStatus?.message}>

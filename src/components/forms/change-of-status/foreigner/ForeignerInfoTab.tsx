@@ -19,13 +19,8 @@ export function ForeignerInfoTab() {
   const isSpecificSkill = desiredStatus?.includes('特定技能');
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="cert-block">
-        <h3 className="text-lg font-medium text-slate-800">申請人等作成用（外国人本人情報）</h3>
-        <p className="text-sm text-slate-500 mt-1">
-          申請書のエクセル「申請人等作成用1〜3」に対応する項目を入力します。
-        </p>
-      </div>
+    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
+
 
       <BasicInfoSubForm />
       <AddressContactSubForm />

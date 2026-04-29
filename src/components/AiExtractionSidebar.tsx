@@ -429,6 +429,7 @@ export function AiExtractionSidebar({
   const [autoFilledCount, setAutoFilledCount] = useState<number>(0);
   const [selectedHint, setSelectedHint] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
+  const [useHybridMode, setUseHybridMode] = useState<boolean>(false);
 
   // 動的推奨タグの定義
   const hintsMap: Record<AttachmentTabId, string[]> = {
@@ -514,14 +515,15 @@ export function AiExtractionSidebar({
       // 並行処理で Firebase Storage 保存と OCR を実行
       await Promise.all([
         uploadToTab(fileToProcess, tabId, tag),
-        extraction.extractFromFile(fileToProcess)
+        extraction.extractFromFile(fileToProcess, useHybridMode)
       ]);
       
-      // アップロード開始後に選択状態をクリア
+      // アップロード開始後に選択状態とハイブリッド設定をクリア
       setSelectedHint(null);
+      setUseHybridMode(false);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [extraction.extractFromFile, uploadToTab, tabId, selectedHint],
+    [extraction.extractFromFile, uploadToTab, tabId, selectedHint, useHybridMode],
   );
 
   const mappedCount = ctf.extractedData.filter((d) => d.mapped).length;
@@ -588,6 +590,27 @@ export function AiExtractionSidebar({
                 onClearError={extraction.clearError}
               />
               
+              {/* ─── 高精度抽出トグル ─── */}
+              <div className="px-4 py-2 border-b border-slate-700/50 bg-slate-800/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wand2 size={14} className={useHybridMode ? "text-amber-400" : "text-slate-400"} />
+                  <span className="text-xs text-slate-300">高精度ハイブリッド抽出 (コスト増)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUseHybridMode(!useHybridMode)}
+                  className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
+                    useHybridMode ? 'bg-amber-500' : 'bg-slate-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      useHybridMode ? 'translate-x-4' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
               {/* ─── 推奨書類ヒント（クリックして事前選択可能） ─── */}
               {hints.length > 0 && (
                 <div className="px-4 py-2 border-b border-slate-700/50 bg-slate-800/30">

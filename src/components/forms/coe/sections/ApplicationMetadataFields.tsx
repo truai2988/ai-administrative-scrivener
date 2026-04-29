@@ -12,7 +12,7 @@ export function ApplicationMetadataFields() {
   const { register, control, formState: { errors } } = useFormContext<CoeApplicationFormData>();
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="subsection">
         <h3 className="subsection-title">その他メタデータ</h3>
         

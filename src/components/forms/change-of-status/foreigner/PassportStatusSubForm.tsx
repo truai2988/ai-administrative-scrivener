@@ -14,7 +14,7 @@ export function PassportStatusSubForm() {
 
   return (
     <div className="subsection">
-      <h3 className="subsection-title">③ 旅券・在留資格等の状況</h3>
+      <h3 className="subsection-title">旅券・在留資格等の状況</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* パスポート情報 */}

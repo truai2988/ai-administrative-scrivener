@@ -32,7 +32,7 @@ export function RelativesSubForm() {
     <div className="subsection">
       <div className="subsection-header-row">
         <div>
-          <h3 className="subsection-title">⑥ 在日親族（父・母・配偶者・子・兄弟姉妹など）及び同居者</h3>
+          <h3 className="subsection-title">在日親族（父・母・配偶者・子・兄弟姉妹など）及び同居者</h3>
           <p className="subsection-desc">※滞在予定の親族も含む</p>
         </div>
         <button

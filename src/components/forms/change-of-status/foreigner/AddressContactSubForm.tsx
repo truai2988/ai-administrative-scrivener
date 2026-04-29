@@ -12,7 +12,7 @@ export function AddressContactSubForm() {
 
   return (
     <div className="subsection">
-      <h3 className="subsection-title">② 本国における居住地・日本における連絡先</h3>
+      <h3 className="subsection-title">本国における居住地・日本における連絡先</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <FormField label="本国における居住地" required error={infoError?.homeCountryAddress?.message}>

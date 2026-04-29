@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
-import { Plus, Trash2, User, Sparkles, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Sparkles, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 import type { GlobalLimitContext } from '@/lib/utils/fileUtils';
 
@@ -113,9 +113,7 @@ interface ForeignerInfoSectionProps {
 
 export function ForeignerInfoSection({
   isEditable = true,
-  applicationId,
   initialAttachments,
-  globalLimitContext,
 }: ForeignerInfoSectionProps) {
   const {
     register,
@@ -195,102 +193,6 @@ export function ForeignerInfoSection({
   // OCR で自動入力されたフィールドのパス集合（ハイライト用）
   const [ocrHighlightedFields, setOcrHighlightedFields] = useState<Set<string>>(new Set());
   
-  // OCR で抽出されたフィールドの記録（削除時にそのファイルが読み込んだ項目をクリアするため）
-  type FileOcrData = {
-    filePath: string;
-    extractedPaths: string[]; // このファイルが抽出・反映した全フィールド
-  };
-  const fileOcrDataRef = useRef<FileOcrData[]>([]);
-
-  /**
-   * 新しいファイルがアップロードされたとき（onAttachmentsChange で呼ばれる）に
-   * OCR を走らせ、結果をフォームに反映する。
-   */
-  const handleAttachmentsChange = useCallback(
-    async (updatedAttachments: AttachmentMeta[]) => {
-      // getValuesを使って常にreact-hook-formが持つ最新の状態から前回値を取得する
-      const prevAttachments = getValues('attachments.foreignerInfo') || [];
-      const prevCount = prevAttachments.length;
-      
-      // 更新がなくても setValue で react-hook-form に同期しておく
-      setValue('attachments.foreignerInfo', updatedAttachments);
-
-      // ファイルが削除された場合のクリア処理
-      if (updatedAttachments.length < prevCount) {
-        const currentPaths = new Set(updatedAttachments.map(a => a.path));
-        const deletedData = fileOcrDataRef.current.filter(b => !currentPaths.has(b.filePath));
-        const remainingData = fileOcrDataRef.current.filter(b => currentPaths.has(b.filePath));
-        
-        // 記録配列から削除されたファイル分を取り除く
-        fileOcrDataRef.current = remainingData;
-
-        // 残存しているファイルが抽出したパスを収集（これらはクリアしてはいけない）
-        const activeExtractedPaths = new Set<string>();
-        remainingData.forEach(data => {
-          data.extractedPaths.forEach(p => activeExtractedPaths.add(p));
-        });
-
-        // 削除されたファイルが読み取ったフィールドのうち、他生存ファイルが触っていないもののみ空にする
-        deletedData.forEach(data => {
-          data.extractedPaths.forEach(path => {
-            if (!activeExtractedPaths.has(path)) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setValue(path as any, '', { shouldValidate: true, shouldDirty: true });
-            }
-          });
-        });
-        
-        setOcrHighlightedFields(activeExtractedPaths);
-        return;
-      }
-
-      const newFile = updatedAttachments[updatedAttachments.length - 1];
-      if (!newFile || updatedAttachments.length <= prevCount) return;
-
-      const result = await runOcr({
-        storagePath: newFile.path,
-        mimeType: newFile.mimeType,
-      });
-
-      if (!result || !result.formData) {
-        return;
-      }
-
-      const entries = Object.entries(result.formData);
-      if (entries.length === 0) {
-        alert('画像から情報を読み取れませんでした。画質が悪いか、対応していない形式の可能性があります。');
-        return;
-      }
-
-      // ファイル単位での抽出データ記録オブジェクトを作成
-      const ocrDataForFile: FileOcrData = {
-        filePath: newFile.path,
-        extractedPaths: []
-      };
-
-      // フォームに setValue
-      const newHighlights = new Set<string>();
-      for (const [key, value] of entries as [keyof RenewalApplicationFormData['foreignerInfo'], string][]) {
-        if (value !== undefined && value !== '') {
-          const fieldPath = `foreignerInfo.${key}`;
-          
-          ocrDataForFile.extractedPaths.push(fieldPath);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setValue(fieldPath as any, value, { shouldValidate: true, shouldDirty: true });
-          newHighlights.add(fieldPath);
-        }
-      }
-
-      // 抽出したフィールドがあれば記録を積む
-      if (ocrDataForFile.extractedPaths.length > 0) {
-        fileOcrDataRef.current.push(ocrDataForFile);
-      }
-
-      // ハイライト適用（解除タイマーは使用せず、永続化する）
-      setOcrHighlightedFields(newHighlights);
-    },
-    [getValues, runOcr, setValue]
-  );
 
   /** フィールドが OCR で自動入力されたかを判定するヘルパー */
   const isOcrFilled = (fieldPath: string) => ocrHighlightedFields.has(fieldPath);
@@ -331,14 +233,9 @@ export function ForeignerInfoSection({
         </div>
       )}
       
-      <div className="section-header">
-        <User size={20} className="section-icon" />
-        <h2 className="section-title">外国人本人情報</h2>
-        <p className="section-desc">申請人等作成用（1〜3）に対応する項目です</p>
-      </div>
-
       {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
-      <div className="subsection subsection--attachments">
+      {(isOcring || (ocrResult && ocrHighlightedFields.size > 0) || ocrError || (isEditable && !hasAttachments && !hasFullAccess)) && (
+        <div className="subsection subsection--attachments">
         {/* OCR バナー */}
         {isOcring && (
           <div style={{
@@ -398,6 +295,7 @@ export function ForeignerInfoSection({
           </div>
         )}
       </div>
+      )}
 
       <fieldset disabled={!isFieldsEnabled} style={{ border: 'none', padding: 0, margin: 0, opacity: isFieldsEnabled ? 1 : 0.5, transition: 'opacity 0.2s', pointerEvents: isFieldsEnabled ? 'auto' : 'none' }}>
 

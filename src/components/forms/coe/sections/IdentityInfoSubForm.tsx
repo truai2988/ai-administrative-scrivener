@@ -8,7 +8,7 @@ import { RelativeListFields } from './identity/RelativeListFields';
 
 export function IdentityInfoSubForm() {
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="subsection">
         <h3 className="subsection-title">基本情報</h3>
         <BasicProfileFields />
