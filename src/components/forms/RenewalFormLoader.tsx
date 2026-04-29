@@ -17,8 +17,7 @@ import Link from 'next/link';
 import { Loader2, AlertCircle, FileText } from 'lucide-react';
 import { RenewalApplicationForm } from './RenewalApplicationForm';
 import { useRenewalFormData } from '@/hooks/useRenewalFormData';
-import type { RenewalApplicationFormData, TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
-import { resolveTemplate } from '@/lib/constants/assignmentTemplates';
+import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 
 interface RenewalFormLoaderProps {
   /** 外国人一覧の Foreigner.id（Firestore foreigners コレクションのキー） */
@@ -69,7 +68,6 @@ function FormError({ message, foreignerId }: { message: string; foreignerId: str
 
 // ─── メインローダーコンポーネント ─────────────────────────────────────────────
 export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
-  // データ取得・認証ガードはすべてカスタムフックに委譲
   const state = useRenewalFormData(foreignerId);
 
   if (state.phase === 'loading') {
@@ -83,17 +81,7 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
   const { record, templatesRecord } = state;
   const initialValues = record?.formData as RenewalApplicationFormData | undefined;
 
-  // ─── 担当者割り当ての初期値を決定 ────────────────────────────────────────
-  // 既存レコードがある場合 → Firestoreに保存済みの値を使用（手動上書きを尊重）
-  // 新規作成の場合（record === null） → 申請種別テンプレートを解決して自動セット
-  // 空オブジェクト {} の場合は未設定とみなし、テンプレートを適用する
-  const storedAssignments = record?.formData?.assignments as Record<string, unknown> | undefined;
-  const hasValidAssignments = storedAssignments && Object.keys(storedAssignments).length > 0;
-
-  const initialAssignments: TabAssignments = hasValidAssignments
-    ? (storedAssignments as TabAssignments)
-    : resolveTemplate('renewal', undefined, templatesRecord);
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const initialAiDiagnostics = (record as any)?.aiDiagnostics?.diagnostics as import('@/types/aiDiagnostics').DiagnosticItem[] | undefined;
 
   return (
@@ -101,7 +89,6 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
       recordId={record?.id}
       foreignerId={foreignerId}
       initialValues={initialValues}
-      initialAssignments={initialAssignments}
       initialAiDiagnostics={initialAiDiagnostics}
       templatesRecord={templatesRecord}
     />

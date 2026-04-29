@@ -12,8 +12,14 @@
 
 import { db } from '@/lib/firebase/client';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import type { TabId, TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import { TEST_USERS, type TestUser } from '@/lib/constants/testUsers';
+
+/**
+ * 汎用タブID型。
+ * 申請種別ごとにタブ構成が異なるため、固定の union ではなく string で管理する。
+ */
+export type GenericTabId = string;
+export type GenericTabAssignments = Record<string, string>;
 
 // ─── 申請種別の型 ─────────────────────────────────────────────────────────────
 
@@ -26,8 +32,8 @@ export type DefaultAssignmentRole = 'branch_staff' | 'enterprise_staff' | null;
 export interface TabAssignmentTemplate {
   /** 申請種別の日本語ラベル */
   description: string;
-  /** タブごとのデフォルト担当ロール */
-  roles: Record<TabId, DefaultAssignmentRole>;
+  /** タブごとのデフォルト担当ロール（キーは申請種別ごとのタブID） */
+  roles: Record<string, DefaultAssignmentRole>;
 }
 
 // ─── デフォルトテンプレート定義 ──────────────────────────────────────────────
@@ -37,29 +43,31 @@ export const DEFAULT_ASSIGNMENT_TEMPLATES: Record<ApplicationKind, TabAssignment
   renewal: {
     description: '在留期間更新許可申請',
     roles: {
-      foreigner:    'branch_staff',    // 外国人本人情報 → 支部事務員が担当
-      employer:     'enterprise_staff', // 所属機関情報 → 企業担当者が担当
-      simultaneous: null,               // 同時申請 → 行政書士のみ
+      foreigner:    null,   // 外国人本人情報 → 行政書士のみ
+      employer:     null,   // 所属機関情報 → 行政書士のみ
+      simultaneous: null,   // 同時申請 → 行政書士のみ
     },
   },
 
-  /** 在留資格変更許可申請（将来用） */
+  /** 在留資格変更許可申請 */
   change: {
     description: '在留資格変更許可申請',
     roles: {
-      foreigner:    'branch_staff',
-      employer:     'enterprise_staff',
-      simultaneous: null,
+      foreigner:    null,   // 外国人本人情報 → 行政書士のみ
+      employer:     null,   // 所属機関情報 → 行政書士のみ
+      simultaneous: null,   // 同時申請 → 行政書士のみ
     },
   },
 
-  /** 在留資格認定証明書交付申請（将来用） */
+  /** 在留資格認定証明書交付申請 */
   certification: {
     description: '在留資格認定証明書交付申請',
     roles: {
-      foreigner:    'branch_staff',
-      employer:     'enterprise_staff',
-      simultaneous: null,
+      identity:       null,   // 身分事項 → 行政書士のみ
+      applicant:      null,   // 申請人情報 → 行政書士のみ
+      employer:       null,   // 所属機関等 → 行政書士のみ
+      representative: null,   // 代理人・取次者 → 行政書士のみ
+      metadata:       null,   // 申請メタデータ → 行政書士のみ
     },
   },
 };
@@ -80,11 +88,11 @@ export function resolveTemplate(
   kind: ApplicationKind,
   users: TestUser[] = TEST_USERS,
   templatesRecord: Record<ApplicationKind, TabAssignmentTemplate> = DEFAULT_ASSIGNMENT_TEMPLATES
-): TabAssignments {
+): GenericTabAssignments {
   const template = templatesRecord[kind];
-  const result: TabAssignments = {};
+  const result: GenericTabAssignments = {};
 
-  for (const [tabId, role] of Object.entries(template.roles) as [TabId, DefaultAssignmentRole][]) {
+  for (const [tabId, role] of Object.entries(template.roles) as [string, DefaultAssignmentRole][]) {
     if (role === null) {
       // null = 行政書士のみ（割り当てなし）
       continue;
@@ -105,12 +113,13 @@ export function resolveTemplate(
  */
 export function isTemplateDefault(
   kind: ApplicationKind,
-  assignments: TabAssignments,
+  assignments: GenericTabAssignments,
   users: TestUser[] = TEST_USERS,
   templatesRecord: Record<ApplicationKind, TabAssignmentTemplate> = DEFAULT_ASSIGNMENT_TEMPLATES
 ): boolean {
   const templateAssignments = resolveTemplate(kind, users, templatesRecord);
-  const tabIds: TabId[] = ['foreigner', 'employer', 'simultaneous'];
+  // テンプレートの roles キーから動的にタブIDリストを取得
+  const tabIds = Object.keys(templatesRecord[kind].roles);
 
   return tabIds.every((tabId) => {
     return (assignments[tabId] || '') === (templateAssignments[tabId] || '');
@@ -122,17 +131,47 @@ export function isTemplateDefault(
 export const SETTINGS_DOC_PATH = 'system_settings/assignment_templates';
 
 /**
- * Firestoreからテンプレート設定を取得する
- * 存在しない場合はデフォルト設定を返す
+ * Firestoreからテンプレート設定を取得する。
+ * 存在しない場合はデフォルト設定を返す。
+ *
+ * ■ マージ戦略:
+ *   コード上の DEFAULT_ASSIGNMENT_TEMPLATES の roles キー構成を「正」とし、
+ *   Firestore に保存された値を上書きマージする。
+ *   これにより、コード側でタブ構成を変更した場合にも
+ *   Firestore の古いデータで上書きされることを防ぐ。
  */
 export async function getAssignmentTemplates(): Promise<Record<ApplicationKind, TabAssignmentTemplate>> {
   try {
     const docRef = doc(db, SETTINGS_DOC_PATH);
     const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      return snap.data() as Record<ApplicationKind, TabAssignmentTemplate>;
+    if (!snap.exists()) {
+      return DEFAULT_ASSIGNMENT_TEMPLATES;
     }
-    return DEFAULT_ASSIGNMENT_TEMPLATES;
+
+    const stored = snap.data() as Record<string, TabAssignmentTemplate>;
+    const merged = { ...DEFAULT_ASSIGNMENT_TEMPLATES };
+
+    for (const kind of Object.keys(DEFAULT_ASSIGNMENT_TEMPLATES) as ApplicationKind[]) {
+      if (!stored[kind]) continue;
+
+      // description はFirestoreの値を尊重（カスタマイズ可能に）
+      merged[kind] = {
+        ...DEFAULT_ASSIGNMENT_TEMPLATES[kind],
+        description: stored[kind].description || DEFAULT_ASSIGNMENT_TEMPLATES[kind].description,
+        roles: { ...DEFAULT_ASSIGNMENT_TEMPLATES[kind].roles },
+      };
+
+      // Firestoreの roles のうち、コードのデフォルトに存在するキーだけを上書き
+      if (stored[kind].roles) {
+        for (const tabId of Object.keys(DEFAULT_ASSIGNMENT_TEMPLATES[kind].roles)) {
+          if (tabId in stored[kind].roles) {
+            merged[kind].roles[tabId] = stored[kind].roles[tabId];
+          }
+        }
+      }
+    }
+
+    return merged;
   } catch (error) {
     console.error('Failed to get assignment templates:', error);
     return DEFAULT_ASSIGNMENT_TEMPLATES;

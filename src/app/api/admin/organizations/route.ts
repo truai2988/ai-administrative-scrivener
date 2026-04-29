@@ -35,6 +35,7 @@ async function getCallerInfo(req: NextRequest): Promise<
   const idToken = authHeader?.replace('Bearer ', '').trim();
 
   if (!idToken) {
+    console.error('[getCallerInfo] No auth token. Header:', authHeader);
     return {
       error: NextResponse.json({ error: '認証トークンがありません' }, { status: 401 }),
     };
@@ -44,7 +45,8 @@ async function getCallerInfo(req: NextRequest): Promise<
   try {
     const decoded = await adminAuth.verifyIdToken(idToken);
     callerUid = decoded.uid;
-  } catch {
+  } catch (err) {
+    console.error('[getCallerInfo] Token verification failed:', err);
     return {
       error: NextResponse.json({ error: '無効な認証トークンです' }, { status: 401 }),
     };
@@ -52,6 +54,7 @@ async function getCallerInfo(req: NextRequest): Promise<
 
   const callerDoc = await adminDb.collection('users').doc(callerUid).get();
   if (!callerDoc.exists) {
+    console.error('[getCallerInfo] User doc not found for UID:', callerUid);
     return {
       error: NextResponse.json({ error: 'ユーザー情報が見つかりません' }, { status: 401 }),
     };

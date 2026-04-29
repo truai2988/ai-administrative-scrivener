@@ -10,11 +10,29 @@ import type { CreateUserRequest } from '@/lib/schemas/organizationSchema';
 import type { CreateOrganizationInput } from '@/lib/schemas/organizationSchema';
 import type { Organization, OrganizationType } from '@/types/database';
 
-/** 現在ログイン中のユーザーの IDトークンを取得する */
+/**
+ * 現在ログイン中のユーザーの IDトークンを取得する。
+ * Firebase Auth SDKの初期化が完了するまで待機する。
+ */
 async function getIdToken(): Promise<string> {
   const user = auth.currentUser;
-  if (!user) throw new Error('ログインが必要です');
-  return user.getIdToken();
+  if (user) return user.getIdToken();
+
+  // auth.currentUser がまだ null の場合、初期化完了を待つ（最大5秒）
+  return new Promise<string>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      unsubscribe();
+      reject(new Error('ログインが必要です（認証タイムアウト）'));
+    }, 5000);
+
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      if (u) {
+        clearTimeout(timeout);
+        unsubscribe();
+        u.getIdToken().then(resolve).catch(reject);
+      }
+    });
+  });
 }
 
 /** 共通フェッチ（Authorization ヘッダー付き） */

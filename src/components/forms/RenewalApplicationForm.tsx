@@ -15,9 +15,8 @@ import {
   renewalApplicationSchema,
   type RenewalApplicationFormData,
   type TabId,
-  type TabAssignments,
 } from '@/lib/schemas/renewalApplicationSchema';
-import { resolveTemplate, type ApplicationKind, type TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
+import { type ApplicationKind, type TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 import { ForeignerInfoSection }           from './sections/ForeignerInfoSection';
 import { EmployerInfoSection }            from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
@@ -27,7 +26,6 @@ import {
   SectionPermissionProvider,
   useSectionPermission,
 } from '@/contexts/SectionPermissionContext';
-import { TabAssignmentPanel } from './TabAssignmentPanel';
 import { mergeWithDefaults }  from '@/lib/utils/formUtils';
 import { useRenewalFormSubmit } from '@/hooks/useRenewalFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
@@ -189,8 +187,7 @@ interface RenewalApplicationFormProps {
   recordId?: string;
   /** Firestoreの外国人ドキュメントID（一覧画面から遷移時に渡す） */
   foreignerId?: string;
-  /** 初期担当者割り当て（既存レコードから読み込んだ値） */
-  initialAssignments?: TabAssignments;
+
   /** 外部から渡す初期値（Firestoreデータから読み込み） */
   initialValues?: Partial<RenewalApplicationFormData>;
   /** DBからロードした初期のAI診断結果（過去の履歴） */
@@ -213,7 +210,7 @@ function RenewalApplicationFormInner({
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const { toasts, dismiss, show: showToast } = useToast();
-  const { isEditable, assignments } = useSectionPermission();
+  const { isEditable } = useSectionPermission();
 
   // AI診断フック（savedRecordIdが確定してから呼び出す）
 
@@ -274,7 +271,6 @@ function RenewalApplicationFormInner({
       recordId,
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
-      assignments,
       control: methods.control,
       onSubmit
     });
@@ -372,7 +368,7 @@ function RenewalApplicationFormInner({
               <div className="applicant-context-actions flex items-center gap-2 flex-wrap shrink-0">
                 {!hideHeader && (
                   <>
-                  <TabAssignmentPanel />
+
 
                   {hasRequestReviewPermission && (
                     <button
@@ -610,25 +606,17 @@ export function RenewalApplicationForm({
   onSubmit,
   recordId,
   foreignerId,
-  initialAssignments,
   initialValues,
   initialAiDiagnostics,
   hideHeader,
   templatesRecord,
 }: RenewalApplicationFormProps) {
   const { currentUser } = useAuth();
-
-  // 認証情報を SectionPermissionProvider に渡す
   const userRole = currentUser?.role ?? 'branch_staff';
-
-  // 新規作成時（recordIdがなく、initialAssignmentsが明示されていない場合）はテンプレートの初期値を適用する
-  const effectiveInitialAssignments =
-    initialAssignments ?? (recordId ? {} : resolveTemplate('renewal', undefined, templatesRecord));
 
   return (
     <SectionPermissionProvider
       currentUserRole={userRole}
-      initialAssignments={effectiveInitialAssignments}
       templatesRecord={templatesRecord}
     >
       <RenewalApplicationFormInner

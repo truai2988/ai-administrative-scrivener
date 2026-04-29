@@ -8,7 +8,7 @@ import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { ClickToFillProvider } from '@/components/AiExtractionSidebar';
 import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
-import { TabAssignmentPanel } from '../TabAssignmentPanel';
+
 
 import {
   coeApplicationSchema,
@@ -25,9 +25,7 @@ import { RepresentativeSubForm } from './sections/RepresentativeSubForm';
 import { ApplicationMetadataFields } from './sections/ApplicationMetadataFields';
 import { useAuth } from '@/contexts/AuthContext';
 import { SectionPermissionProvider } from '@/contexts/SectionPermissionContext';
-import { resolveTemplate } from '@/lib/constants/assignmentTemplates';
 import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
-import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 
 type TabId = 'identity' | 'applicant' | 'employer' | 'representative' | 'metadata';
 
@@ -141,7 +139,6 @@ interface CoeApplicationFormProps {
   recordId?: string;
   foreignerId?: string;
   organizationId?: string;
-  initialAssignments?: TabAssignments;
   templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
@@ -301,7 +298,7 @@ export function CoeApplicationFormInner({
 
               <div className="flex flex-col items-end gap-1.5 w-full md:w-auto shrink-0">
                 <div className="applicant-context-actions flex items-center gap-2 flex-wrap w-full md:w-auto pb-1 md:pb-0 shrink-0">
-                  <TabAssignmentPanel />
+
                   {hasRequestReviewPermission && (
                     <button
                       type="button"
@@ -429,7 +426,6 @@ export function CoeApplicationFormInner({
 
 export function CoeApplicationForm({
   initialValues,
-  initialAssignments,
   initialAiDiagnostics,
   recordId,
   foreignerId,
@@ -439,13 +435,9 @@ export function CoeApplicationForm({
   const { currentUser } = useAuth();
   const userRole = currentUser?.role ?? 'branch_staff';
 
-  const effectiveInitialAssignments =
-    initialAssignments ?? (recordId ? {} : resolveTemplate('certification', undefined, templatesRecord));
-
   return (
     <SectionPermissionProvider
       currentUserRole={userRole}
-      initialAssignments={effectiveInitialAssignments}
       templatesRecord={templatesRecord}
     >
       <CoeApplicationFormInner

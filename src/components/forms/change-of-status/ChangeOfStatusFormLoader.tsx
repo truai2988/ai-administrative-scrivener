@@ -73,18 +73,11 @@ export function ChangeOfStatusFormLoader({ foreignerId }: ChangeOfStatusFormLoad
       (initialValues as Record<string, unknown>).attachments = record.attachments;
     }
 
-    const storedAssignments = record?.formData?.assignments as Record<string, unknown> | undefined;
-    const hasValidAssignments = storedAssignments && Object.keys(storedAssignments).length > 0;
-    const initialAssignments = hasValidAssignments
-      ? (storedAssignments as import('@/lib/schemas/renewalApplicationSchema').TabAssignments)
-      : undefined;
-
     return (
       <ChangeOfStatusForm
         foreignerId={foreignerId}
         recordId={record?.id}
         initialValues={initialValues}
-        initialAssignments={initialAssignments}
         initialAiDiagnostics={initialAiDiagnostics}
         templatesRecord={templatesRecord}
       />

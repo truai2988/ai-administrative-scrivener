@@ -11,16 +11,17 @@
  *   4. 成功 / エラー Toast の表示
  *
  * このフックを使うコンポーネントはボタンのレンダリングのみに集中できる。
+ *
+ * ■ 担当者割り当て（assignments）はグローバル設定で一元管理するため、
+ *   このフックでは assignments の監視・保存は行わない。
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { useWatch, type Control, type UseFormGetValues } from 'react-hook-form';
-import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
+import { useState, useCallback, useEffect } from 'react';
+import { type Control } from 'react-hook-form';
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import { renewalApplicationService } from '@/services/renewalApplicationService';
 import { downloadImmigrationCSV } from '@/lib/utils/csvMapper';
 import { useToast } from '@/components/ui/Toast';
-import isEqual from 'fast-deep-equal';
 
 interface UseRenewalFormSubmitOptions {
   /** 既存レコードのID（編集時のみ）。未指定なら新規作成 */
@@ -29,14 +30,8 @@ interface UseRenewalFormSubmitOptions {
   foreignerId?: string;
   /** 所属する組織のID */
   organizationId?: string;
-  /** タブごとの担当者割り当て（SectionPermissionContextから渡す） */
-  assignments?: TabAssignments;
-  /** フォームがユーザーによって変更されたかどうかのフラグ */
-  isDirty?: boolean;
-  /** react-hook-form の control（特定のフィールドを監視するため） */
+  /** react-hook-form の control */
   control?: Control<RenewalApplicationFormData>;
-  /** react-hook-form の getValues（オートセーブ時に現在の全体フォームデータを取得するため） */
-  getValues?: UseFormGetValues<RenewalApplicationFormData>;
   /** 保存完了後の外部コールバック（省略可） */
   onSubmit?: (data: RenewalApplicationFormData) => void | Promise<void>;
 }
@@ -47,8 +42,6 @@ interface UseRenewalFormSubmitReturn {
   isBusy: boolean;
   /** 先行保存中フラグ（マウント直後の draft 作成中） */
   isCreatingDraft: boolean;
-  /** オートセーブ（Debounce処理）中フラグ */
-  isAutoSaving: boolean;
   /** 保存のみ実行するハンドラ（handleSubmit に渡す） */
   handleSaveOnly: (data: RenewalApplicationFormData) => Promise<void>;
   /** 保存 + CSV出力を実行するハンドラ（handleSubmit に渡す） */
@@ -61,14 +54,11 @@ export function useRenewalFormSubmit({
   recordId,
   foreignerId,
   organizationId,
-  assignments,
-  control,
   onSubmit,
 }: UseRenewalFormSubmitOptions = {}): UseRenewalFormSubmitReturn {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [savedRecordId, setSavedRecordId] = useState<string | undefined>(recordId);
   const { show: showToast } = useToast();
 
@@ -87,7 +77,6 @@ export function useRenewalFormSubmit({
       .catch((err) => {
         if (!cancelled) {
           console.error('[先行保存エラー]', err);
-          // 失敗しても操作は続行可能（警告のみ）
         }
       })
       .finally(() => {
@@ -98,117 +87,15 @@ export function useRenewalFormSubmit({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // マウント時1回のみ
 
-  // ─── 2. オートセーブ機能: 特定フィールドの変更監視とDebounce保存 ────────────
-  // 担当者割り当て（assignments）フィールドを監視する
-  const watchedAssignments = useWatch({
-    control,
-    name: 'assignments',
-    disabled: !control,
-  });
-
-  const watchedAssignmentsStr = JSON.stringify(watchedAssignments);
-  const assignmentsStr = JSON.stringify(assignments);
-
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstMountForWatch = useRef(true);
-  const lastSavedAssignments = useRef<TabAssignments | null>(null);
-  const lastSavedData = useRef<RenewalApplicationFormData | null>(null);
-
-  useEffect(() => {
-    // 初回マウント時や必要な引数が揃っていない場合はスキップ
-    if (isFirstMountForWatch.current) {
-      isFirstMountForWatch.current = false;
-      return;
-    }
-
-    const currentAssignments = assignments || watchedAssignments;
-    if (!savedRecordId || !currentAssignments) return;
-
-    // 前回のタイマーをクリア（Debounce）
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // 5000ms 後に自動保存を実行
-    debounceTimerRef.current = setTimeout(async () => {
-      // タイマーが発火した時点でキューから外す（これ以降のページ離脱は警告不要）
-      debounceTimerRef.current = null;
-      setIsAutoSaving(true);
-      try {
-        // 前回保存した assignments と完全一致する場合は書き込みをスキップ（Write削減）
-        if (isEqual(currentAssignments, lastSavedAssignments.current)) {
-          return;
-        }
-
-        await renewalApplicationService.updateAssignments(savedRecordId, currentAssignments as TabAssignments);
-        lastSavedAssignments.current = currentAssignments as TabAssignments;
-        // UX上頻繁に出ると煩わしいため、成功通知は省略
-      } catch (err) {
-        console.error('[オートセーブエラー]', err);
-        showToast('error', '担当者の自動保存に失敗しました');
-      } finally {
-        setIsAutoSaving(false);
-      }
-    }, 5000);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedAssignmentsStr, assignmentsStr, savedRecordId, showToast]);
-
-  // ─── 2.5. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────
-  const flushDataRef = useRef({ savedRecordId, assignments, watchedAssignments });
-  useEffect(() => {
-    flushDataRef.current = { savedRecordId, assignments, watchedAssignments };
-  }, [savedRecordId, assignments, watchedAssignments]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (debounceTimerRef.current) {
-        e.preventDefault();
-        e.returnValue = ''; // ほとんどのブラウザで標準の警告ダイアログが表示される
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      
-      // アンマウント時（ページ遷移など）に未保存キューがあれば即座に保存実行
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-        
-        const { savedRecordId, assignments, watchedAssignments } = flushDataRef.current;
-        const currentAssignments = assignments || watchedAssignments;
-        
-        if (savedRecordId && currentAssignments) {
-          if (!isEqual(currentAssignments, lastSavedAssignments.current)) {
-            // アンマウント時なのでawaitせずバックグラウンドで実行
-            renewalApplicationService.updateAssignments(savedRecordId, currentAssignments as TabAssignments).catch((err) => {
-              console.error('[アンマウント時オートセーブエラー]', err);
-            });
-          }
-        }
-      }
-    };
-  }, []);
-
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(
     async (data: RenewalApplicationFormData): Promise<string> => {
-      const dataWithAssignments = { ...data, assignments: assignments || data.assignments };
-      const id = await renewalApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
+      const id = await renewalApplicationService.save(data, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
-      lastSavedData.current = dataWithAssignments;
-      if (onSubmit) await onSubmit(dataWithAssignments);
+      if (onSubmit) await onSubmit(data);
       return id;
     },
-    [savedRecordId, foreignerId, organizationId, assignments, onSubmit]
+    [savedRecordId, foreignerId, organizationId, onSubmit]
   );
 
   // ─── ① 保存のみ ──────────────────────────────────────────────────────────
@@ -251,7 +138,6 @@ export function useRenewalFormSubmit({
     isExporting,
     isBusy: isSaving || isExporting,
     isCreatingDraft,
-    isAutoSaving,
     handleSaveOnly,
     handleSaveAndExport,
     savedRecordId,

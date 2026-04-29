@@ -9,13 +9,12 @@ import {
   Mail, CheckCircle, XCircle
 } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
-import { TabAssignmentPanel } from '../TabAssignmentPanel';
 import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import {
   changeOfStatusApplicationSchema,
   type ChangeOfStatusApplicationFormData,
 } from '@/lib/schemas/changeOfStatusApplicationSchema';
-import type { TabId } from '@/lib/schemas/renewalApplicationSchema'; // Reusing TabId
+
 import { ForeignerInfoTab } from './foreigner/ForeignerInfoTab';
 import { EmployerInfoTab } from './employer/EmployerInfoTab';
 import { SimultaneousTab } from './simultaneous/SimultaneousTab';
@@ -23,9 +22,7 @@ import { ToastContainer, useToast } from '@/components/ui/Toast';
 import { useChangeOfStatusFormSubmit } from '@/hooks/useChangeOfStatusFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
 import { SectionPermissionProvider } from '@/contexts/SectionPermissionContext';
-import { resolveTemplate } from '@/lib/constants/assignmentTemplates';
 import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
-import type { TabAssignments } from '@/lib/schemas/renewalApplicationSchema';
 import { mergeWithDefaults } from '@/lib/utils/formUtils';
 import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
@@ -34,6 +31,8 @@ import { downloadChangeOfStatusCsv1 } from '@/utils/changeOfStatusCsvGenerator1'
 import { downloadChangeOfStatusCsvU } from '@/utils/changeOfStatusCsvGeneratorU';
 import { downloadChangeOfStatusCsvSimultaneous } from '@/utils/changeOfStatusCsvGeneratorSim';
 import { downloadChangeSpecificCsv } from '@/lib/csv/change/generateChangeSpecificCsv';
+
+type TabId = 'foreigner' | 'employer' | 'simultaneous';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
   { id: 'foreigner',    label: '外国人本人情報',     icon: User },
@@ -186,7 +185,6 @@ interface ChangeOfStatusFormProps {
   initialValues?: Partial<ChangeOfStatusApplicationFormData>;
   initialAiDiagnostics?: import('@/types/aiDiagnostics').DiagnosticItem[];
   hideHeader?: boolean;
-  initialAssignments?: TabAssignments;
   templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
@@ -351,7 +349,6 @@ export function ChangeOfStatusFormInner({
                 <div className="applicant-context-actions flex items-center gap-2 flex-wrap w-full md:w-auto pb-1 md:pb-0 shrink-0">
                   {!hideHeader && (
                     <>
-                      <TabAssignmentPanel />
 
                       {hasRequestReviewPermission && (
                         <button
@@ -534,7 +531,6 @@ export function ChangeOfStatusForm({
   recordId,
   foreignerId,
   initialValues,
-  initialAssignments,
   initialAiDiagnostics,
   hideHeader,
   templatesRecord,
@@ -542,13 +538,9 @@ export function ChangeOfStatusForm({
   const { currentUser } = useAuth();
   const userRole = currentUser?.role ?? 'branch_staff';
 
-  const effectiveInitialAssignments =
-    initialAssignments ?? (recordId ? {} : resolveTemplate('change', undefined, templatesRecord));
-
   return (
     <SectionPermissionProvider
       currentUserRole={userRole}
-      initialAssignments={effectiveInitialAssignments}
       templatesRecord={templatesRecord}
     >
       <ChangeOfStatusFormInner

@@ -15,6 +15,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   /** ログアウト */
   logout: () => Promise<void>;
+  /** Firestoreからユーザー情報を再取得してキャッシュを更新する */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   login: async () => {},
   logout: async () => {},
+  refreshUser: async () => {},
 });
 
 /**
@@ -85,8 +88,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     document.cookie = "__session=; path=/; max-age=0";
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const firebaseUser = (await import('@/lib/firebase/auth')).auth.currentUser;
+    if (!firebaseUser) return;
+    const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+    if (userDoc.exists()) {
+      setCurrentUser({ id: userDoc.id, ...userDoc.data() } as User);
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, logout }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

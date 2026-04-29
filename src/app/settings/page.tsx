@@ -11,7 +11,6 @@ import {
   type TabAssignmentTemplate,
   type DefaultAssignmentRole
 } from '@/lib/constants/assignmentTemplates';
-import type { TabId } from '@/lib/schemas/renewalApplicationSchema';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
 import { USER_ROLE_LABELS, type User } from '@/types/database';
 import Link from 'next/link';
@@ -23,13 +22,18 @@ const ASSIGNABLE_ROLES: { role: string; label: string }[] = [
   { role: 'enterprise_staff', label: USER_ROLE_LABELS.enterprise_staff },
 ];
 
-const TAB_LABELS: Record<TabId, string> = {
+/** 申請種別ごとのタブラベルマッピング（設定画面表示用） */
+const TAB_LABEL_MAP: Record<string, string> = {
+  // renewal / change
   foreigner: '外国人本人情報',
   employer: '所属機関（企業）情報',
   simultaneous: '同時申請',
+  // certification (COE)
+  identity: '身分事項',
+  applicant: '申請人情報',
+  representative: '代理人・取次者',
+  metadata: '申請メタデータ',
 };
-
-const TAB_IDS: TabId[] = ['foreigner', 'employer', 'simultaneous'];
 
 export default function SettingsPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -72,7 +76,7 @@ export default function SettingsPage() {
     loadData();
   }, [currentUser, authLoading, router, showToast]);
 
-  const handleRoleChange = (kind: ApplicationKind, tabId: TabId, role: string) => {
+  const handleRoleChange = (kind: ApplicationKind, tabId: string, role: string) => {
     if (!templates) return;
     const newRole = role === '' ? null : (role as DefaultAssignmentRole);
     setTemplates({
@@ -115,8 +119,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
       {/* ─── ヘッダー ────────────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-xs">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
             <Link
               href="/"
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
@@ -130,15 +133,6 @@ export default function SettingsPage() {
               </h1>
               <p className="text-xs text-slate-500 mt-1 font-medium">申請フローや業務ルールのカスタマイズ</p>
             </div>
-          </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm"
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            設定を保存する
-          </button>
         </div>
       </header>
 
@@ -179,20 +173,20 @@ export default function SettingsPage() {
               <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
                 <h3 className="text-md font-bold mb-4 text-slate-700 flex items-center gap-2">
                   <span className="w-1.5 h-4 bg-indigo-500 rounded-full inline-block"></span>
-                  {templates[activeTemplateTab].description} のデフォルト担当者
+                  {templates[activeTemplateTab].description} の担当者
                 </h3>
                 <div className="space-y-4">
-                  {TAB_IDS.map((tabId) => (
+                  {Object.keys(templates[activeTemplateTab].roles).map((tabId) => (
                     <div key={tabId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-lg border border-slate-200">
                       <label className="text-sm font-bold text-slate-600 min-w-[180px]">
-                        {TAB_LABELS[tabId]}
+                        {TAB_LABEL_MAP[tabId] || tabId}
                       </label>
                       <select
                         value={templates[activeTemplateTab].roles[tabId] ?? ''}
                         onChange={(e) => handleRoleChange(activeTemplateTab, tabId, e.target.value)}
                         className="flex-1 max-w-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
                       >
-                        <option value="">担当者なし（行政書士のみ）</option>
+                        <option value="">行政書士</option>
                         {ASSIGNABLE_ROLES.map(({ role, label }) => (
                           <option key={role} value={role}>
                             {label} ({role})
@@ -201,6 +195,18 @@ export default function SettingsPage() {
                       </select>
                     </div>
                   ))}
+                </div>
+
+                {/* ─── 保存ボタン（アサインテンプレート専用） ─── */}
+                <div className="mt-6 pt-4 border-t border-slate-200 flex justify-end">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm"
+                  >
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    担当者設定を保存
+                  </button>
                 </div>
               </div>
             )}

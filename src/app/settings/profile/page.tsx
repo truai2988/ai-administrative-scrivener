@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { auth } from '@/lib/firebase/auth';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
@@ -20,7 +20,9 @@ import {
   AlertCircle,
   Loader2,
   X,
-  KeyRound
+  KeyRound,
+  Save,
+  Pencil,
 } from 'lucide-react';
 
 // ─── トーストコンポーネント (ページローカル) ──────────────────────────────
@@ -74,12 +76,17 @@ function ToastNotification({
 
 // ─── メインコンポーネント ──────────────────────────────────────────────────
 export default function ProfileSettingsPage() {
-  const { currentUser, loading: authLoading } = useAuth();
+  const { currentUser, loading: authLoading, refreshUser } = useAuth();
   const router = useRouter();
 
   // プロフィール表示用
   const [orgName, setOrgName] = useState<string>('');
   const [loadingOrg, setLoadingOrg] = useState(true);
+
+  // 氏名編集用
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
 
   // パスワード変更フォーム用
   const [currentPassword, setCurrentPassword] = useState('');
@@ -124,6 +131,25 @@ export default function ProfileSettingsPage() {
     if (currentUser) fetchOrgName();
   }, [currentUser]);
 
+  // 氏名の保存処理
+  const handleSaveName = async () => {
+    if (!currentUser || !editName.trim()) return;
+    setIsSavingName(true);
+    try {
+      await updateDoc(doc(db, 'users', currentUser.id), {
+        displayName: editName.trim(),
+      });
+      await refreshUser();
+      setIsEditingName(false);
+      setToast({ type: 'success', message: '氏名を更新しました。' });
+    } catch (err) {
+      console.error('Failed to update displayName:', err);
+      setToast({ type: 'error', message: '氏名の更新に失敗しました。' });
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
   // パスワード変更処理
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,14 +167,10 @@ export default function ProfileSettingsPage() {
 
     setIsUpdating(true);
     try {
-      // 1. 再認証フロー（requires-recent-login の回避）
       const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
       await reauthenticateWithCredential(auth.currentUser, credential);
-
-      // 2. パスワード更新
       await updatePassword(auth.currentUser, newPassword);
 
-      // 成功
       setToast({ type: 'success', message: 'パスワードが正常に変更されました。\n次回から新しいパスワードでログインしてください。' });
       setCurrentPassword('');
       setNewPassword('');
@@ -198,7 +220,7 @@ export default function ProfileSettingsPage() {
 
       <main className="max-w-3xl mx-auto px-4 md:px-8 mt-10 space-y-8">
         
-        {/* ─── プロフィール情報 (Read-only) ─────────────────────────────────── */}
+        {/* ─── プロフィール情報 ─────────────────────────────────── */}
         <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
             <h2 className="font-bold text-slate-800">基本情報（担当者プロフィール）</h2>
@@ -206,13 +228,57 @@ export default function ProfileSettingsPage() {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* 名前 */}
+              {/* 名前（編集可能） */}
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="flex items-center gap-2 text-slate-500 mb-2">
-                  <User size={14} />
-                  <span className="text-xs font-bold">氏名（表示名）</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <User size={14} />
+                    <span className="text-xs font-bold">氏名（表示名）</span>
+                  </div>
+                  {!isEditingName && (
+                    <button
+                      onClick={() => {
+                        setEditName(currentUser.displayName || '');
+                        setIsEditingName(true);
+                      }}
+                      className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="編集"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  )}
                 </div>
-                <p className="font-bold text-slate-900">{currentUser.displayName}</p>
+                {isEditingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveName();
+                        if (e.key === 'Escape') setIsEditingName(false);
+                      }}
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={isSavingName || !editName.trim()}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                    >
+                      {isSavingName ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                      保存
+                    </button>
+                    <button
+                      onClick={() => setIsEditingName(false)}
+                      className="shrink-0 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="font-bold text-slate-900">{currentUser.displayName}</p>
+                )}
               </div>
 
               {/* メールアドレス */}
