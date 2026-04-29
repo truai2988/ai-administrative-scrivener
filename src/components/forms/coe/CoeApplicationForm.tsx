@@ -5,7 +5,8 @@ import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
-import { ClickToFillProvider } from '@/components/AiExtractionSidebar';
+import { ClickToFillProvider } from '@/contexts/ClickToFillContext';
+import { AttachmentProvider } from '@/contexts/AttachmentContext';
 import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
 
@@ -151,9 +152,24 @@ export function CoeApplicationFormInner({
 }: CoeApplicationFormProps) {
   const { toasts, dismiss, show: showToast } = useToast();
 
+  const mergedDefaultValues = React.useMemo(() => {
+    return { ...DEFAULT_VALUES, ...initialValues } as CoeApplicationFormData;
+  }, [initialValues]);
+  
+  const initialAttachmentsMap = React.useMemo(() => {
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      foreignerInfo: (mergedDefaultValues as any).attachments?.foreignerInfo || [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      employerInfo: (mergedDefaultValues as any).attachments?.employerInfo || [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      simultaneous: (mergedDefaultValues as any).attachments?.simultaneous || []
+    };
+  }, [mergedDefaultValues]);
+
   const methods = useForm<CoeApplicationFormData>({
     resolver: zodResolver(coeApplicationSchema),
-    defaultValues: { ...DEFAULT_VALUES, ...initialValues } as CoeApplicationFormData,
+    defaultValues: mergedDefaultValues,
     mode: 'onTouched',
   });
 
@@ -271,6 +287,11 @@ export function CoeApplicationFormInner({
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
       <FormProvider {...methods}>
+      <AttachmentProvider
+        applicationId={savedRecordId || recordId}
+        initialAttachments={initialAttachmentsMap}
+        readonly={!currentUser}
+      >
       <ClickToFillProvider>
       <div className="form-split-layout">
         <div className="form-main-content">
@@ -404,7 +425,9 @@ export function CoeApplicationFormInner({
       </form>
     </div>
     <AiAssistantSidePanel
-      extractionProps={{}}
+      extractionProps={{
+        activeTab: activeTab
+      }}
       diagnosticProps={{
         status: aiDiag.status,
         diagnostics: aiDiag.diagnostics,
@@ -419,6 +442,7 @@ export function CoeApplicationFormInner({
     />
     </div>
     </ClickToFillProvider>
+    </AttachmentProvider>
     </FormProvider>
     </>
   );

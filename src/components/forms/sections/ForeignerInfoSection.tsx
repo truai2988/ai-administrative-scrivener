@@ -11,7 +11,7 @@ import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
-import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
+
 import { useOcrExtract } from '@/hooks/useOcrExtract';
 import { useAuth } from '@/contexts/AuthContext';
 import { renewalFormOptions, getStayPeriodByStatus, getTechnicalInternWorkOptions } from '@/lib/constants/renewalFormOptions';
@@ -339,24 +339,6 @@ export function ForeignerInfoSection({
 
       {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
       <div className="subsection subsection--attachments">
-        <SharedFileUploader
-          applicationId={applicationId}
-          attachmentKey="foreignerInfo"
-          tabLabel="外国人本人"
-          initialAttachments={initialAttachments}
-          readonly={!isEditable}
-          globalLimitContext={globalLimitContext}
-          onAttachmentsChange={handleAttachmentsChange}
-          hints={[
-            'パスポート顔写真ページ',
-            '在留カード（表面）',
-            '在留カード（裏面）',
-            '課税証明書',
-            '合格証明書（技能・日本語）',
-            '在日親族の在留カード',
-          ]}
-        />
-
         {/* OCR バナー */}
         {isOcring && (
           <div style={{

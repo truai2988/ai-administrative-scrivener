@@ -9,7 +9,6 @@ import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormRadioGroup } from '../ui/FormRadio';
 import { FormTextarea } from '../ui/FormTextarea';
-import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 import { CompanyMasterSelector } from '../ui/CompanyMasterSelector';
 import { useCompanyMasters } from '@/hooks/useCompanyMasters';
 import { useAuth } from '@/contexts/AuthContext';
@@ -188,22 +187,6 @@ export function EmployerInfoSection({
 
       {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
       <div className="subsection subsection--attachments">
-        <SharedFileUploader
-          applicationId={applicationId}
-          attachmentKey="employerInfo"
-          tabLabel="所属機関"
-          initialAttachments={initialAttachments}
-          readonly={!isEditable}
-          globalLimitContext={globalLimitContext}
-          hints={[
-            '労働条件通知書',
-            '36協定',
-            '決算書（転職時）',
-            '雇用保険被保険肥料納付証明',
-            '社会保険料納付証明',
-          ]}
-        />
-        
         {isEditable && !hasAttachments && !hasFullAccess && (
           <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
             <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fbbf24', fontSize: '0.85rem' }}>

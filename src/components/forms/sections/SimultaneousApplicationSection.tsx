@@ -10,7 +10,6 @@ import { FormRadioGroup } from '../ui/FormRadio';
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormTextarea } from '../ui/FormTextarea';
-import { SharedFileUploader } from '@/components/ui/SharedFileUploader';
 import { renewalFormOptions } from '@/lib/constants/renewalFormOptions';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -79,21 +78,6 @@ export function SimultaneousApplicationSection({
 
       {/* ─── 添付書類 (最上部配置) ────────────────────────────────────────── */}
       <div className="subsection subsection--attachments">
-        <SharedFileUploader
-          applicationId={applicationId}
-          attachmentKey="simultaneous"
-          tabLabel="同時申請"
-          initialAttachments={initialAttachments}
-          readonly={!isEditable}
-          globalLimitContext={globalLimitContext}
-          hints={[
-            '婚姻証明書（配偶者の場合）',
-            '出生証明書（子の場合）',
-            '再入国許可用深知書',
-            '資格外活動許可証明書（再発行申請時）',
-          ]}
-        />
-        
         {isEditable && !hasAttachments && !hasFullAccess && (
           <div className="manual-entry-override" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '0.5rem', border: '1px dashed rgba(245, 158, 11, 0.3)' }}>
             <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fbbf24', fontSize: '0.85rem' }}>

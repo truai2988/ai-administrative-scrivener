@@ -40,6 +40,9 @@ import type { ExtractedItem } from '@/types/extractedItem';
 import { useClickToFillRequired } from '@/contexts/ClickToFillContext';
 import type { UseClickToFillReturn } from '@/hooks/useClickToFill';
 import { useDocumentExtraction } from '@/hooks/useDocumentExtraction';
+import { useAttachmentContext } from '@/contexts/AttachmentContext';
+import { FileList } from '@/components/ui/SharedFileUploader/FileList';
+import type { AttachmentTabId } from '@/lib/utils/fileUtils';
 
 // ============================================================
 // Props
@@ -53,10 +56,11 @@ export interface AiExtractionSidebarProps {
   /** 開閉トグルコールバック */
   onToggle: () => void;
   /** フィールドパス → 日本語ラベルのマップ（マッピング履歴表示用） */
-  /** フィールドパス → 日本語ラベルのマップ（マッピング履歴表示用） */
   fieldLabels?: Record<string, string>;
   /** サイドバー自体のヘッダーを隠すかどうか（外部タブ化用） */
   hideHeader?: boolean;
+  /** 現在アクティブなタブのID（推奨書類タグの切り替えなどに使用） */
+  activeTab?: string;
 }
 
 // ============================================================
@@ -409,11 +413,28 @@ export function AiExtractionSidebar({
   onToggle,
   fieldLabels,
   hideHeader,
+  activeTab = 'foreigner',
 }: AiExtractionSidebarProps) {
   const ctf: UseClickToFillReturn<FieldValues> = useClickToFillRequired();
   const extraction = useDocumentExtraction();
+  const { uploadToTab, attachmentsByTab, deleteFile, isUploading } = useAttachmentContext();
+  
+  // Defaulting to activeTab or 'foreignerInfo' if none provided
+  const resolvedTabId = activeTab === 'foreigner' ? 'foreignerInfo' : activeTab === 'employer' ? 'employerInfo' : activeTab;
+  const tabId = (['foreignerInfo', 'employerInfo', 'simultaneous'].includes(resolvedTabId) ? resolvedTabId : 'foreignerInfo') as AttachmentTabId;
+  const currentAttachments = attachmentsByTab[tabId] || [];
+
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [autoFilledCount, setAutoFilledCount] = useState<number>(0);
+  const [selectedHint, setSelectedHint] = useState<string | null>(null);
+
+  // 動的推奨タグの定義
+  const hintsMap: Record<AttachmentTabId, string[]> = {
+    foreignerInfo: ['パスポート写し', '在留カード写し', '顔写真 (3x4cm)', '住民税課税証明書', '住民税納税証明書'],
+    employerInfo: ['労働条件通知書', '36協定', '決算書（転職時）', '雇用保険被保険料納付証明', '社会保険料納付証明'],
+    simultaneous: ['婚姻証明書（配偶者の場合）', '出生証明書（子の場合）', '再入国許可申請書', '資格外活動許可証明書'],
+  };
+  const hints = hintsMap[tabId] || [];
 
   // 外部 items が変わったら初期化（アップロード結果がない場合のみ）
   useEffect(() => {
@@ -457,10 +478,20 @@ export function AiExtractionSidebar({
       setAutoFilledCount(0);
       // リセットして新規抽出開始
       ctf.resetAll();
-      await extraction.extractFromFile(file);
+      
+      const tag = selectedHint || undefined;
+      
+      // 並行処理で Firebase Storage 保存と OCR を実行
+      await Promise.all([
+        uploadToTab(file, tabId, tag),
+        extraction.extractFromFile(file)
+      ]);
+      
+      // アップロード開始後に選択状態をクリア
+      setSelectedHint(null);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [extraction.extractFromFile],
+    [extraction.extractFromFile, uploadToTab, tabId, selectedHint],
   );
 
   const mappedCount = ctf.extractedData.filter((d) => d.mapped).length;
@@ -520,12 +551,53 @@ export function AiExtractionSidebar({
               {/* 📎 アップロードエリア */}
               <UploadArea
                 onFileSelect={handleFileSelect}
-                isLoading={extraction.isLoading}
+                isLoading={extraction.isLoading || isUploading}
                 error={extraction.error}
                 hasData={ctf.extractedData.length > 0}
                 fileName={uploadedFileName}
                 onClearError={extraction.clearError}
               />
+              
+              {/* ─── 推奨書類ヒント（クリックして事前選択可能） ─── */}
+              {hints.length > 0 && (
+                <div className="px-4 py-2 border-b border-slate-700/50 bg-slate-800/30">
+                  <div className="text-xs text-slate-400 mb-2">推奨書類 (アップロード前に選択):</div>
+                  <div className="flex flex-wrap gap-2">
+                    {hints.map((hint) => {
+                      const isSelected = selectedHint === hint;
+                      const isDone = currentAttachments.some(a => a.tag === hint);
+                      return (
+                        <button
+                          key={hint}
+                          type="button"
+                          onClick={() => setSelectedHint(isSelected ? null : hint)}
+                          className={`px-2.5 py-1 text-[10px] rounded-full transition-all border ${
+                            isDone 
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                              : isSelected 
+                                ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-500/20' 
+                                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                          }`}
+                          title={isDone ? 'アップロード済み' : '選択してアップロード'}
+                        >
+                          {isDone && <CheckCircle2 size={10} className="inline mr-1" />}
+                          {!isDone && isSelected && <CheckCircle2 size={10} className="inline mr-1" />}
+                          {hint}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 添付ファイル一覧表示 */}
+              <div className="px-4 py-2 border-b border-slate-700/50">
+                <FileList 
+                  attachments={currentAttachments} 
+                  onDelete={(id) => deleteFile(tabId, id)} 
+                  readonly={false} 
+                />
+              </div>
 
               {/* ホールド中バナー */}
               <AnimatePresence>

@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
+import { ClickToFillProvider } from '@/contexts/ClickToFillContext';
+import { AttachmentProvider } from '@/contexts/AttachmentContext';
 import {
   changeOfStatusApplicationSchema,
   type ChangeOfStatusApplicationFormData,
@@ -319,12 +321,26 @@ export function ChangeOfStatusFormInner({
     }, 150);
   }, [setActiveTab, jumpLearning]);
 
+  const initialAttachmentsMap = useMemo(() => {
+    return {
+      foreignerInfo: mergedDefaultValues.attachments?.foreignerInfo || [],
+      employerInfo: mergedDefaultValues.attachments?.employerInfo || [],
+      simultaneous: mergedDefaultValues.attachments?.simultaneous || []
+    };
+  }, [mergedDefaultValues]);
+
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <FormProvider {...methods}>
+      <AttachmentProvider
+        applicationId={savedRecordId || recordId}
+        initialAttachments={initialAttachmentsMap}
+        readonly={!currentUser}
+      >
+      <ClickToFillProvider>
       <div className="form-split-layout">
         <div className="form-main-content">
-          <FormProvider {...methods}>
             <form noValidate className="renewal-form">
           <div className="renewal-form-sticky-top">
             <div className="applicant-context-header flex flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -504,11 +520,13 @@ export function ChangeOfStatusFormInner({
           </div>
 
         </form>
-      </FormProvider>
       </div> {/* form-main-content */}
 
       {/* ─── AIアシスタント Side Panel ─── */}
       <AiAssistantSidePanel
+        extractionProps={{
+          activeTab: effectiveTab
+        }}
         diagnosticProps={{
           status: aiDiag.status,
           diagnostics: aiDiag.diagnostics,
@@ -522,6 +540,9 @@ export function ChangeOfStatusFormInner({
         }}
       />
       </div> {/* form-split-layout */}
+      </ClickToFillProvider>
+      </AttachmentProvider>
+      </FormProvider>
     </>
   );
 }

@@ -22,6 +22,8 @@ import { EmployerInfoSection }            from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
 import { ToastContainer }                 from '@/components/ui/Toast';
 import { useToast }                       from '@/components/ui/Toast';
+import { ClickToFillProvider } from '@/contexts/ClickToFillContext';
+import { AttachmentProvider } from '@/contexts/AttachmentContext';
 import {
   SectionPermissionProvider,
   useSectionPermission,
@@ -241,6 +243,14 @@ function RenewalApplicationFormInner({
     () => mergeWithDefaults(initialValues, DEFAULT_VALUES),
     [initialValues]
   );
+  
+  const initialAttachmentsMap = useMemo(() => {
+    return {
+      foreignerInfo: mergedDefaultValues.attachments?.foreignerInfo || [],
+      employerInfo: mergedDefaultValues.attachments?.employerInfo || [],
+      simultaneous: mergedDefaultValues.attachments?.simultaneous || []
+    };
+  }, [mergedDefaultValues]);
 
   const methods = useForm<RenewalApplicationFormData>({
     resolver: zodResolver(renewalApplicationSchema),
@@ -338,9 +348,15 @@ function RenewalApplicationFormInner({
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <FormProvider {...methods}>
+      <AttachmentProvider
+        applicationId={savedRecordId || recordId}
+        initialAttachments={initialAttachmentsMap}
+        readonly={!isEditable('foreigner')}
+      >
+      <ClickToFillProvider>
       <div className="form-split-layout">
         <div className="form-main-content">
-          <FormProvider {...methods}>
             <form noValidate className="renewal-form">
 
           {/* ─── 上部固定エリア（ヘッダー・対象者情報・タブを束ねる） ──────────────── */}
@@ -579,12 +595,13 @@ function RenewalApplicationFormInner({
             );
           })()}
 
-        </form>
-      </FormProvider>
-      </div>
+            </form>
+        </div>
 
-      {/* ─── AIアシスタント Side Panel ─── */}
       <AiAssistantSidePanel
+        extractionProps={{
+          activeTab: effectiveTab
+        }}
         diagnosticProps={{
           status: aiDiag.status,
           diagnostics: aiDiag.diagnostics,
@@ -598,6 +615,9 @@ function RenewalApplicationFormInner({
         }}
       />
       </div>
+      </ClickToFillProvider>
+      </AttachmentProvider>
+      </FormProvider>
     </>
   );
 }
