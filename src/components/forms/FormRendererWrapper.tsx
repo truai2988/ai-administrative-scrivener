@@ -1,8 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { notFound } from 'next/navigation';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { DynamicFormRenderer } from '@/components/forms/DynamicFormRenderer';
+import { AttachmentProvider } from '@/contexts/AttachmentContext';
+import { ClickToFillProvider } from '@/contexts/ClickToFillContext';
+import { AiExtractionSidebar } from '@/components/AiExtractionSidebar';
 
 // === 各フォームの定義ファイル群 ===
 import { generateSkillTraineeEvaluationCsv } from '@/components/forms/generated/skillTraineeEvaluation/generateSkillTraineeEvaluationCsv';
@@ -24,9 +29,18 @@ export const formRegistry: Record<string, { config: any, schema: any, options: a
 export function FormRendererWrapper({ englishId }: { englishId: string }) {
   const formData = formRegistry[englishId];
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   if (!formData) {
     return notFound();
   }
+
+  // Schema-Drivenなフォーム初期化をラッパー側で行う（ProviderのスコープをAIサイドバーにも広げるため）
+  const methods = useForm({
+    resolver: zodResolver(formData.schema as any),
+    defaultValues: formData.options?.defaultValues || {},
+    mode: 'onChange',
+  });
 
   const handleSubmit = async (data: any) => {
     console.log('--- フォーム送信データ ---', data);
@@ -49,16 +63,35 @@ export function FormRendererWrapper({ englishId }: { englishId: string }) {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-12 px-6">
-      <h1 className="text-3xl font-black text-slate-800 mb-8 tracking-tight">
-        {formData.config.formName}
-      </h1>
-      <DynamicFormRenderer
-        config={formData.config}
-        schema={formData.schema}
-        options={formData.options}
-        onSubmit={handleSubmit}
-      />
-    </div>
+    <FormProvider {...methods}>
+      <AttachmentProvider applicationId="new" collectionName="dynamic_applications" readonly={false}>
+        <ClickToFillProvider>
+          <div className="form-split-layout">
+            <div className="form-main-content">
+              <div className="w-full max-w-[900px] mx-auto py-12 px-6">
+                <h1 className="text-3xl font-black text-slate-800 mb-8 tracking-tight">
+                  {formData.config.formName}
+                </h1>
+                <DynamicFormRenderer
+                  config={formData.config}
+                  schema={formData.schema}
+                  options={formData.options}
+                  onSubmit={handleSubmit}
+                />
+              </div>
+            </div>
+            
+            <div className="form-side-panel">
+              <div className="h-screen sticky top-0 bg-slate-900 border-l border-slate-800 flex flex-col w-[380px]">
+                <AiExtractionSidebar 
+                  isOpen={isSidebarOpen}
+                  onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                />
+              </div>
+            </div>
+          </div>
+        </ClickToFillProvider>
+      </AttachmentProvider>
+    </FormProvider>
   );
 }
