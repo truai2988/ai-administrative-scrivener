@@ -67,14 +67,17 @@ async function callGemini(prompt: string, apiKey: string): Promise<string> {
 
 // ─── プロンプト生成 ───────────────────────────────────────────────────────────
 
-function buildPrompt(
+function buildChunkPrompt(
+  chunkFields: ParsedFormStructure['fields'],
   parsed: ParsedFormStructure,
   formKey: string,
   formLabel: string,
+  chunkIndex: number,
+  totalChunks: number,
   exampleText?: string,
 ): string {
   // フィールド情報をコンパクトに整形
-  const fieldsSummary = parsed.fields.map((f, i) => {
+  const fieldsSummary = chunkFields.map((f, i) => {
     const parts = [
       `[${i}] "${f.label}"`,
       `section="${f.section}"`,
@@ -93,13 +96,18 @@ function buildPrompt(
   return `あなたは日本の入国管理局の申請書類のフォーム設計専門家です。
 以下のフォーム構造データから、TypeScript のコード生成に必要なフォーム定義を JSON で出力してください。
 
+【重要制約】
+これは全体フォームの「一部（パート ${chunkIndex} / ${totalChunks}）」です。
+渡された ${chunkFields.length} 個の項目について、スキーマ定義・計算ロジック・マッピングを「一切の省略なく100%」出力してください。
+トークンを節約するための "// 以降同様" などの省略は【厳禁】です。すべてのフィールドを必ず JSON に含めてください。
+
 # 対象フォーム
 - 書類名: ${formLabel}
 - フォームキー: ${formKey}
 - シート数: ${parsed.sheets.length} (${parsed.sheets.join(', ')})
-- 検出フィールド数: ${parsed.fields.length}
+- 現在処理中のフィールド数: ${chunkFields.length}
 
-# フィールド一覧
+# フィールド一覧（このパートで処理すべき全項目）
 ${fieldsSummary}
 
 ${exampleText ? `\n# 記載例テキスト（参考）\n${exampleText.substring(0, 3000)}\n` : ''}
@@ -147,7 +155,12 @@ ${exampleText ? `\n# 記載例テキスト（参考）\n${exampleText.substring(
       "headerCount": 84,
       "headers": ["ヘッダー1", "ヘッダー2", "..."]
     }
-  ]
+  ],
+  "initialFieldMappings": {
+    "身分事項 > 氏名（英字）": "identityInfo.nameEn",
+    "身分事項 > 国籍": "identityInfo.nationality",
+    "旅券情報 > 旅券番号": "passportInfo.passportNumber"
+  }
 }
 
 # 重要な解析ルール
@@ -168,7 +181,13 @@ ${exampleText ? `\n# 記載例テキスト（参考）\n${exampleText.substring(
     - その場合、計算に必要な他のフィールドの fieldKey を "dependencies": ["fieldA", "fieldB"] のように配列で指定する。
     - "computedLogic" には、計算を行うJSのアロー関数文字列を指定する。
       例: "(fieldA, fieldB) => Number(fieldA || 0) + Number(fieldB || 0)"
-      例: "(birthDate) => birthDate ? Math.floor((new Date() - new Date(birthDate.slice(0,4)+'-'+birthDate.slice(4,6)+'-'+birthDate.slice(6,8)))/31557600000) : 0"`;
+      例: "(birthDate) => birthDate ? Math.floor((new Date() - new Date(birthDate.slice(0,4)+'-'+birthDate.slice(4,6)+'-'+birthDate.slice(6,8)))/31557600000) : 0"
+12. initialFieldMappings の推論:
+    - AI書類読み取り機能（画像解析）が、このフォームに関連する書類（パスポート、在留カード、住民票課税証明書等）を読み取った際に返しそうな標準的な breadcrumb を推論する。
+    - breadcrumb のセクション名は以下を使用すること: 身分事項、日本における連絡先、所属機関等、旅券情報、本国における居住地、家族情報、学歴・職歴、技能実習、評価・試験
+    - キーは "セクション > フィールド名" 形式（例: "身分事項 > 氏名（英字）"）。
+    - 値は "sectionKey.fieldKey" 形式（例: "identityInfo.nameEn"）。
+    - フォームの全フィールドについて、対応しそうな breadcrumb があれば網羅的にマッピングすること。`;
 }
 
 // ─── メイン関数 ───────────────────────────────────────────────────────────────
@@ -190,43 +209,101 @@ export async function analyzeWithGemini(
   apiKey: string,
   exampleText?: string,
 ): Promise<AnalyzedFormDefinition> {
-  console.log('\n🤖 Gemini AI による構造解析を開始...');
+  console.log('\n🤖 Gemini AI による構造解析を開始（Chunking & Merging）...');
   console.log(`   モデル: gemini-2.5-flash`);
-  console.log(`   フィールド数: ${parsed.fields.length}`);
+  console.log(`   全フィールド数: ${parsed.fields.length}`);
 
-  const prompt = buildPrompt(parsed, formKey, formLabel, exampleText);
+  // チャンクサイズ（1回のリクエストでGeminiに渡すフィールド数）
+  const CHUNK_SIZE = 40;
+  const chunks: ParsedFormStructure['fields'][] = [];
+  for (let i = 0; i < parsed.fields.length; i += CHUNK_SIZE) {
+    chunks.push(parsed.fields.slice(i, i + CHUNK_SIZE));
+  }
 
-  console.log(`   プロンプト長: ${prompt.length.toLocaleString()} 文字`);
-  console.log('   ⏳ AI 解析中...\n');
+  console.log(`   チャンク数: ${chunks.length} (サイズ: ${CHUNK_SIZE})`);
 
-  const rawResponse = await callGemini(prompt, apiKey);
+  const mergedDefinition: AnalyzedFormDefinition = {
+    formName: formLabel,
+    formKey: formKey,
+    sections: [],
+    csvFiles: [],
+    computedRules: [],
+    initialFieldMappings: {},
+  };
 
-  // JSON パース
-  let definition: AnalyzedFormDefinition;
-  try {
-    definition = JSON.parse(rawResponse) as AnalyzedFormDefinition;
-  } catch {
-    // JSON がマークダウンのコードブロックに包まれている場合
-    const jsonMatch = rawResponse.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-    if (jsonMatch) {
-      definition = JSON.parse(jsonMatch[1]) as AnalyzedFormDefinition;
-    } else {
-      console.error('⚠️ AI レスポンスの JSON パースに失敗しました。');
-      console.error('生レスポンス (先頭500文字):', rawResponse.substring(0, 500));
-      throw new Error('AI レスポンスのパースに失敗しました');
+  for (let i = 0; i < chunks.length; i++) {
+    const chunkFields = chunks[i];
+    console.log(`\n   ⏳ [${i + 1}/${chunks.length}] チャンク解析中 (${chunkFields.length} フィールド)...`);
+    
+    const prompt = buildChunkPrompt(chunkFields, parsed, formKey, formLabel, i + 1, chunks.length, exampleText);
+    const rawResponse = await callGemini(prompt, apiKey);
+
+    let partialDef: AnalyzedFormDefinition;
+    try {
+      partialDef = JSON.parse(rawResponse) as AnalyzedFormDefinition;
+    } catch {
+      const jsonMatch = rawResponse.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+      if (jsonMatch) {
+        partialDef = JSON.parse(jsonMatch[1]) as AnalyzedFormDefinition;
+      } else {
+        console.error(`⚠️ チャンク ${i + 1} の JSON パースに失敗しました。スキップします。`);
+        console.error('生レスポンス (先頭500文字):', rawResponse.substring(0, 500));
+        continue;
+      }
+    }
+
+    // --- Merging ロジック ---
+    if (partialDef.sections) {
+      for (const partialSection of partialDef.sections) {
+        // 既存のセクションがあるかチェック（sectionKey または sectionLabel でマッチ）
+        const existingSection = mergedDefinition.sections.find(
+          s => s.sectionKey === partialSection.sectionKey || s.sectionLabel === partialSection.sectionLabel
+        );
+        if (existingSection) {
+          // 既存のセクションにフィールドを追加（重複排除）
+          for (const newField of partialSection.fields) {
+            if (!existingSection.fields.some(f => f.fieldKey === newField.fieldKey)) {
+              existingSection.fields.push(newField);
+            }
+          }
+        } else {
+          // 新しいセクションを追加
+          mergedDefinition.sections.push(partialSection);
+        }
+      }
+    }
+
+    if (partialDef.csvFiles) {
+      for (const partialCsv of partialDef.csvFiles) {
+        const existingCsv = mergedDefinition.csvFiles?.find(c => c.fileName === partialCsv.fileName);
+        if (existingCsv) {
+          // ヘッダーの重複を避ける
+          const newHeaders = partialCsv.headers.filter(h => !existingCsv.headers.includes(h));
+          existingCsv.headers.push(...newHeaders);
+          existingCsv.headerCount = existingCsv.headers.length;
+        } else {
+          mergedDefinition.csvFiles?.push(partialCsv);
+        }
+      }
+    }
+
+    if (partialDef.computedRules) {
+      mergedDefinition.computedRules?.push(...partialDef.computedRules);
+    }
+
+    if (partialDef.initialFieldMappings) {
+      mergedDefinition.initialFieldMappings = {
+        ...mergedDefinition.initialFieldMappings,
+        ...partialDef.initialFieldMappings,
+      };
     }
   }
 
-  // 基本的なバリデーション
-  if (!definition.sections || !Array.isArray(definition.sections)) {
-    throw new Error('AI レスポンスに sections 配列がありません');
-  }
+  const totalFields = mergedDefinition.sections.reduce((sum, s) => sum + s.fields.length, 0);
+  console.log('\n🤖 Gemini AI 解析完了（マージ結果）:');
+  console.log(`   セクション数: ${mergedDefinition.sections.length}`);
+  console.log(`   マージ後フィールド数: ${totalFields} / ${parsed.fields.length}`);
+  console.log(`   CSVファイル数: ${mergedDefinition.csvFiles?.length || 0}`);
 
-  const totalFields = definition.sections.reduce((sum, s) => sum + s.fields.length, 0);
-  console.log('🤖 Gemini AI 解析完了:');
-  console.log(`   セクション数: ${definition.sections.length}`);
-  console.log(`   フィールド数: ${totalFields}`);
-  console.log(`   CSVファイル数: ${definition.csvFiles?.length || 0}`);
-
-  return definition;
+  return mergedDefinition;
 }

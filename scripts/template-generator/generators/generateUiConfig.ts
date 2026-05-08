@@ -31,29 +31,30 @@ export function generateUiConfig(definition: AnalyzedFormDefinition): string {
     });
   });
 
-  // Config オブジェクトを文字列化（関数部分は文字列としてそのまま出力させたいので特殊処理）
-  let configStr = JSON.stringify({
+  // fieldMappings: AIが推論した初期マッピング（breadcrumbKey → sectionKey.fieldKey）
+  const fieldMappings: Record<string, string> = definition.initialFieldMappings || {};
+
+  // Config オブジェクトを構築
+  const configObj: FormUiConfig = {
     formKey: definition.formKey,
     formName: definition.formName,
     sections: sections,
-    computedRules: computedRules
-  }, null, 2);
+    computedRules: computedRules,
+  };
 
-  // JSON文字列内の computedRules の logic を文字列リテラルではなく生の関数コードとして展開する
-  // 例: "logic": "(A) => A + 1"  -> logic: (A) => A + 1
-  // ただし、AIは計算ロジックをJSの文字列として返す（"logic": "(A) => A + 1"）。
-  // 設定ファイル上では関数文字列として保持し、レンダラー側で new Function や eval は使わず、
-  // 安全に評価するなら文字列のまま保持するか、コードとして埋め込むか。
-  // ユーザーの指示は「logic: '(A, B) => Number(A || 0) + Number(B || 0)'」のように文字列としての保持のようにも見えるが、
-  // 例の記法を見ると「logic: '(A, B) => ...'」と文字列リテラルになっている。
-  // したがってそのまま JSON.stringify の結果（文字列）でOKだが、出力コードをクリーンにするために
-  // 必要な部分だけ調整する。
+  // fieldMappings が存在する場合のみプロパティに含める
+  if (Object.keys(fieldMappings).length > 0) {
+    configObj.fieldMappings = fieldMappings;
+  }
+
+  const configStr = JSON.stringify(configObj, null, 2);
 
   return `/**
  * ${definition.formName} — Schema-Driven UI Config
  *
  * ※ このファイルはテンプレート登録システムにより自動生成されました。
  * ※ UIの描画順序や自動計算ロジック（computedRules）を定義しています。
+ * ※ fieldMappings はAI書類読み取りの自動入力に使用されます。
  */
 
 import type { FormUiConfig } from '@/components/forms/types/uiConfigTypes';

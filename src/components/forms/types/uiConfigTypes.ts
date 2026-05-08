@@ -1,7 +1,7 @@
 export interface ComputedRule {
-  targetField: string;
-  dependencies: string[];
-  logic: string;
+  readonly targetField: string;
+  readonly dependencies: readonly string[];
+  readonly logic: string;
 }
 
 export interface UiSection {
@@ -15,4 +15,6 @@ export interface FormUiConfig {
   formName: string;
   readonly sections: readonly UiSection[];
   readonly computedRules: readonly ComputedRule[];
+  /** AI推論による初期フィールドマッピング（breadcrumbKey → sectionKey.fieldKey） */
+  readonly fieldMappings?: Readonly<Record<string, string>>;
 }

@@ -40,3 +40,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.env
+
+# Python / FastAPI
+backend/venv/
+backend/.venv/
+backend/.env
+__pycache__/
+*.pyc
+*.pyo

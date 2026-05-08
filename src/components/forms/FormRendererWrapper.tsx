@@ -15,10 +15,10 @@ import type { FormUiConfig } from '@/components/forms/types/uiConfigTypes';
 import type { FieldValues } from 'react-hook-form';
 
 // === 各フォームの定義ファイル群 ===
-import { generateSkillTraineeEvaluationCsv } from '@/components/forms/generated/skillTraineeEvaluation/generateSkillTraineeEvaluationCsv';
-import { skillTraineeEvaluationSchema } from '@/components/forms/generated/skillTraineeEvaluation/skillTraineeEvaluationSchema';
-import { skillTraineeEvaluationUiConfig } from '@/components/forms/generated/skillTraineeEvaluation/skillTraineeEvaluationUiConfig';
-import { skillTraineeEvaluationFormOptions } from '@/components/forms/generated/skillTraineeEvaluation/skillTraineeEvaluationFormOptions';
+import { generateTechnicalInternEvaluationPart1Csv } from '@/components/forms/generated/technicalInternEvaluation/generateTechnicalInternEvaluationCsv';
+import { technicalInternEvaluationSchema } from '@/components/forms/generated/technicalInternEvaluation/technicalInternEvaluationSchema';
+import { technicalInternEvaluationUiConfig } from '@/components/forms/generated/technicalInternEvaluation/technicalInternEvaluationUiConfig';
+import { technicalInternEvaluationFormOptions } from '@/components/forms/generated/technicalInternEvaluation/technicalInternEvaluationFormOptions';
 
 // フォームレジストリのエントリ型
 interface FormRegistryEntry {
@@ -31,16 +31,19 @@ interface FormRegistryEntry {
 
 // 将来的に追加されるフォームをここにマッピングする
 export const formRegistry: Record<string, FormRegistryEntry> = {
-  skillTraineeEvaluation: {
-    config: skillTraineeEvaluationUiConfig,
-    schema: skillTraineeEvaluationSchema,
-    options: skillTraineeEvaluationFormOptions,
-    csvGenerator: generateSkillTraineeEvaluationCsv as (data: FieldValues) => string,
+  technicalInternEvaluation: {
+    config: technicalInternEvaluationUiConfig,
+    schema: technicalInternEvaluationSchema,
+    options: technicalInternEvaluationFormOptions,
+    csvGenerator: generateTechnicalInternEvaluationPart1Csv,
   },
   // 今後他のフォームが生成されたら追加していく
 };
 
 export function FormRendererWrapper({ englishId }: { englishId: string }) {
+  console.log("=== FormRendererWrapper DEBUG ===");
+  console.log("Available keys:", Object.keys(formRegistry));
+  console.log("Requested englishId:", englishId);
   const formData = formRegistry[englishId];
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -88,7 +91,7 @@ export function FormRendererWrapper({ englishId }: { englishId: string }) {
   return (
     <FormProvider {...methods}>
       <AttachmentProvider applicationId="new" collectionName="dynamic_applications" readonly={false}>
-        <ClickToFillProvider>
+        <ClickToFillProvider staticMappings={formData.config.fieldMappings as Record<string, string> | undefined}>
           <div className="form-split-layout">
             <div className="form-main-content">
               <div className="w-full max-w-[900px] mx-auto py-12 px-6">
@@ -138,7 +141,7 @@ export function FormRendererWrapper({ englishId }: { englishId: string }) {
             </div>
             
             <div className="form-side-panel">
-              <div className="h-screen sticky top-0 bg-white border-l border-slate-200 flex flex-col w-[380px]">
+              <div className="h-screen sticky top-0 bg-white border-l border-slate-200 flex flex-col w-[380px] overflow-y-auto">
                 <AiExtractionSidebar 
                   isOpen={isSidebarOpen}
                   onToggle={() => setIsSidebarOpen(!isSidebarOpen)}

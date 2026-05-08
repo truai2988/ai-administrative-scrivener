@@ -80,6 +80,8 @@ export interface UseClickToFillReturn<T extends FieldValues> {
 interface UseClickToFillOptions {
   /** Firestore への保存関数（useMappingPreferences から注入） */
   onSaveMapping?: SaveMappingCallback;
+  /** UiConfig 由来の静的初期マッピング（breadcrumbKey → fieldPath） */
+  staticMappings?: Record<string, string>;
 }
 
 export function useClickToFill<T extends FieldValues>(
@@ -143,45 +145,48 @@ export function useClickToFill<T extends FieldValues>(
   //   <select> 要素の場合は options から部分一致で最適な value を検索する。
   const fillField = useCallback(
     (e: React.MouseEvent, fieldPath: FieldPath<T>) => {
-      if (!heldData || !heldItemId) return;
+      console.log(`[ClickToFill] 🟢 fillField開始: target=${fieldPath}`);
+      if (!heldData || !heldItemId) {
+        console.log(`[ClickToFill] 🟡 保持データがないためキャンセル (heldData=${heldData}, heldItemId=${heldItemId})`);
+        return;
+      }
 
       // input へのフォーカスを阻止（フィルモード専用）
       e.preventDefault();
 
       // --- 正規化 + セレクトボックス対応 ---
       let valueToFill: string = normalizeForField(heldData, fieldPath);
+      console.log(`[ClickToFill] 🔵 正規化後: "${heldData}" -> "${valueToFill}"`);
 
       // <select> 要素の場合: options から部分一致検索
       const targetEl = e.currentTarget as HTMLElement;
+      console.log(`[ClickToFill] 🔵 ターゲット要素: ${targetEl.tagName}`);
 
       if (targetEl.tagName === 'SELECT') {
         const selectEl = targetEl as HTMLSelectElement;
-        const options = Array.from(selectEl.options)
+        const selectOptions = Array.from(selectEl.options)
           .filter((opt) => opt.value !== '') // placeholder を除外
           .map((opt) => ({ value: opt.value, label: opt.textContent ?? '' }));
 
-
-        const matched = findBestOptionMatch(heldData, options);
+        const matched = findBestOptionMatch(heldData, selectOptions);
 
         if (matched !== null) {
           valueToFill = matched;
+          console.log(`[ClickToFill] 🔵 セレクト一致: "${heldData}" -> value="${matched}"`);
+        } else {
+          console.log(`[ClickToFill] 🟡 セレクト一致なし: そのまま代入`);
         }
-        // マッチしない場合はそのまま正規化済みの値を代入（Zod が検出）
       }
 
-
-
       // React Hook Form に正規化済みの値を代入
-      // shouldValidate: true で即座にバリデーション実行 + UI 再レンダリング
+      console.log(`[ClickToFill] 🟣 setValue実行: path=${fieldPath}, value=${valueToFill}`);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setValue(fieldPath, valueToFill as any, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
 
-      // register ベースの非制御コンポーネント対応:
-      // setValue は RHF 内部の値を更新するが、DOM 要素の .value が
-      // 同期されない場合があるため、直接 DOM を更新する補強措置。
+      // register ベースの非制御コンポーネント対応
       if (targetEl instanceof HTMLSelectElement || targetEl instanceof HTMLInputElement || targetEl instanceof HTMLTextAreaElement) {
-
         targetEl.value = valueToFill;
+        console.log(`[ClickToFill] 🟣 DOM直接更新: tag=${targetEl.tagName}, value=${valueToFill}`);
       }
 
       // ── 学習フィードバック: breadcrumb → fieldPath を送信 ──────────────
@@ -216,31 +221,52 @@ export function useClickToFill<T extends FieldValues>(
       setHeldData(null);
       setHeldItemId(null);
     },
-    [heldData, heldItemId, setValue],
+    [heldData, heldItemId, setValue, options],
   );
 
-  // --- 既知マッピングの一括自動適用 ---
-  // 学習辞書に登録済みの breadcrumb を持つ未マッピングアイテムを
-  // ユーザーのクリックなしに即座に setValue で代入する。
+  // --- 既知マッピングの一括自動適用（2段構え）---
+  // ① まず静的マッピング（UiConfig.fieldMappings 由来）を照合
+  // ② 次に動的マッピング（Firestore 学習辞書）を照合して残りを自動入力
   // 戻り値: 自動適用された件数
   const autoFillKnownMappings = useCallback((): number => {
-    const currentItems = extractedDataRef.current;
-    if (currentItems.length === 0 || Object.keys(learnedMappings).length === 0) return 0;
+    console.log(`[AutoFill] 🔄 autoFillKnownMappings 開始`);
+    // useEffect のタイミングズレによる race condition を防ぐため、ref ではなく state を直接参照する
+    const currentItems = extractedData;
+    if (currentItems.length === 0) {
+      console.log(`[AutoFill] 🟡 抽出データなし`);
+      return 0;
+    }
+
+    const combinedMappings: Record<string, string> = {
+      ...(options?.staticMappings || {}),
+      ...learnedMappings,
+    };
+    console.log(`[AutoFill] ℹ️ マッピング辞書: ${Object.keys(combinedMappings).length}件`, combinedMappings);
+
+    if (Object.keys(combinedMappings).length === 0) return 0;
 
     let filledCount = 0;
     const updatedItems = [...currentItems];
 
     for (let i = 0; i < updatedItems.length; i++) {
       const item = updatedItems[i];
-      // 既にマッピング済み or breadcrumb なし → スキップ
       if (item.mapped || !item.breadcrumb || item.breadcrumb.length === 0) continue;
 
       const key = breadcrumbToKey(item.breadcrumb);
-      const targetFieldPath = learnedMappings[key];
+      let targetFieldPath = combinedMappings[key];
       if (!targetFieldPath) continue;
 
-      // 正規化してから setValue
+      let el = document.querySelector(`[name="${targetFieldPath}"]`) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+      
+      // 🔄 フォールバック: 学習済みマッピングのDOM要素が存在しない場合、静的マッピングを試す
+      if (!el && options?.staticMappings && options.staticMappings[key] && options.staticMappings[key] !== targetFieldPath) {
+        console.warn(`[AutoFill] ⚠️ 学習済みマッピング [name="${targetFieldPath}"] が見つかりません。静的マッピング [name="${options.staticMappings[key]}"] にフォールバックします。`);
+        targetFieldPath = options.staticMappings[key];
+        el = document.querySelector(`[name="${targetFieldPath}"]`) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+      }
+
       const normalized = normalizeForField(item.value, targetFieldPath);
+      console.log(`[AutoFill] 🟢 マッチ成功: [${key}] -> ${targetFieldPath} (値: "${normalized}")`);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setValue(targetFieldPath as FieldPath<T>, normalized as any, {
@@ -249,27 +275,31 @@ export function useClickToFill<T extends FieldValues>(
         shouldValidate: true,
       });
 
-      // DOM 直接同期（非制御コンポーネント対応）
-      const el = document.querySelector(`[name="${targetFieldPath}"]`) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
-      if (el) el.value = normalized;
+      if (el) {
+        el.value = normalized;
+        console.log(`[AutoFill] 🟣 DOM直接更新: tag=${el.tagName}, name=${targetFieldPath}`);
+        
+        updatedItems[i] = { ...item, mapped: true, mappedTo: targetFieldPath, autoFilled: true };
+        filledCount++;
 
-      // アイテムを「マッピング済み（自動）」に更新
-      updatedItems[i] = { ...item, mapped: true, mappedTo: targetFieldPath, autoFilled: true };
-      filledCount++;
-
-      // マッピングログに追加
-      setMappingLog((prev) => [
-        ...prev,
-        { from: item.value, to: targetFieldPath, value: normalized },
-      ]);
+        setMappingLog((prev) => [
+          ...prev,
+          { from: item.value, to: targetFieldPath, value: normalized },
+        ]);
+      } else {
+        console.warn(`[AutoFill] ⚠️ DOM要素が見つかりません（別フォームの項目の可能性）: [name="${targetFieldPath}"]`);
+      }
     }
 
     if (filledCount > 0) {
+      console.log(`[AutoFill] ✅ 自動入力完了: ${filledCount}件`);
       setExtractedData(updatedItems);
+    } else {
+      console.log(`[AutoFill] 🟡 自動入力対象なし`);
     }
 
     return filledCount;
-  }, [learnedMappings, setValue]);
+  }, [extractedData, learnedMappings, setValue, options]);
 
   // --- 全状態をリセット ---
   const resetAll = useCallback(() => {

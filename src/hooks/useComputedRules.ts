@@ -1,41 +1,41 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { useWatch, type Control, type UseFormSetValue, type FieldValues, type Path, type PathValue } from 'react-hook-form';
+import { useFormContext, useWatch, type Path, type PathValue, type FieldValues } from 'react-hook-form';
 import type { ComputedRule } from '@/components/forms/types/uiConfigTypes';
 
 export function useComputedRules<TFieldValues extends FieldValues = FieldValues>(
-  control: Control<TFieldValues>,
-  setValue: UseFormSetValue<TFieldValues>,
-  rules: ComputedRule[]
+  rules: readonly ComputedRule[]
 ) {
+  const { control, setValue, getValues } = useFormContext<TFieldValues>();
+
   // すべてのルールが依存しているフィールドのユニークなリストを作成
   const allDependencies = useMemo(() => {
     const deps = new Set<string>();
     rules.forEach(rule => {
       rule.dependencies.forEach(dep => deps.add(dep));
     });
-    return Array.from(deps);
+    return Array.from(deps) as Path<TFieldValues>[];
   }, [rules]);
 
   // 全依存フィールドの値を監視
   const watchedValuesArray = useWatch({
     control,
-    name: allDependencies as unknown as readonly Path<TFieldValues>[],
+    name: allDependencies,
   });
 
-  // フィールド名 -> 値 のマップを作成
-  const watchedValues = useMemo(() => {
-    const map: Record<string, unknown> = {};
-    allDependencies.forEach((dep, index) => {
-      map[dep] = watchedValuesArray[index];
-    });
-    return map;
-  }, [allDependencies, watchedValuesArray]);
+  // 値の安定した文字列表現を作成（無限ループ防止）
+  const watchedValuesStr = JSON.stringify(watchedValuesArray);
 
   // 値が変更されたら各ルールを評価
   useEffect(() => {
     if (rules.length === 0) return;
+
+    // フィールド名 -> 値 のマップを作成
+    const map: Record<string, unknown> = {};
+    allDependencies.forEach((dep, index) => {
+      map[dep] = watchedValuesArray[index];
+    });
 
     rules.forEach(rule => {
       try {
@@ -44,23 +44,32 @@ export function useComputedRules<TFieldValues extends FieldValues = FieldValues>
         const evaluator = new Function(`return ${rule.logic}`)();
         
         // 依存フィールドの値を引数として準備
-        const args = rule.dependencies.map(dep => watchedValues[dep]);
+        const args = rule.dependencies.map(dep => map[dep]);
         
         // 計算実行
         const result = evaluator(...args);
 
-        // NaN や Infinity を防ぐフォールバック処理
         const target = rule.targetField as Path<TFieldValues>;
+        const currentValue = getValues(target);
+        let newValue: unknown;
+
+        // NaN や Infinity を防ぐフォールバック処理
         if (typeof result === 'number' && (!isFinite(result) || isNaN(result))) {
-          setValue(target, '0' as PathValue<TFieldValues, Path<TFieldValues>>, { shouldValidate: true, shouldDirty: true });
+          newValue = '0';
         } else if (result === undefined || result === null) {
-          setValue(target, '' as PathValue<TFieldValues, Path<TFieldValues>>, { shouldValidate: true, shouldDirty: true });
+          newValue = '';
         } else {
-          setValue(target, String(result) as PathValue<TFieldValues, Path<TFieldValues>>, { shouldValidate: true, shouldDirty: true });
+          newValue = String(result);
+        }
+
+        // 現在の値と異なる場合のみ更新（無限ループ防止）
+        if (String(currentValue) !== String(newValue)) {
+          setValue(target, newValue as PathValue<TFieldValues, Path<TFieldValues>>, { shouldValidate: true, shouldDirty: true });
         }
       } catch (error) {
         console.warn(`[ComputedRule Error] target: ${rule.targetField}`, error);
       }
     });
-  }, [watchedValues, rules, setValue]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedValuesStr, rules, setValue, getValues, allDependencies]);
 }

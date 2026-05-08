@@ -127,6 +127,8 @@ export interface FormUiConfig {
   formName: string;
   sections: UiSection[];
   computedRules: ComputedRule[];
+  /** AI推論による初期フィールドマッピング（breadcrumbKey → sectionKey.fieldKey） */
+  fieldMappings?: Record<string, string>;
 }
 
 /** AI が推定したセクション定義 */
@@ -161,6 +163,8 @@ export interface AnalyzedFormDefinition {
   csvFiles: AnalyzedCsvFile[];
   /** 元のFirestoreテンプレートID（もしあれば） */
   templateId?: string;
+  /** AI推論による初期フィールドマッピング（breadcrumbKey → sectionKey.fieldKey） */
+  initialFieldMappings?: Record<string, string>;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

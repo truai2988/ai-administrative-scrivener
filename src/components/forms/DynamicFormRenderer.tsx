@@ -3,27 +3,40 @@
 import React from 'react';
 import { useFormContext, Controller, type FieldValues, type Path } from 'react-hook-form';
 import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Save } from 'lucide-react';
 import type { FormUiConfig } from './types/uiConfigTypes';
 import { useComputedRules } from '@/hooks/useComputedRules';
+import { useClickToFillContext } from '@/contexts/ClickToFillContext';
 
 interface DynamicFormRendererProps<TFieldValues extends FieldValues = FieldValues> {
   config: FormUiConfig;
-  schema: z.ZodSchema<TFieldValues>;
+  schema: Parameters<typeof zodResolver>[0];
   options?: Record<string, { value: string; label: string }[]>;
   onSubmit: (data: TFieldValues) => void;
   isSubmitting?: boolean;
 }
 
 // Zodスキーマから必須項目かどうかを判定するヘルパー
-function isFieldRequired(schema: z.ZodSchema<unknown>, fieldName: string): boolean {
+function isFieldRequired(schema: unknown, sectionKey: string, fieldKey: string): boolean {
   try {
     if (schema instanceof z.ZodObject) {
-      const fieldSchema = schema.shape[fieldName];
-      if (!fieldSchema) return false;
-      // ZodOptionalでラップされている場合は必須ではない
-      if (fieldSchema instanceof z.ZodOptional) return false;
-      return true;
+      // 1段目: セクションスキーマを取得
+      let sectionSchema = schema.shape[sectionKey];
+      if (!sectionSchema) return false;
+      
+      // optional()等でラップされている場合はunwrapする
+      if (sectionSchema instanceof z.ZodOptional) {
+        sectionSchema = sectionSchema.unwrap();
+      }
+      
+      // 2段目: フィールドスキーマを取得
+      if (sectionSchema instanceof z.ZodObject) {
+        const fieldSchema = sectionSchema.shape[fieldKey];
+        if (!fieldSchema) return false;
+        if (fieldSchema instanceof z.ZodOptional) return false;
+        return true;
+      }
     }
     return false;
   } catch {
@@ -41,8 +54,12 @@ export function DynamicFormRenderer<TFieldValues extends FieldValues = FieldValu
   const methods = useFormContext<TFieldValues>();
   const { control, handleSubmit, formState: { errors } } = methods;
 
+  // Click-to-Fill コンテキスト（null の場合はフィルモード無効）
+  const ctf = useClickToFillContext();
+  const isInFillMode = ctf?.isInFillMode ?? false;
+
   // AIが生成した自動計算ルールの適用
-  useComputedRules(control, methods.setValue, config.computedRules);
+  useComputedRules(config.computedRules || []);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-12 pb-24">
@@ -59,12 +76,25 @@ export function DynamicFormRenderer<TFieldValues extends FieldValues = FieldValu
           <div className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {section.fields.map((field) => {
-                const required = isFieldRequired(schema, field.fieldKey);
-                const error = errors[field.fieldKey];
-                const fieldOptions = options[field.fieldKey] || [];
+                const fullPath = `${section.sectionKey}.${field.fieldKey}`;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const error = (errors as any)[section.sectionKey]?.[field.fieldKey];
+                const required = isFieldRequired(schema, section.sectionKey, field.fieldKey);
+                // options の取得（フラットキーでもネストキーでも取れるようにフォールバック）
+                const fieldOptions = options[fullPath] || options[field.fieldKey] || [];
+
+                // Click-to-Fill 用の onMouseDown ハンドラ
+                const handleMouseDown = isInFillMode && ctf
+                  ? (e: React.MouseEvent) => ctf.fillField(e, fullPath as Path<FieldValues>)
+                  : undefined;
+
+                // フィルモード中のスタイル
+                const fillModeClass = isInFillMode
+                  ? 'cursor-crosshair ring-2 ring-indigo-300 ring-offset-1 hover:ring-indigo-500 hover:bg-indigo-50/50 transition-all'
+                  : '';
 
                 return (
-                  <div key={field.fieldKey} className="space-y-2">
+                  <div key={fullPath} className="space-y-2">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                       {field.label}
                       {required && (
@@ -75,20 +105,22 @@ export function DynamicFormRenderer<TFieldValues extends FieldValues = FieldValu
                     </label>
                     
                     <Controller
-                      name={field.fieldKey as Path<TFieldValues>}
+                      name={fullPath as Path<TFieldValues>}
                       control={control}
-                      render={({ field: { onChange, value, ref } }) => {
+                      render={({ field: { onChange, value, ref, name } }) => {
                         if (field.inputType === 'select') {
                           return (
                             <div className="relative">
                               <select
                                 ref={ref}
+                                name={name}
                                 value={value || ''}
                                 onChange={onChange}
+                                onMouseDown={handleMouseDown}
                                 suppressHydrationWarning
                                 className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer ${
                                   error ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200 hover:border-slate-300'
-                                }`}
+                                } ${fillModeClass}`}
                               >
                                 <option value="">選択してください</option>
                                 {fieldOptions.map((opt) => (
@@ -104,13 +136,22 @@ export function DynamicFormRenderer<TFieldValues extends FieldValues = FieldValu
                         return (
                           <input
                             ref={ref}
+                            name={name}
                             type={field.inputType === 'number' ? 'number' : 'text'}
                             value={value || ''}
-                            onChange={onChange}
+                            onChange={(e) => {
+                              if (field.inputType === 'number') {
+                                const val = e.target.value;
+                                onChange(val === '' ? undefined : Number(val));
+                              } else {
+                                onChange(e);
+                              }
+                            }}
+                            onMouseDown={handleMouseDown}
                             suppressHydrationWarning
                             className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${
                               error ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200 hover:border-slate-300'
-                            }`}
+                            } ${fillModeClass}`}
                             placeholder={`${field.label} を入力`}
                           />
                         );

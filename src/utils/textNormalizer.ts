@@ -166,7 +166,7 @@ export function normalizeForField(value: string, fieldName: string): string {
       'salary', 'capital', 'revenue', 'count', 'number',
       'monthlySalary', 'annualRevenue', 'employeeCount',
       'foreignEmployeeCount', 'fullTimeEmployeeCount',
-      'trainee', 'intern', 'period', 'years',
+      'period', 'years', 'amount', 'fee',
     ])
   ) {
     // ただし corporateNumber や passportNumber 等の「番号」は数字化しない

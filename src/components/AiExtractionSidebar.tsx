@@ -305,21 +305,21 @@ function ExtractedCard({
   return (
     <motion.button
       layout
-      onClick={item.mapped ? undefined : isHolding ? onDeselect : onSelect}
-      disabled={item.mapped}
+      onClick={isHolding ? onDeselect : onSelect}
+      disabled={false}
       className={`
         group relative w-full text-left rounded-xl border p-3 transition-all duration-200 
         ${
-          item.mapped
-            ? item.autoFilled
-              ? 'border-violet-200 bg-violet-50 opacity-80 cursor-default'
-              : 'border-emerald-200 bg-emerald-50 opacity-70 cursor-default'
-            : isHolding
-              ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-200/50 scale-[1.02]'
+          isHolding
+            ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-200/50 scale-[1.02] cursor-pointer'
+            : item.mapped
+              ? item.autoFilled
+                ? 'border-violet-200 bg-violet-50 opacity-80 hover:opacity-100 hover:border-indigo-400 cursor-pointer hover:shadow-md'
+                : 'border-emerald-200 bg-emerald-50 opacity-70 hover:opacity-100 hover:border-indigo-400 cursor-pointer hover:shadow-md'
               : 'border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100/50 cursor-pointer'
         }
       `}
-      whileTap={!item.mapped && !isHolding ? { scale: 0.97 } : undefined}
+      whileTap={!isHolding ? { scale: 0.97 } : undefined}
     >
       {/* Grip icon */}
       <div className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 transition-opacity">
@@ -459,17 +459,27 @@ export function AiExtractionSidebar({
   // initData でデータがセットされた直後、学習済み辞書と照合して
   // 既知マッピングを自動適用する。
   useEffect(() => {
+    console.log(`[Sidebar AutoFill Check] 発火チェック開始`);
+    console.log(` - extractedData 件数: ${ctf.extractedData.length}`);
+    console.log(` - learnedMappings 件数: ${Object.keys(ctf.learnedMappings).length}`);
+    console.log(` - 全て未マッピングか？: ${ctf.extractedData.every((d) => !d.mapped)}`);
+
     if (
       ctf.extractedData.length > 0 &&
       Object.keys(ctf.learnedMappings).length > 0 &&
       // まだ1件もマッピングされていない初期状態のときだけ発火
       ctf.extractedData.every((d) => !d.mapped)
     ) {
+      console.log(`[Sidebar AutoFill Check] 条件クリア！ autoFillKnownMappings を実行します`);
       const count = ctf.autoFillKnownMappings();
       setAutoFilledCount(count);
       if (count > 0) {
         console.log(`[AutoFill] ✨ 学習辞書により ${count} 件を自動入力しました`);
+      } else {
+        console.log(`[AutoFill] 実行されましたが、自動入力された件数は0件でした`);
       }
+    } else {
+      console.log(`[Sidebar AutoFill Check] 条件を満たさないためスキップしました`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctf.extractedData.length, ctf.learnedMappings]);

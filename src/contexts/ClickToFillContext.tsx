@@ -37,11 +37,20 @@ const ClickToFillContext = createContext<UseClickToFillReturn<FieldValues> | nul
  * FormProvider の **内側** に配置する。
  * 内部で useClickToFill() と useMappingPreferences() を統合し、
  * Firestore から学習辞書を読み込み → useClickToFill に注入 → 保存時に Firestore に永続化 する。
+ *
+ * @param staticMappings - UiConfig.fieldMappings 由来の静的初期マッピング（初回利用でも自動入力を可能にする）
  */
-export function ClickToFillProvider({ children }: { children: React.ReactNode }) {
+export function ClickToFillProvider({
+  children,
+  staticMappings,
+}: {
+  children: React.ReactNode;
+  staticMappings?: Record<string, string>;
+}) {
   const prefs = useMappingPreferences();
   const ctf = useClickToFill<FieldValues>({
     onSaveMapping: prefs.saveMappingToFirestore,
+    staticMappings,
   });
 
   // Firestore からロードした辞書を useClickToFill に注入（初回のみ）

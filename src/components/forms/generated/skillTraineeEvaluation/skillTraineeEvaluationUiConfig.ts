@@ -235,7 +235,24 @@ export const skillTraineeEvaluationUiConfig = {
       ],
       "logic": "(monthlyReports) => monthlyReports.reduce((sum, m) => sum + (Number(m.paidLeaveDays) || 0), 0)"
     }
-  ]
+  ],
+  "fieldMappings": {
+    "身分事項 > 氏名": "traineeInfo.traineeName",
+    "身分事項 > 氏名（英字）": "traineeInfo.traineeName",
+    "身分事項 > 氏名（母国語/漢字）": "traineeInfo.traineeName",
+    "身分事項 > 性別": "traineeInfo.traineeGender",
+    "身分事項 > 生年月日": "traineeInfo.traineeBirthDate",
+    "身分事項 > 国籍": "traineeInfo.traineeNationality",
+    "身分事項 > 国籍・地域": "traineeInfo.traineeNationality",
+    "所属機関等 > 勤務先名称": "traineeInfo.implementingOrganizationName",
+    "所属機関等 > 実習実施者": "traineeInfo.implementingOrganizationName",
+    "技能実習 > 監理団体": "traineeInfo.supervisingOrganizationName",
+    "技能実習 > 職種・作業": "traineeInfo.occupationType",
+    "評価・試験 > 試験名": "skillTestInfo.skillTestNameAndOrganization",
+    "評価・試験 > 試験実施団体": "skillTestInfo.skillTestNameAndOrganization",
+    "評価・試験 > 受検日": "skillTestInfo.skillTestDate",
+    "評価・試験 > 合否": "skillTestInfo.skillTestResult"
+  }
 } as const;
 
 export type SkillTraineeEvaluationUiConfig = typeof skillTraineeEvaluationUiConfig;

@@ -22,7 +22,7 @@ import type { AnalyzedFormDefinition, AnalyzedField, AnalyzedCsvFile } from '../
  * 例: data.identityInfo?.nationality || ''
  */
 function buildAccessPath(sectionKey: string, field: AnalyzedField): string {
-  return `data.${sectionKey}?.${field.fieldKey} || ''`;
+  return `data.${sectionKey}?.${field.fieldKey}`;
 }
 
 /**
@@ -210,7 +210,7 @@ export function generateCsvMapper(definition: AnalyzedFormDefinition): string {
         lines.push(`  row[${i}] = ''; // TODO: data.${sectionKey}?.${field.fieldKey}?.[N]`);
       } else {
         lines.push(`  // [${i}] ${field.csvHeader || field.fieldKey}`);
-        lines.push(`  row[${i}] = ${buildAccessPath(sectionKey, field)};`);
+        lines.push(`  row[${i}] = String(${buildAccessPath(sectionKey, field)} ?? '');`);
       }
     }
 

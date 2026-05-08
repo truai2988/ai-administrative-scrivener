@@ -29,8 +29,8 @@ function generateFieldCode(field: AnalyzedField, indent: string = '  '): string 
   if (enumStrings && enumStrings.length > 0) {
     const vals = enumStrings.map(v => `'${v}'`).join(', ');
     zodChain = `z.enum([${vals}], { message: '選択してください' })`;
-  } else if (field.zodType.includes('z.number')) {
-    zodChain = 'z.number()';
+  } else if (field.zodType && field.zodType.includes('z.number')) {
+    zodChain = 'z.coerce.number()';
   } else {
     zodChain = 'z.string()';
   }
@@ -55,7 +55,8 @@ function generateFieldCode(field: AnalyzedField, indent: string = '  '): string 
   }
 
   // .describe() で日本語説明を付与
-  zodChain += `.describe('${field.description.replace(/'/g, "\\'")}')`;
+  const descText = field.description ? field.description.replace(/'/g, "\\'") : field.label.replace(/'/g, "\\'");
+  zodChain += `.describe('${descText}')`;
 
   // CSV仕様コメントの付与
   const csvComment = field.csvSpec ? ` // CSV仕様: ${field.csvSpec}` : '';
