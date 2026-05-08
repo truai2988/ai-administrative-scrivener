@@ -1,0 +1,700 @@
+{
+  "formName": "テストCOE申請",
+  "formKey": "testCoe",
+  "sections": [
+    {
+      "sectionKey": "identityInfo",
+      "sectionLabel": "身分事項",
+      "fields": [
+        {
+          "fieldKey": "nationality",
+          "label": "(1) 国籍・地域",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "nationality",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "国籍または地域",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "birthDate",
+          "label": "(2) 生年月日",
+          "zodType": "z.string().regex(/^\\d{8}$/)",
+          "validation": {
+            "regex": "^\\d{8}$",
+            "regexDescription": "YYYYMMDD形式"
+          },
+          "csvHeader": "birth_date",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "生年月日（西暦8桁）",
+          "csvSpec": "半角数字、YYYYMMDD形式"
+        },
+        {
+          "fieldKey": "nameEn",
+          "label": "(3) 氏名（ローマ字）",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "name_en",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "氏名（ローマ字）",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "gender",
+          "label": "(4) 性別",
+          "zodType": "z.enum(['1', '2'])",
+          "validation": {},
+          "csvHeader": "gender",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": [
+            {
+              "value": "1",
+              "label": "男"
+            },
+            {
+              "value": "2",
+              "label": "女"
+            }
+          ],
+          "description": "性別",
+          "csvSpec": "1:男, 2:女"
+        },
+        {
+          "fieldKey": "birthPlace",
+          "label": "(5) 出生地",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "birth_place",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "出生地",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "maritalStatus",
+          "label": "(6) 配偶者の有無",
+          "zodType": "z.enum(['1', '2'])",
+          "validation": {},
+          "csvHeader": "marital_status",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": [
+            {
+              "value": "1",
+              "label": "有"
+            },
+            {
+              "value": "2",
+              "label": "無"
+            }
+          ],
+          "description": "配偶者の有無",
+          "csvSpec": "1:有, 2:無"
+        },
+        {
+          "fieldKey": "occupation",
+          "label": "(7) 職業",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "occupation",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "職業",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "homeCountryAddress",
+          "label": "(8) 本国における居住地",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "home_country_address",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "本国における居住地",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "zipCode",
+          "label": "(9) 郵便番号",
+          "zodType": "z.string().regex(/^\\d{7}$/)",
+          "validation": {
+            "regex": "^\\d{7}$",
+            "regexDescription": "7桁の半角数字"
+          },
+          "csvHeader": "zip_code",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "郵便番号（ハイフンなし7桁）",
+          "csvSpec": "半角数字、7桁"
+        },
+        {
+          "fieldKey": "prefecture",
+          "label": "(10) 都道府県",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "prefecture",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "都道府県",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "city",
+          "label": "(11) 市区町村",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "city",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "市区町村",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "streetAddress",
+          "label": "(12) 町名丁目番地号等",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "street_address",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "町名丁目番地号等",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "phoneNumber",
+          "label": "(13) 電話番号",
+          "zodType": "z.string().regex(/^\\d{1,12}$/)",
+          "validation": {
+            "regex": "^\\d{1,12}$",
+            "regexDescription": "12桁以内の半角数字"
+          },
+          "csvHeader": "phone_number",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "電話番号（ハイフンなし）",
+          "csvSpec": "半角数字、12文字以内"
+        },
+        {
+          "fieldKey": "mobileNumber",
+          "label": "(14) 携帯電話番号",
+          "zodType": "z.string().regex(/^\\d{1,12}$/)",
+          "validation": {
+            "regex": "^\\d{1,12}$",
+            "regexDescription": "12桁以内の半角数字"
+          },
+          "csvHeader": "mobile_number",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "携帯電話番号（ハイフンなし）",
+          "csvSpec": "半角数字、12文字以内"
+        },
+        {
+          "fieldKey": "email",
+          "label": "(15) メールアドレス",
+          "zodType": "z.string().email()",
+          "validation": {},
+          "csvHeader": "email",
+          "sectionKey": "identityInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "メールアドレス",
+          "csvSpec": null
+        }
+      ]
+    },
+    {
+      "sectionKey": "passportInfo",
+      "sectionLabel": "旅券情報",
+      "fields": [
+        {
+          "fieldKey": "passportNumber",
+          "label": "(16) 旅券番号",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "passport_number",
+          "sectionKey": "passportInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "旅券番号",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "passportExpiryDate",
+          "label": "(17) 旅券有効期限",
+          "zodType": "z.string().regex(/^\\d{8}$/)",
+          "validation": {
+            "regex": "^\\d{8}$",
+            "regexDescription": "YYYYMMDD形式"
+          },
+          "csvHeader": "passport_expiry_date",
+          "sectionKey": "passportInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "旅券有効期限（西暦8桁）",
+          "csvSpec": "半角数字、YYYYMMDD形式"
+        },
+        {
+          "fieldKey": "purposeOfEntry",
+          "label": "(18) 入国目的",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "purpose_of_entry",
+          "sectionKey": "passportInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "入国目的",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "plannedEntryDate",
+          "label": "(19) 入国予定年月日",
+          "zodType": "z.string().regex(/^\\d{8}$/)",
+          "validation": {
+            "regex": "^\\d{8}$",
+            "regexDescription": "YYYYMMDD形式"
+          },
+          "csvHeader": "planned_entry_date",
+          "sectionKey": "passportInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "入国予定年月日（西暦8桁）",
+          "csvSpec": "半角数字、YYYYMMDD形式"
+        },
+        {
+          "fieldKey": "portOfEntry",
+          "label": "(20) 上陸予定港",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "port_of_entry",
+          "sectionKey": "passportInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "上陸予定港",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "plannedStayDuration",
+          "label": "(21) 滞在予定期間",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "planned_stay_duration",
+          "sectionKey": "passportInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "滞在予定期間",
+          "csvSpec": null
+        }
+      ]
+    },
+    {
+      "sectionKey": "familyInfo",
+      "sectionLabel": "家族情報",
+      "fields": [
+        {
+          "fieldKey": "hasRelativesInJapan",
+          "label": "在日親族の有無",
+          "zodType": "z.enum(['1', '2'])",
+          "validation": {},
+          "csvHeader": "has_relatives_in_japan",
+          "sectionKey": "familyInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": [
+            {
+              "value": "1",
+              "label": "有"
+            },
+            {
+              "value": "2",
+              "label": "無"
+            }
+          ],
+          "description": "在日親族の有無",
+          "csvSpec": "1:有, 2:無"
+        },
+        {
+          "fieldKey": "relative",
+          "label": "親族",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "relative",
+          "sectionKey": "familyInfo",
+          "isRequired": true,
+          "isRepeatable": true,
+          "repeatMax": 6,
+          "enumValues": null,
+          "description": "在日親族の氏名",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "hasCriminalRecord",
+          "label": "犯罪を理由とする処分の有無",
+          "zodType": "z.enum(['1', '2'])",
+          "validation": {},
+          "csvHeader": "has_criminal_record",
+          "sectionKey": "familyInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": [
+            {
+              "value": "1",
+              "label": "有"
+            },
+            {
+              "value": "2",
+              "label": "無"
+            }
+          ],
+          "description": "犯罪を理由とする処分の有無",
+          "csvSpec": "1:有, 2:無"
+        },
+        {
+          "fieldKey": "criminalRecordDetails",
+          "label": "処分の内容",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "criminal_record_details",
+          "sectionKey": "familyInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "犯罪を理由とする処分の内容",
+          "csvSpec": null
+        }
+      ]
+    },
+    {
+      "sectionKey": "organizationInfo",
+      "sectionLabel": "所属機関",
+      "fields": [
+        {
+          "fieldKey": "employerName",
+          "label": "勤務先",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "employer_name",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "勤務先名称",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "organizationName",
+          "label": "(1) 名称",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "organization_name",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "所属機関の名称",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "branchName",
+          "label": "(2) 支店・事業所名",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "branch_name",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "支店・事業所名",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "hasCorporateNumber",
+          "label": "(3) 法人番号の有無",
+          "zodType": "z.enum(['1', '2'])",
+          "validation": {},
+          "csvHeader": "has_corporate_number",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": [
+            {
+              "value": "1",
+              "label": "有"
+            },
+            {
+              "value": "2",
+              "label": "無"
+            }
+          ],
+          "description": "法人番号の有無",
+          "csvSpec": "1:有, 2:無"
+        },
+        {
+          "fieldKey": "corporateNumber",
+          "label": "(4) 法人番号",
+          "zodType": "z.string().regex(/^\\d{13}$/)",
+          "validation": {
+            "regex": "^\\d{13}$",
+            "regexDescription": "13桁の半角数字"
+          },
+          "csvHeader": "corporate_number",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "法人番号（13桁）",
+          "csvSpec": "半角数字、13桁"
+        },
+        {
+          "fieldKey": "industryType",
+          "label": "(5) 業種",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "industry_type",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "業種",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "organizationZipCode",
+          "label": "(6) 郵便番号",
+          "zodType": "z.string().regex(/^\\d{7}$/)",
+          "validation": {
+            "regex": "^\\d{7}$",
+            "regexDescription": "7桁の半角数字"
+          },
+          "csvHeader": "organization_zip_code",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "所属機関の郵便番号（ハイフンなし7桁）",
+          "csvSpec": "半角数字、7桁"
+        },
+        {
+          "fieldKey": "organizationPrefecture",
+          "label": "(7) 所在地(都道府県)",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "organization_prefecture",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "所属機関の所在地（都道府県）",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "organizationCity",
+          "label": "(8) 所在地(市区町村)",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "organization_city",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "所属機関の所在地（市区町村）",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "organizationStreetAddress",
+          "label": "(9) 所在地(町名丁目番地号等)",
+          "zodType": "z.string()",
+          "validation": {},
+          "csvHeader": "organization_street_address",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "所属機関の所在地（町名丁目番地号等）",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "organizationPhoneNumber",
+          "label": "(10) 電話番号",
+          "zodType": "z.string().regex(/^\\d{1,12}$/)",
+          "validation": {
+            "regex": "^\\d{1,12}$",
+            "regexDescription": "12桁以内の半角数字"
+          },
+          "csvHeader": "organization_phone_number",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "所属機関の電話番号（ハイフンなし）",
+          "csvSpec": "半角数字、12文字以内"
+        },
+        {
+          "fieldKey": "capitalAmount",
+          "label": "(11) 資本金",
+          "zodType": "z.number()",
+          "validation": {},
+          "csvHeader": "capital_amount",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "資本金",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "numberOfEmployees",
+          "label": "(12) 従業員数",
+          "zodType": "z.number()",
+          "validation": {},
+          "csvHeader": "number_of_employees",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "従業員数",
+          "csvSpec": null
+        },
+        {
+          "fieldKey": "monthlySalary",
+          "label": "(13) 月額報酬",
+          "zodType": "z.number()",
+          "validation": {},
+          "csvHeader": "monthly_salary",
+          "sectionKey": "organizationInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "月額報酬",
+          "csvSpec": null
+        }
+      ]
+    }
+  ],
+  "csvFiles": [
+    {
+      "fileName": "テストCOE申請.csv",
+      "headerCount": 44,
+      "headers": [
+        "nationality",
+        "birth_date",
+        "name_en",
+        "gender",
+        "birth_place",
+        "marital_status",
+        "occupation",
+        "home_country_address",
+        "zip_code",
+        "prefecture",
+        "city",
+        "street_address",
+        "phone_number",
+        "mobile_number",
+        "email",
+        "passport_number",
+        "passport_expiry_date",
+        "purpose_of_entry",
+        "planned_entry_date",
+        "port_of_entry",
+        "planned_stay_duration",
+        "has_relatives_in_japan",
+        "relative_1",
+        "relative_2",
+        "relative_3",
+        "relative_4",
+        "relative_5",
+        "relative_6",
+        "has_criminal_record",
+        "criminal_record_details",
+        "employer_name",
+        "organization_name",
+        "branch_name",
+        "has_corporate_number",
+        "corporate_number",
+        "industry_type",
+        "organization_zip_code",
+        "organization_prefecture",
+        "organization_city",
+        "organization_street_address",
+        "organization_phone_number",
+        "capital_amount",
+        "number_of_employees",
+        "monthly_salary"
+      ]
+    }
+  ]
+}

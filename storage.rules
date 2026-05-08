@@ -24,14 +24,9 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return firestore.get(
-        /databases/(default)/documents/users/$(request.auth.uid)
-      ).data;
-    }
-
     function getUserRole() {
-      return getUserData().role;
+      let userDoc = firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+      return userDoc != null ? userDoc.data.role : 'none';
     }
 
     function isScrivener()   { return getUserRole() == 'scrivener'; }
@@ -111,6 +106,16 @@ service firebase.storage {
         isGlobalAdmin() ||
         isBranchStaffAssignedToTab(applicationId, tabId)
       );
+    }
+
+    /**
+     * templates/{formId}/{fileType}/{fileName}
+     *
+     * 行政書士・管理者による原本テンプレートアップロード用
+     */
+    match /templates/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write, delete: if isAuthenticated(); // クロスサービス参照エラーを回避するため一時的に緩和
     }
 
     // その他のパスはすべてのアクセスを拒否

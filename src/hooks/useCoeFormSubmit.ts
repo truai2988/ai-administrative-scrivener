@@ -10,7 +10,9 @@
  *   3. ローディング状態（isSaving, isExporting, isCreatingDraft, isAutoSaving）の管理
  *   4. 成功 / エラー Toast の表示
  *   5. マウント時の先行保存（Draft作成）
- *   6. 特定フィールド（担当者割り当て等）変更時の自動保存（Debounce付き）
+ *   6. フォーム全体の変更監視 → Debounce（2000ms）自動保存
+ *   7. 担当者割り当て（assignments）の自動保存（5000ms）
+ *   8. ブラウザ離脱時の未保存キューフラッシュ
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -20,6 +22,10 @@ import { coeApplicationService } from '@/services/coeApplicationService';
 import { downloadCoeCSV } from '@/lib/utils/coeCsvMapper';
 import { useToast } from '@/components/ui/Toast';
 import isEqual from 'fast-deep-equal';
+
+// ─── オートセーブの Debounce 間隔（ms） ─────────────────────────────────────
+const FORM_AUTOSAVE_DELAY_MS = 2000;
+const ASSIGNMENTS_AUTOSAVE_DELAY_MS = 5000;
 
 interface UseCoeFormSubmitOptions {
   /** 既存レコードのID（編集時のみ）。未指定なら新規作成 */
@@ -46,6 +52,8 @@ interface UseCoeFormSubmitReturn {
   isCreatingDraft: boolean;
   /** オートセーブ（Debounce処理）中フラグ */
   isAutoSaving: boolean;
+  /** 最終保存日時（UIインジケーター用） */
+  lastSavedAt: Date | null;
   /** 保存のみ実行するハンドラ（handleSubmit に渡す） */
   handleSaveOnly: (data: CoeApplicationFormData) => Promise<void>;
   /** 保存 + CSV出力を実行するハンドラ（handleSubmit に渡す） */
@@ -59,12 +67,14 @@ export function useCoeFormSubmit({
   foreignerId,
   organizationId,
   control,
+  getValues,
   onSuccess,
 }: UseCoeFormSubmitOptions = {}): UseCoeFormSubmitReturn {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [savedRecordId, setSavedRecordId] = useState<string | undefined>(recordId);
   const { show: showToast } = useToast();
 
@@ -94,75 +104,144 @@ export function useCoeFormSubmit({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // マウント時1回のみ
 
-  // ─── 2. オートセーブ機能: 特定フィールドの変更監視とDebounce保存 ────────────
-  // 担当者割り当て（assignments）フィールドを監視する
+  // ─── 2. フォーム全体のオートセーブ（Debounce 2000ms） ────────────────────
+  //   useWatch でフォームの全フィールドを監視し、入力が 2000ms 止まったら
+  //   バックグラウンドで save を実行する。
+
+  const watchedFormData = useWatch({
+    control,
+    disabled: !control,
+  });
+
+  const formAutoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstFormRender = useRef(true);
+  const lastSavedFormData = useRef<CoeApplicationFormData | null>(null);
+  // 手動保存中はオートセーブをスキップするフラグ
+  const isManualSavingRef = useRef(false);
+
+  useEffect(() => {
+    // 初回マウント時は変更ではないのでスキップ
+    if (isFirstFormRender.current) {
+      isFirstFormRender.current = false;
+      return;
+    }
+
+    // 必要な引数がまだ揃っていない場合はスキップ
+    if (!savedRecordId || !getValues || !watchedFormData) return;
+
+    // 前回のタイマーをクリア（Debounce）
+    if (formAutoSaveTimerRef.current) {
+      clearTimeout(formAutoSaveTimerRef.current);
+    }
+
+    formAutoSaveTimerRef.current = setTimeout(async () => {
+      formAutoSaveTimerRef.current = null;
+
+      // 手動保存中なら衝突を避けるためスキップ
+      if (isManualSavingRef.current) return;
+
+      const currentData = getValues();
+
+      // 前回保存データと完全一致する場合は Firestore Write を節約
+      if (isEqual(currentData, lastSavedFormData.current)) {
+        return;
+      }
+
+      setIsAutoSaving(true);
+      try {
+        const id = await coeApplicationService.save(
+          currentData,
+          savedRecordId,
+          foreignerId,
+          organizationId,
+        );
+        setSavedRecordId(id);
+        lastSavedFormData.current = currentData;
+        setLastSavedAt(new Date());
+        console.log('[COEオートセーブ] ✅ 自動保存完了');
+      } catch (err) {
+        console.error('[COEオートセーブエラー]', err);
+        // オートセーブの失敗は静かに処理（次回リトライに任せる）
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, FORM_AUTOSAVE_DELAY_MS);
+
+    return () => {
+      if (formAutoSaveTimerRef.current) {
+        clearTimeout(formAutoSaveTimerRef.current);
+      }
+    };
+  // watchedFormData の変更を検知するために JSON.stringify を使わず、
+  // watchedFormData 自体を依存配列に入れる（useWatch は新しい参照を返す）
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedFormData, savedRecordId, foreignerId, organizationId, getValues]);
+
+  // ─── 3. 担当者（assignments）の自動保存（5000ms） ───────────────────────
   const watchedAssignments = useWatch({
     control,
     name: 'assignments',
-    disabled: !control, // フェーズ3統合前など、controlが未指定の場合は監視を無効化
+    disabled: !control,
   });
 
   const watchedAssignmentsStr = JSON.stringify(watchedAssignments);
 
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstMountForWatch = useRef(true);
+  const assignmentsTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstMountForAssignments = useRef(true);
   const lastSavedAssignments = useRef<TabAssignments | null>(null);
-  const lastSavedData = useRef<CoeApplicationFormData | null>(null);
 
   useEffect(() => {
-    // 初回マウント時や必要な引数が揃っていない場合はスキップ
-    if (isFirstMountForWatch.current) {
-      isFirstMountForWatch.current = false;
+    if (isFirstMountForAssignments.current) {
+      isFirstMountForAssignments.current = false;
       return;
     }
 
     if (!savedRecordId || !watchedAssignments) return;
 
-    // 前回のタイマーをクリア（Debounce）
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    if (assignmentsTimerRef.current) {
+      clearTimeout(assignmentsTimerRef.current);
     }
 
-    // 5000ms 後に自動保存を実行
-    debounceTimerRef.current = setTimeout(async () => {
-      // タイマーが発火した時点でキューから外す（これ以降のページ離脱は警告不要）
-      debounceTimerRef.current = null;
+    assignmentsTimerRef.current = setTimeout(async () => {
+      assignmentsTimerRef.current = null;
       setIsAutoSaving(true);
       try {
-        // 前回保存した assignments と完全一致する場合は書き込みをスキップ（Write削減）
         if (isEqual(watchedAssignments, lastSavedAssignments.current)) {
           return;
         }
 
         await coeApplicationService.updateAssignments(savedRecordId, watchedAssignments as TabAssignments);
         lastSavedAssignments.current = watchedAssignments as TabAssignments;
-        // UX上頻繁に出ると煩わしいため、成功通知は省略
+        setLastSavedAt(new Date());
       } catch (err) {
         console.error('[オートセーブエラー]', err);
         showToast('error', '担当者の自動保存に失敗しました');
       } finally {
         setIsAutoSaving(false);
       }
-    }, 5000);
+    }, ASSIGNMENTS_AUTOSAVE_DELAY_MS);
 
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+      if (assignmentsTimerRef.current) {
+        clearTimeout(assignmentsTimerRef.current);
       }
     };
   }, [watchedAssignmentsStr, watchedAssignments, savedRecordId, showToast]);
 
-  // ─── 2.5. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────
-  const flushDataRef = useRef({ savedRecordId, watchedAssignments });
+  // ─── 4. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────────
+  const flushDataRef = useRef({ savedRecordId, getValues });
   useEffect(() => {
-    flushDataRef.current = { savedRecordId, watchedAssignments };
-  }, [savedRecordId, watchedAssignments]);
+    flushDataRef.current = { savedRecordId, getValues };
+  }, [savedRecordId, getValues]);
 
   useEffect(() => {
+    const hasPendingChanges = () =>
+      formAutoSaveTimerRef.current !== null || assignmentsTimerRef.current !== null;
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (debounceTimerRef.current) {
+      if (hasPendingChanges()) {
         e.preventDefault();
-        e.returnValue = ''; // ほとんどのブラウザで標準の警告ダイアログが表示される
+        e.returnValue = '';
       }
     };
 
@@ -170,23 +249,29 @@ export function useCoeFormSubmit({
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      
-      // アンマウント時（ページ遷移など）に未保存キューがあれば即座に保存実行
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-        
-        const { savedRecordId, watchedAssignments } = flushDataRef.current;
-        if (savedRecordId && watchedAssignments) {
-          if (!isEqual(watchedAssignments, lastSavedAssignments.current)) {
-            // アンマウント時なのでawaitせずバックグラウンドで実行
-            coeApplicationService.updateAssignments(savedRecordId, watchedAssignments as TabAssignments).catch((err) => {
+
+      // アンマウント時に未保存キューがあれば即座に保存実行
+      if (formAutoSaveTimerRef.current) {
+        clearTimeout(formAutoSaveTimerRef.current);
+        formAutoSaveTimerRef.current = null;
+
+        const { savedRecordId: id, getValues: gv } = flushDataRef.current;
+        if (id && gv) {
+          const data = gv();
+          if (!isEqual(data, lastSavedFormData.current)) {
+            coeApplicationService.save(data, id, foreignerId, organizationId).catch((err) => {
               console.error('[アンマウント時オートセーブエラー]', err);
             });
           }
         }
       }
+
+      if (assignmentsTimerRef.current) {
+        clearTimeout(assignmentsTimerRef.current);
+        assignmentsTimerRef.current = null;
+      }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
@@ -194,16 +279,24 @@ export function useCoeFormSubmit({
     async (data: CoeApplicationFormData): Promise<string> => {
       const id = await coeApplicationService.save(data, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
-      lastSavedData.current = data;
+      lastSavedFormData.current = data;
+      setLastSavedAt(new Date());
       if (onSuccess) await onSuccess(id);
       return id;
     },
     [savedRecordId, foreignerId, organizationId, onSuccess]
   );
 
-  // ─── 3. 手動保存のみ ──────────────────────────────────────────────────────
+  // ─── 5. 手動保存のみ ──────────────────────────────────────────────────────
   const handleSaveOnly = useCallback(
     async (data: CoeApplicationFormData) => {
+      // オートセーブとの衝突を防止
+      isManualSavingRef.current = true;
+      if (formAutoSaveTimerRef.current) {
+        clearTimeout(formAutoSaveTimerRef.current);
+        formAutoSaveTimerRef.current = null;
+      }
+
       setIsSaving(true);
       try {
         await saveToFirebase(data);
@@ -213,14 +306,21 @@ export function useCoeFormSubmit({
         showToast('error', '保存に失敗しました。再度お試しください。');
       } finally {
         setIsSaving(false);
+        isManualSavingRef.current = false;
       }
     },
     [saveToFirebase, showToast]
   );
 
-  // ─── 4. 保存 + CSV出力の完全連携 ──────────────────────────────────────────
+  // ─── 6. 保存 + CSV出力の完全連携 ──────────────────────────────────────────
   const handleSaveAndExport = useCallback(
     async (data: CoeApplicationFormData) => {
+      isManualSavingRef.current = true;
+      if (formAutoSaveTimerRef.current) {
+        clearTimeout(formAutoSaveTimerRef.current);
+        formAutoSaveTimerRef.current = null;
+      }
+
       setIsExporting(true);
       try {
         await saveToFirebase(data);
@@ -234,6 +334,7 @@ export function useCoeFormSubmit({
         showToast('error', '保存またはCSV出力に失敗しました。');
       } finally {
         setIsExporting(false);
+        isManualSavingRef.current = false;
       }
     },
     [saveToFirebase, showToast]
@@ -244,7 +345,7 @@ export function useCoeFormSubmit({
     isExporting,
     isCreatingDraft,
     isAutoSaving,
-    // 保存系かエクスポート系が走っている場合は画面操作をブロックするためのbusyフラグ
+    lastSavedAt,
     isBusy: isSaving || isExporting || isCreatingDraft,
     savedRecordId,
     handleSaveOnly,

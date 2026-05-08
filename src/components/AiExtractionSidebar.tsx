@@ -544,7 +544,7 @@ export function AiExtractionSidebar({
       </AnimatePresence>
 
       {/* サイドバーコンテナ */}
-      <div className={`ai-extraction-sidebar rounded-xl border border-slate-700/50 bg-slate-900/40 shadow-sm overflow-hidden ${hideHeader ? '' : 'mb-4'}`}>
+      <div className={`ai-extraction-sidebar rounded-xl border border-slate-700/50 bg-slate-900/40 shadow-sm ${hideHeader ? '' : 'mb-4'}`}>
         {/* ヘッダー（トグル） */}
         {!hideHeader && (
           <button
@@ -725,7 +725,7 @@ export function AiExtractionSidebar({
               </AnimatePresence>
 
               {/* カードリスト */}
-              <div className="px-3 py-3 space-y-2 max-h-[50vh] overflow-y-auto">
+              <div className="px-3 py-3 space-y-2">
                 {ctf.extractedData.length === 0 && !extraction.isLoading ? (
                   <div className="text-center py-4 text-slate-400 text-xs">
                     書類をアップロードすると、AIが自動で情報を読み取ります

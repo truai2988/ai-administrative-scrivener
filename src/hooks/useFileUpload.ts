@@ -44,13 +44,18 @@ import { COLLECTIONS } from '@/constants/firestore';
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
 export interface UseFileUploadOptions {
-  /** Firestore の renewal_applications ドキュメントID */
+  /** Firestore のドキュメントID（renewal_applications / coe_applications 等） */
   applicationId: string;
   /**
    * Storage および Firestore の添付キー。
    * fileUtils.ts の AttachmentTabId と一致させること。
    */
   attachmentKey: AttachmentTabId;
+  /**
+   * Firestore コレクション名。
+   * 省略時は COLLECTIONS.RENEWAL_APPLICATIONS（後方互換性維持）。
+   */
+  collectionName?: string;
   /** 初期値（既存の添付ファイルリスト） */
   initialAttachments?: AttachmentMeta[];
   /** 読み取り専用モード（権限なし：true でアップロード・削除を無効化） */
@@ -87,6 +92,7 @@ export interface UseFileUploadReturn {
 export function useFileUpload({
   applicationId,
   attachmentKey,
+  collectionName = COLLECTIONS.RENEWAL_APPLICATIONS,
   initialAttachments = [],
   readonly = false,
   globalLimitContext,
@@ -125,7 +131,7 @@ export function useFileUpload({
         await deleteObject(storageRef);
 
         // Firestore の配列から削除（arrayRemove で対象オブジェクトを除去）
-        const docRef = doc(db, COLLECTIONS.RENEWAL_APPLICATIONS, applicationId);
+        const docRef = doc(db, collectionName, applicationId);
         await updateDoc(docRef, {
           [`attachments.${attachmentKey}`]: arrayRemove(target),
           updatedAt: new Date().toISOString(),
@@ -144,7 +150,7 @@ export function useFileUpload({
         setError(`ファイルの削除に失敗しました: ${message}`);
       }
     },
-    [readonly, applicationId, attachmentKey, onAttachmentsChange]
+    [readonly, applicationId, attachmentKey, collectionName, onAttachmentsChange]
   );
 
   // ─── アップロード ─────────────────────────────────────────────────────────
@@ -221,7 +227,7 @@ export function useFileUpload({
                 };
 
                 // Firestore の attachments.{attachmentKey} 配列に追記
-                const docRef = doc(db, COLLECTIONS.RENEWAL_APPLICATIONS, applicationId);
+                const docRef = doc(db, collectionName, applicationId);
                 await updateDoc(docRef, {
                   [`attachments.${attachmentKey}`]: arrayUnion(newAttachment),
                   updatedAt: new Date().toISOString(),
@@ -258,7 +264,7 @@ export function useFileUpload({
         setUploadProgress(0);
       }
     },
-    [readonly, applicationId, attachmentKey, globalLimitContext, onAttachmentsChange, deleteFile]
+    [readonly, applicationId, attachmentKey, collectionName, globalLimitContext, onAttachmentsChange, deleteFile]
   );
 
   return {

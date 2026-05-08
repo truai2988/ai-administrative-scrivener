@@ -48,7 +48,7 @@ export function AiAssistantSidePanel({ extractionProps, diagnosticProps }: AiAss
       )}
 
       {/* コンテンツエリア */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0">
         {activeTab === 'extraction' && extractionProps && (
           <AiExtractionSidebar 
             {...extractionProps} 

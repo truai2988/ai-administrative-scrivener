@@ -12,6 +12,7 @@ import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import { ClickToFillProvider } from '@/contexts/ClickToFillContext';
 import { AttachmentProvider } from '@/contexts/AttachmentContext';
+import { COLLECTIONS } from '@/constants/firestore';
 import {
   changeOfStatusApplicationSchema,
   type ChangeOfStatusApplicationFormData,
@@ -335,6 +336,7 @@ export function ChangeOfStatusFormInner({
       <FormProvider {...methods}>
       <AttachmentProvider
         applicationId={savedRecordId || recordId}
+        collectionName={COLLECTIONS.CHANGE_OF_STATUS_APPLICATIONS}
         initialAttachments={initialAttachmentsMap}
         readonly={!currentUser}
       >

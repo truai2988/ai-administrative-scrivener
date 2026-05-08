@@ -1,0 +1,116 @@
+{
+  "title": "test_plan",
+  "fields": [
+    {
+      "label": "(1) 氏名",
+      "section": "申請者情報",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(2) 生年月日",
+      "section": "申請者情報",
+      "sheetName": "document",
+      "inputType": "date",
+      "required": false
+    },
+    {
+      "label": "(3) 国籍",
+      "section": "申請者情報",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(4) 住所",
+      "section": "申請者情報",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(5) 電話番号",
+      "section": "申請者情報",
+      "sheetName": "document",
+      "inputType": "number",
+      "required": false
+    },
+    {
+      "label": "(1) 事業の名称",
+      "section": "事業概要",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(2) 事業の内容",
+      "section": "事業概要",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(3) 事業開始予定年月日",
+      "section": "事業概要",
+      "sheetName": "document",
+      "inputType": "date",
+      "required": false
+    },
+    {
+      "label": "(4) 事業所の所在地",
+      "section": "事業概要",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(5) 従業員数",
+      "section": "事業概要",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(6) 資本金",
+      "section": "事業概要",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(1) 最終学歴",
+      "section": "経歴・資格",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(2) 職歴",
+      "section": "経歴・資格",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(3) 保有資格",
+      "section": "経歴・資格",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    },
+    {
+      "label": "(4) 日本語能力",
+      "section": "経歴・資格",
+      "sheetName": "document",
+      "inputType": "text",
+      "required": false
+    }
+  ],
+  "sheets": [
+    "document"
+  ],
+  "rawText": "事業計画書\n\n■ 申請者情報\n\n(1) 氏名\n\n\n\n(2) 生年月日\n\n\n\n(3) 国籍\n\n\n\n(4) 住所\n\n\n\n(5) 電話番号\n\n\n\n■ 事業概要\n\n(1) 事業の名称\n\n\n\n(2) 事業の内容\n\n\n\n(3) 事業開始予定年月日\n\n\n\n(4) 事業所の所在地\n\n\n\n(5) 従業員数\n\n\n\n(6) 資本金\n\n\n\n■ 経歴・資格\n\n(1) 最終学歴\n\n\n\n(2) 職歴\n\n\n\n(3) 保有資格\n\n\n\n(4) 日本語能力\n\n\n\n",
+  "sourceFile": "C:\\Users\\ABC\\AI行政書士\\scripts\\template-generator\\tests\\test_plan.docx",
+  "sourceType": "word"
+}

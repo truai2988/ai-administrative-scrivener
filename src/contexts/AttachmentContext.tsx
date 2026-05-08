@@ -34,6 +34,8 @@ const AttachmentContext = createContext<AttachmentContextValue | null>(null);
 export interface AttachmentProviderProps {
   children: React.ReactNode;
   applicationId: string | undefined;
+  /** Firestore コレクション名（省略時: renewal_applications） */
+  collectionName?: string;
   /** DBからロードした初期の添付ファイルマップ */
   initialAttachments?: Record<AttachmentTabId, AttachmentMeta[]>;
   readonly?: boolean;
@@ -42,6 +44,7 @@ export interface AttachmentProviderProps {
 export function AttachmentProvider({
   children,
   applicationId,
+  collectionName,
   initialAttachments = { foreignerInfo: [], employerInfo: [], simultaneous: [] },
   readonly = false,
 }: AttachmentProviderProps) {
@@ -65,6 +68,7 @@ export function AttachmentProvider({
   const foreignerInfoUploader = useFileUpload({
     applicationId: applicationId ?? '',
     attachmentKey: 'foreignerInfo',
+    collectionName,
     initialAttachments: initialAttachments.foreignerInfo || [],
     readonly,
     globalLimitContext,
@@ -74,6 +78,7 @@ export function AttachmentProvider({
   const employerInfoUploader = useFileUpload({
     applicationId: applicationId ?? '',
     attachmentKey: 'employerInfo',
+    collectionName,
     initialAttachments: initialAttachments.employerInfo || [],
     readonly,
     globalLimitContext,
@@ -83,6 +88,7 @@ export function AttachmentProvider({
   const simultaneousUploader = useFileUpload({
     applicationId: applicationId ?? '',
     attachmentKey: 'simultaneous',
+    collectionName,
     initialAttachments: initialAttachments.simultaneous || [],
     readonly,
     globalLimitContext,

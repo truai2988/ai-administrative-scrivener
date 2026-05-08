@@ -1,0 +1,409 @@
+{
+  "title": "test_application",
+  "fields": [
+    {
+      "label": "(1) 国籍・地域",
+      "section": "身分事項",
+      "cellRef": "B4",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(2) 生年月日"
+    },
+    {
+      "label": "(2) 生年月日",
+      "section": "身分事項",
+      "cellRef": "B5",
+      "sheetName": "申請書本体",
+      "inputType": "date",
+      "required": false,
+      "exampleValue": "(3) 氏名（ローマ字）"
+    },
+    {
+      "label": "(3) 氏名（ローマ字）",
+      "section": "身分事項",
+      "cellRef": "B6",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(4) 性別"
+    },
+    {
+      "label": "(4) 性別",
+      "section": "身分事項",
+      "cellRef": "B7",
+      "sheetName": "申請書本体",
+      "inputType": "radio",
+      "required": false,
+      "exampleValue": "(5) 出生地"
+    },
+    {
+      "label": "(5) 出生地",
+      "section": "身分事項",
+      "cellRef": "B8",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(6) 配偶者の有無"
+    },
+    {
+      "label": "(6) 配偶者の有無",
+      "section": "身分事項",
+      "cellRef": "B9",
+      "sheetName": "申請書本体",
+      "inputType": "radio",
+      "required": false,
+      "exampleValue": "(7) 職業"
+    },
+    {
+      "label": "(7) 職業",
+      "section": "身分事項",
+      "cellRef": "B10",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(8) 本国における居住地"
+    },
+    {
+      "label": "(8) 本国における居住地",
+      "section": "身分事項",
+      "cellRef": "B11",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "(9) 郵便番号",
+      "section": "身分事項",
+      "cellRef": "B14",
+      "sheetName": "申請書本体",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(10) 都道府県"
+    },
+    {
+      "label": "(10) 都道府県",
+      "section": "身分事項",
+      "cellRef": "B15",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(11) 市区町村"
+    },
+    {
+      "label": "(11) 市区町村",
+      "section": "身分事項",
+      "cellRef": "B16",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(12) 町名丁目番地号等"
+    },
+    {
+      "label": "(12) 町名丁目番地号等",
+      "section": "身分事項",
+      "cellRef": "B17",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(13) 電話番号"
+    },
+    {
+      "label": "(13) 電話番号",
+      "section": "身分事項",
+      "cellRef": "B18",
+      "sheetName": "申請書本体",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(14) 携帯電話番号"
+    },
+    {
+      "label": "(14) 携帯電話番号",
+      "section": "身分事項",
+      "cellRef": "B19",
+      "sheetName": "申請書本体",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(15) メールアドレス"
+    },
+    {
+      "label": "(15) メールアドレス",
+      "section": "身分事項",
+      "cellRef": "B20",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "(16) 旅券番号",
+      "section": "旅券情報",
+      "cellRef": "B23",
+      "sheetName": "申請書本体",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(17) 旅券有効期限"
+    },
+    {
+      "label": "(17) 旅券有効期限",
+      "section": "旅券情報",
+      "cellRef": "B24",
+      "sheetName": "申請書本体",
+      "inputType": "date",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "(18) 入国目的",
+      "section": "旅券情報",
+      "cellRef": "B27",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(19) 入国予定年月日"
+    },
+    {
+      "label": "(19) 入国予定年月日",
+      "section": "旅券情報",
+      "cellRef": "B28",
+      "sheetName": "申請書本体",
+      "inputType": "date",
+      "required": false,
+      "exampleValue": "(20) 上陸予定港"
+    },
+    {
+      "label": "(20) 上陸予定港",
+      "section": "旅券情報",
+      "cellRef": "B29",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(21) 滞在予定期間"
+    },
+    {
+      "label": "(21) 滞在予定期間",
+      "section": "旅券情報",
+      "cellRef": "B30",
+      "sheetName": "申請書本体",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "在日親族の有無",
+      "section": "家族情報",
+      "cellRef": "B2",
+      "sheetName": "在日親族",
+      "inputType": "radio",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "勤務先",
+      "section": "所属機関",
+      "cellRef": "H3",
+      "sheetName": "在日親族",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "親族1",
+      "section": "家族情報",
+      "cellRef": "B4",
+      "sheetName": "在日親族",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "親族2"
+    },
+    {
+      "label": "親族2",
+      "section": "家族情報",
+      "cellRef": "B5",
+      "sheetName": "在日親族",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "親族3"
+    },
+    {
+      "label": "親族3",
+      "section": "家族情報",
+      "cellRef": "B6",
+      "sheetName": "在日親族",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "親族4"
+    },
+    {
+      "label": "親族4",
+      "section": "家族情報",
+      "cellRef": "B7",
+      "sheetName": "在日親族",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "親族5"
+    },
+    {
+      "label": "親族5",
+      "section": "家族情報",
+      "cellRef": "B8",
+      "sheetName": "在日親族",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "親族6"
+    },
+    {
+      "label": "親族6",
+      "section": "家族情報",
+      "cellRef": "B9",
+      "sheetName": "在日親族",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "犯罪を理由とする処分の有無",
+      "section": "家族情報",
+      "cellRef": "B12",
+      "sheetName": "在日親族",
+      "inputType": "radio",
+      "required": false,
+      "exampleValue": "処分の内容"
+    },
+    {
+      "label": "処分の内容",
+      "section": "家族情報",
+      "cellRef": "B13",
+      "sheetName": "在日親族",
+      "inputType": "textarea",
+      "required": false,
+      "exampleValue": ""
+    },
+    {
+      "label": "(1) 名称",
+      "section": "所属機関",
+      "cellRef": "B2",
+      "sheetName": "所属機関",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(2) 支店・事業所名"
+    },
+    {
+      "label": "(2) 支店・事業所名",
+      "section": "所属機関",
+      "cellRef": "B3",
+      "sheetName": "所属機関",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(3) 法人番号の有無"
+    },
+    {
+      "label": "(3) 法人番号の有無",
+      "section": "所属機関",
+      "cellRef": "B4",
+      "sheetName": "所属機関",
+      "inputType": "radio",
+      "required": false,
+      "exampleValue": "(4) 法人番号"
+    },
+    {
+      "label": "(4) 法人番号",
+      "section": "所属機関",
+      "cellRef": "B5",
+      "sheetName": "所属機関",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(5) 業種"
+    },
+    {
+      "label": "(5) 業種",
+      "section": "所属機関",
+      "cellRef": "B6",
+      "sheetName": "所属機関",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(6) 郵便番号"
+    },
+    {
+      "label": "(6) 郵便番号",
+      "section": "所属機関",
+      "cellRef": "B7",
+      "sheetName": "所属機関",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(7) 所在地(都道府県)"
+    },
+    {
+      "label": "(7) 所在地(都道府県)",
+      "section": "所属機関",
+      "cellRef": "B8",
+      "sheetName": "所属機関",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(8) 所在地(市区町村)"
+    },
+    {
+      "label": "(8) 所在地(市区町村)",
+      "section": "所属機関",
+      "cellRef": "B9",
+      "sheetName": "所属機関",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(9) 所在地(町名丁目番地号等)"
+    },
+    {
+      "label": "(9) 所在地(町名丁目番地号等)",
+      "section": "所属機関",
+      "cellRef": "B10",
+      "sheetName": "所属機関",
+      "inputType": "text",
+      "required": false,
+      "exampleValue": "(10) 電話番号"
+    },
+    {
+      "label": "(10) 電話番号",
+      "section": "所属機関",
+      "cellRef": "B11",
+      "sheetName": "所属機関",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(11) 資本金"
+    },
+    {
+      "label": "(11) 資本金",
+      "section": "所属機関",
+      "cellRef": "B12",
+      "sheetName": "所属機関",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(12) 従業員数"
+    },
+    {
+      "label": "(12) 従業員数",
+      "section": "所属機関",
+      "cellRef": "B13",
+      "sheetName": "所属機関",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": "(13) 月額報酬"
+    },
+    {
+      "label": "(13) 月額報酬",
+      "section": "所属機関",
+      "cellRef": "B14",
+      "sheetName": "所属機関",
+      "inputType": "number",
+      "required": false,
+      "exampleValue": ""
+    }
+  ],
+  "sheets": [
+    "申請書本体",
+    "在日親族",
+    "所属機関"
+  ],
+  "rawText": "[申請書本体!A1] 在留資格認定証明書交付申請書\n[申請書本体!A3] ■ 身分事項\n[申請書本体!A4] (1) 国籍・地域\n[申請書本体!A5] (2) 生年月日\n[申請書本体!C5] (YYYYMMDD)\n[申請書本体!A6] (3) 氏名（ローマ字）\n[申請書本体!A7] (4) 性別\n[申請書本体!C7] (1:男 2:女)\n[申請書本体!A8] (5) 出生地\n[申請書本体!A9] (6) 配偶者の有無\n[申請書本体!C9] (1:有 2:無)\n[申請書本体!A10] (7) 職業\n[申請書本体!A11] (8) 本国における居住地\n[申請書本体!A13] ■ 日本における連絡先\n[申請書本体!A14] (9) 郵便番号\n[申請書本体!C14] (ハイフンなし7桁)\n[申請書本体!A15] (10) 都道府県\n[申請書本体!A16] (11) 市区町村\n[申請書本体!A17] (12) 町名丁目番地号等\n[申請書本体!A18] (13) 電話番号\n[申請書本体!C18] (ハイフンなし)\n[申請書本体!A19] (14) 携帯電話番号\n[申請書本体!A20] (15) メールアドレス\n[申請書本体!A22] ■ 旅券情報\n[申請書本体!A23] (16) 旅券番号\n[申請書本体!A24] (17) 旅券有効期限\n[申請書本体!C24] (YYYYMMDD)\n[申請書本体!A26] ■ 入国予定\n[申請書本体!A27] (18) 入国目的\n[申請書本体!A28] (19) 入国予定年月日\n[申請書本体!C28] (YYYYMMDD)\n[申請書本体!A29] (20) 上陸予定港\n[申請書本体!A30] (21) 滞在予定期間\n[在日親族!A1] ■ 在日親族及び同居者\n[在日親族!A2] 在日親族の有無\n[在日親族!C2] (1:有 2:無)\n[在日親族!B3] 続柄\n[在日親族!C3] 氏名\n[在日親族!D3] 生年月日\n[在日親族!E3] 国籍・地域\n[在日親族!F3] 同居予定\n[在日親族!G3] 勤務先\n[在日親族!A4] 親族1\n[在日親族!A5] 親族2\n[在日親族!A6] 親族3\n[在日親族!A7] 親族4\n[在日親族!A8] 親族5\n[在日親族!A9] 親族6\n[在日親族!A11] ■ 犯罪歴等\n[在日親族!A12] 犯罪を理由とする処分の有無\n[在日親族!C12] (1:有 2:無)\n[在日親族!A13] 処分の内容\n[所属機関!A1] ■ 所属機関情報\n[所属機関!A2] (1) 名称\n[所属機関!A3] (2) 支店・事業所名\n[所属機関!A4] (3) 法人番号の有無\n[所属機関!C4] (1:有 2:無)\n[所属機関!A5] (4) 法人番号\n[所属機関!C5] (半角数字13桁)\n[所属機関!A6] (5) 業種\n[所属機関!A7] (6) 郵便番号\n[所属機関!A8] (7) 所在地(都道府県)\n[所属機関!A9] (8) 所在地(市区町村)\n[所属機関!A10] (9) 所在地(町名丁目番地号等)\n[所属機関!A11] (10) 電話番号\n[所属機関!A12] (11) 資本金\n[所属機関!C12] (円)\n[所属機関!A13] (12) 従業員数\n[所属機関!C13] (名)\n[所属機関!A14] (13) 月額報酬\n[所属機関!C14] (円)",
+  "sourceFile": "C:\\Users\\ABC\\AI行政書士\\scripts\\template-generator\\tests\\test_application.xlsx",
+  "sourceType": "excel"
+}

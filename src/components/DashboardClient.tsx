@@ -12,7 +12,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2 } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, FileText } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -261,6 +261,15 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               icon={Shield}
               label="組織・ユーザー管理"
               href="/admin/organizations"
+            />
+          )}
+
+          {/* テンプレートマスター管理（scrivener / hq_admin） */}
+          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
+            <SidebarItem
+              icon={FileText}
+              label="テンプレート管理"
+              href="/admin/templates"
             />
           )}
 

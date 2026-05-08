@@ -3,10 +3,11 @@
 import React, { useState, useCallback } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Mail, CheckCircle, XCircle, CloudOff, Cloud } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { ClickToFillProvider } from '@/contexts/ClickToFillContext';
 import { AttachmentProvider } from '@/contexts/AttachmentContext';
+import { COLLECTIONS } from '@/constants/firestore';
 import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
 import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
 
@@ -182,6 +183,8 @@ export function CoeApplicationFormInner({
     isSaving,
     isExporting,
     isBusy,
+    isAutoSaving,
+    lastSavedAt,
     savedRecordId,
     handleSaveOnly,
     handleSaveAndExport,
@@ -289,6 +292,7 @@ export function CoeApplicationFormInner({
       <FormProvider {...methods}>
       <AttachmentProvider
         applicationId={savedRecordId || recordId}
+        collectionName={COLLECTIONS.COE_APPLICATIONS}
         initialAttachments={initialAttachmentsMap}
         readonly={!currentUser}
       >
@@ -381,6 +385,34 @@ export function CoeApplicationFormInner({
                     <span className="hidden sm:inline">{isExporting ? '出力中...' : 'CSV出力'}</span>
                   </button>
               </div>
+
+                {/* ─── 保存状態インジケーター ─────────────────────────────── */}
+                <div className="flex items-center gap-1.5 text-xs w-full md:w-auto justify-end pr-1">
+                  {isAutoSaving ? (
+                    <>
+                      <Loader2 size={12} className="spin text-sky-400" />
+                      <span className="text-sky-400">自動保存中...</span>
+                    </>
+                  ) : isSaving ? (
+                    <>
+                      <Loader2 size={12} className="spin text-amber-400" />
+                      <span className="text-amber-400">保存しています...</span>
+                    </>
+                  ) : lastSavedAt ? (
+                    <>
+                      <Cloud size={12} className="text-emerald-400" />
+                      <span className="text-slate-400">
+                        {lastSavedAt.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                        {' '}に保存完了
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudOff size={12} className="text-slate-500" />
+                      <span className="text-slate-500">未保存</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

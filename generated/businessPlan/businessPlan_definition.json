@@ -1,0 +1,332 @@
+{
+  "formName": "事業計画書",
+  "formKey": "businessPlan",
+  "sections": [
+    {
+      "sectionKey": "applicantInfo",
+      "sectionLabel": "申請者情報",
+      "fields": [
+        {
+          "fieldKey": "name",
+          "label": "(1) 氏名",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "applicant_name",
+          "sectionKey": "applicantInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "申請者の氏名",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "birthDate",
+          "label": "(2) 生年月日",
+          "zodType": "z.string().regex(/^\\d{8}$/)",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": "^\\d{8}$",
+            "regexDescription": "YYYYMMDD形式"
+          },
+          "csvHeader": "applicant_birth_date",
+          "sectionKey": "applicantInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "申請者の生年月日",
+          "csvSpec": "半角数字8桁 (YYYYMMDD)"
+        },
+        {
+          "fieldKey": "nationality",
+          "label": "(3) 国籍",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "applicant_nationality",
+          "sectionKey": "applicantInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "申請者の国籍",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "address",
+          "label": "(4) 住所",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "applicant_address",
+          "sectionKey": "applicantInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "申請者の住所",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "phoneNumber",
+          "label": "(5) 電話番号",
+          "zodType": "z.string().regex(/^\\d{10,12}$/)",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": "^\\d{10,12}$",
+            "regexDescription": "ハイフンなし半角数字、10〜12文字"
+          },
+          "csvHeader": "applicant_phone_number",
+          "sectionKey": "applicantInfo",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "申請者の電話番号",
+          "csvSpec": "半角数字、ハイフンなし"
+        }
+      ]
+    },
+    {
+      "sectionKey": "businessOverview",
+      "sectionLabel": "事業概要",
+      "fields": [
+        {
+          "fieldKey": "businessName",
+          "label": "(1) 事業の名称",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "business_name",
+          "sectionKey": "businessOverview",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "事業の名称",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "businessContent",
+          "label": "(2) 事業の内容",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "business_content",
+          "sectionKey": "businessOverview",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "事業の内容",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "businessStartDate",
+          "label": "(3) 事業開始予定年月日",
+          "zodType": "z.string().regex(/^\\d{8}$/)",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": "^\\d{8}$",
+            "regexDescription": "YYYYMMDD形式"
+          },
+          "csvHeader": "business_start_date",
+          "sectionKey": "businessOverview",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "事業開始予定年月日",
+          "csvSpec": "半角数字8桁 (YYYYMMDD)"
+        },
+        {
+          "fieldKey": "businessLocation",
+          "label": "(4) 事業所の所在地",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "business_location",
+          "sectionKey": "businessOverview",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "事業所の所在地",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "numberOfEmployees",
+          "label": "(5) 従業員数",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "number_of_employees",
+          "sectionKey": "businessOverview",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "従業員数",
+          "csvSpec": "半角数字"
+        },
+        {
+          "fieldKey": "capital",
+          "label": "(6) 資本金",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "capital",
+          "sectionKey": "businessOverview",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "資本金",
+          "csvSpec": "半角数字"
+        }
+      ]
+    },
+    {
+      "sectionKey": "careerQualifications",
+      "sectionLabel": "経歴・資格",
+      "fields": [
+        {
+          "fieldKey": "finalEducation",
+          "label": "(1) 最終学歴",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "final_education",
+          "sectionKey": "careerQualifications",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "最終学歴",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "workHistory",
+          "label": "(2) 職歴",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "work_history",
+          "sectionKey": "careerQualifications",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "職歴",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "qualifications",
+          "label": "(3) 保有資格",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "qualifications",
+          "sectionKey": "careerQualifications",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "保有資格",
+          "csvSpec": "全角文字"
+        },
+        {
+          "fieldKey": "japaneseProficiency",
+          "label": "(4) 日本語能力",
+          "zodType": "z.string()",
+          "validation": {
+            "maxLength": null,
+            "minLength": null,
+            "regex": null,
+            "regexDescription": null
+          },
+          "csvHeader": "japanese_proficiency",
+          "sectionKey": "careerQualifications",
+          "isRequired": true,
+          "isRepeatable": false,
+          "repeatMax": null,
+          "enumValues": null,
+          "description": "日本語能力",
+          "csvSpec": "全角文字"
+        }
+      ]
+    }
+  ],
+  "csvFiles": [
+    {
+      "fileName": "事業計画書.csv",
+      "headerCount": 15,
+      "headers": [
+        "applicant_name",
+        "applicant_birth_date",
+        "applicant_nationality",
+        "applicant_address",
+        "applicant_phone_number",
+        "business_name",
+        "business_content",
+        "business_start_date",
+        "business_location",
+        "number_of_employees",
+        "capital",
+        "final_education",
+        "work_history",
+        "qualifications",
+        "japanese_proficiency"
+      ]
+    }
+  ]
+}
