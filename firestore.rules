@@ -49,6 +49,20 @@ service cloud.firestore {
       }
     }
 
+    // -------------------------------------------------------------------------
+    // /dynamic_applications コレクション
+    // -------------------------------------------------------------------------
+    match /dynamic_applications/{docId} {
+      // get: ドキュメントが存在しない場合は resource が null になるため、
+      // docId に userId が含まれていることで所有権を確認する
+      allow get: if isAuthenticated() && docId.matches('draft_' + request.auth.uid + '_.*');
+      // list: 認証済みユーザーのみ（クエリで userId フィルタを前提）
+      allow list: if isAuthenticated();
+      // create: 書き込みデータの userId が自分自身であること
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // update/delete: 既存ドキュメントの所有者のみ
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
 
     // -------------------------------------------------------------------------
     // /organizations コレクション

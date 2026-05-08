@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { useWatch, type Control, type UseFormSetValue } from 'react-hook-form';
+import { useWatch, type Control, type UseFormSetValue, type FieldValues, type Path, type PathValue } from 'react-hook-form';
 import type { ComputedRule } from '@/components/forms/types/uiConfigTypes';
 
-export function useComputedRules(
-  control: Control<any>,
-  setValue: UseFormSetValue<any>,
+export function useComputedRules<TFieldValues extends FieldValues = FieldValues>(
+  control: Control<TFieldValues>,
+  setValue: UseFormSetValue<TFieldValues>,
   rules: ComputedRule[]
 ) {
   // すべてのルールが依存しているフィールドのユニークなリストを作成
@@ -21,12 +21,12 @@ export function useComputedRules(
   // 全依存フィールドの値を監視
   const watchedValuesArray = useWatch({
     control,
-    name: allDependencies,
+    name: allDependencies as unknown as readonly Path<TFieldValues>[],
   });
 
   // フィールド名 -> 値 のマップを作成
   const watchedValues = useMemo(() => {
-    const map: Record<string, any> = {};
+    const map: Record<string, unknown> = {};
     allDependencies.forEach((dep, index) => {
       map[dep] = watchedValuesArray[index];
     });
@@ -50,12 +50,13 @@ export function useComputedRules(
         const result = evaluator(...args);
 
         // NaN や Infinity を防ぐフォールバック処理
+        const target = rule.targetField as Path<TFieldValues>;
         if (typeof result === 'number' && (!isFinite(result) || isNaN(result))) {
-          setValue(rule.targetField, '0', { shouldValidate: true, shouldDirty: true });
+          setValue(target, '0' as PathValue<TFieldValues, Path<TFieldValues>>, { shouldValidate: true, shouldDirty: true });
         } else if (result === undefined || result === null) {
-          setValue(rule.targetField, '', { shouldValidate: true, shouldDirty: true });
+          setValue(target, '' as PathValue<TFieldValues, Path<TFieldValues>>, { shouldValidate: true, shouldDirty: true });
         } else {
-          setValue(rule.targetField, String(result), { shouldValidate: true, shouldDirty: true });
+          setValue(target, String(result) as PathValue<TFieldValues, Path<TFieldValues>>, { shouldValidate: true, shouldDirty: true });
         }
       } catch (error) {
         console.warn(`[ComputedRule Error] target: ${rule.targetField}`, error);

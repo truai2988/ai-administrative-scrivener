@@ -1,22 +1,22 @@
 'use client';
 
 import React from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext, Controller, type FieldValues, type Path } from 'react-hook-form';
 import { z } from 'zod';
-import { CheckCircle2, AlertCircle, Save } from 'lucide-react';
+import { AlertCircle, Save } from 'lucide-react';
 import type { FormUiConfig } from './types/uiConfigTypes';
 import { useComputedRules } from '@/hooks/useComputedRules';
 
-interface DynamicFormRendererProps {
+interface DynamicFormRendererProps<TFieldValues extends FieldValues = FieldValues> {
   config: FormUiConfig;
-  schema: z.ZodSchema<any>;
+  schema: z.ZodSchema<TFieldValues>;
   options?: Record<string, { value: string; label: string }[]>;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: TFieldValues) => void;
   isSubmitting?: boolean;
 }
 
 // Zodスキーマから必須項目かどうかを判定するヘルパー
-function isFieldRequired(schema: z.ZodSchema<any>, fieldName: string): boolean {
+function isFieldRequired(schema: z.ZodSchema<unknown>, fieldName: string): boolean {
   try {
     if (schema instanceof z.ZodObject) {
       const fieldSchema = schema.shape[fieldName];
@@ -31,14 +31,14 @@ function isFieldRequired(schema: z.ZodSchema<any>, fieldName: string): boolean {
   }
 }
 
-export function DynamicFormRenderer({
+export function DynamicFormRenderer<TFieldValues extends FieldValues = FieldValues>({
   config,
   schema,
   options = {},
   onSubmit,
   isSubmitting = false
-}: DynamicFormRendererProps) {
-  const methods = useFormContext();
+}: DynamicFormRendererProps<TFieldValues>) {
+  const methods = useFormContext<TFieldValues>();
   const { control, handleSubmit, formState: { errors } } = methods;
 
   // AIが生成した自動計算ルールの適用
@@ -75,7 +75,7 @@ export function DynamicFormRenderer({
                     </label>
                     
                     <Controller
-                      name={field.fieldKey}
+                      name={field.fieldKey as Path<TFieldValues>}
                       control={control}
                       render={({ field: { onChange, value, ref } }) => {
                         if (field.inputType === 'select') {

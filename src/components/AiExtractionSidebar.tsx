@@ -149,7 +149,7 @@ function UploadArea({
   // ── ローディング中 ──
   if (isLoading) {
     return (
-      <div className="px-4 py-6 border-b border-slate-700/50">
+      <div className="px-4 py-6 border-b border-slate-200">
         <div className="flex flex-col items-center gap-3">
           <motion.div
             animate={{ rotate: 360 }}
@@ -158,11 +158,11 @@ function UploadArea({
             <Loader2 size={28} className="text-indigo-500" />
           </motion.div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-indigo-400">AIが読み取っています...</p>
-            <p className="text-xs text-slate-400 mt-1">書類から情報を自動抽出中</p>
+            <p className="text-sm font-semibold text-indigo-600">AIが読み取っています...</p>
+            <p className="text-xs text-slate-500 mt-1">書類から情報を自動抽出中</p>
           </div>
           <motion.div
-            className="w-full h-1 bg-slate-800 rounded-full overflow-hidden"
+            className="w-full h-1 bg-slate-200 rounded-full overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -181,12 +181,12 @@ function UploadArea({
   // ── エラー表示 ──
   if (error) {
     return (
-      <div className="px-4 py-3 border-b border-slate-700/50">
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+      <div className="px-4 py-3 border-b border-slate-200">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-50 border border-rose-200">
           <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-rose-400">読み取りエラー</p>
-            <p className="text-xs text-rose-300 mt-0.5 wrap-break-word">{error}</p>
+            <p className="text-xs font-semibold text-rose-600">読み取りエラー</p>
+            <p className="text-xs text-rose-500 mt-0.5 wrap-break-word">{error}</p>
           </div>
           <button
             type="button"
@@ -203,14 +203,14 @@ function UploadArea({
   // ── アップロード済みの場合（コンパクト表示） ──
   if (hasData && fileName) {
     return (
-      <div className="px-4 py-2 border-b border-slate-700/50">
-        <div className="flex items-center gap-2 text-xs text-slate-300">
+      <div className="px-4 py-2 border-b border-slate-200">
+        <div className="flex items-center gap-2 text-xs text-slate-600">
           <FileImage size={14} className="text-emerald-400 shrink-0" />
           <span className="truncate font-medium">{fileName}</span>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="ml-auto text-indigo-400 hover:text-indigo-300 font-medium transition-colors whitespace-nowrap"
+            className="ml-auto text-indigo-600 hover:text-indigo-700 font-medium transition-colors whitespace-nowrap"
           >
             別のファイル
           </button>
@@ -228,7 +228,7 @@ function UploadArea({
 
   // ── 初期状態（ドラッグ&ドロップエリア） ──
   return (
-    <div className="px-3 pt-3 pb-2 border-b border-slate-700/50">
+    <div className="px-3 pt-3 pb-2 border-b border-slate-200">
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -239,8 +239,8 @@ function UploadArea({
           cursor-pointer transition-all duration-200
           ${
             isDragOver
-              ? 'border-indigo-400 bg-indigo-900/30 shadow-inner'
-              : 'border-slate-700 bg-slate-800/30 hover:border-indigo-500/50 hover:bg-indigo-900/20'
+              ? 'border-indigo-400 bg-indigo-50 shadow-inner'
+              : 'border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/50'
           }
         `}
       >
@@ -251,12 +251,12 @@ function UploadArea({
           {isDragOver ? (
             <Upload size={24} className="text-indigo-400" />
           ) : (
-            <ImagePlus size={24} className="text-slate-500" />
+            <ImagePlus size={24} className="text-slate-400" />
           )}
         </motion.div>
 
         <div className="text-center">
-          <p className="text-xs font-semibold text-slate-300">
+          <p className="text-xs font-semibold text-slate-700">
             {isDragOver ? 'ここにドロップ' : '書類をアップロード'}
           </p>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -296,10 +296,10 @@ function ExtractedCard({
   const confidenceColor =
     item.confidence !== null
       ? item.confidence >= 0.9
-        ? 'text-emerald-600'
+        ? 'text-emerald-700'
         : item.confidence >= 0.75
-          ? 'text-amber-600'
-          : 'text-rose-500'
+          ? 'text-amber-700'
+          : 'text-rose-600'
       : '';
 
   return (
@@ -312,11 +312,11 @@ function ExtractedCard({
         ${
           item.mapped
             ? item.autoFilled
-              ? 'border-violet-500/30 bg-violet-900/20 opacity-80 cursor-default'
-              : 'border-emerald-500/30 bg-emerald-900/20 opacity-70 cursor-default'
+              ? 'border-violet-200 bg-violet-50 opacity-80 cursor-default'
+              : 'border-emerald-200 bg-emerald-50 opacity-70 cursor-default'
             : isHolding
-              ? 'border-indigo-500 bg-indigo-900/40 ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-900/50 scale-[1.02]'
-              : 'border-slate-700 bg-slate-800/50 hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-900/50 cursor-pointer'
+              ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-200/50 scale-[1.02]'
+              : 'border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100/50 cursor-pointer'
         }
       `}
       whileTap={!item.mapped && !isHolding ? { scale: 0.97 } : undefined}
@@ -334,7 +334,7 @@ function ExtractedCard({
             {item.breadcrumb.map((crumb, i) => (
               <React.Fragment key={i}>
                 {i > 0 && <ChevronRight size={10} className="text-slate-400 shrink-0" />}
-                <span className="text-xs font-medium text-indigo-300 bg-indigo-900/40 rounded px-1.5 py-0.5">
+                <span className="text-xs font-medium text-indigo-600 bg-indigo-100 rounded px-1.5 py-0.5">
                   {crumb}
                 </span>
               </React.Fragment>
@@ -356,9 +356,9 @@ function ExtractedCard({
           className={`text-sm font-semibold leading-snug ${
             item.mapped
               ? item.autoFilled
-                ? 'text-violet-400 line-through decoration-violet-500/50'
-                : 'text-emerald-400 line-through decoration-emerald-500/50'
-              : 'text-slate-200'
+                ? 'text-violet-600 line-through decoration-violet-400/50'
+                : 'text-emerald-600 line-through decoration-emerald-400/50'
+              : 'text-slate-800'
           }`}
         >
           {item.value}
@@ -367,12 +367,12 @@ function ExtractedCard({
         {/* マッピング済みラベル: 手動 vs 自動 で表示を分岐 */}
         {item.mapped && item.mappedTo && (
           item.autoFilled ? (
-            <div className="flex items-center gap-1 mt-1.5 text-xs text-violet-400">
+            <div className="flex items-center gap-1 mt-1.5 text-xs text-violet-600">
               <Wand2 size={12} />
               <span>✨ 学習により自動入力 → {fieldLabels?.[item.mappedTo] || item.mappedTo}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 mt-1.5 text-xs text-emerald-400">
+            <div className="flex items-center gap-1 mt-1.5 text-xs text-emerald-600">
               <CheckCircle2 size={12} />
               <span>→ {fieldLabels?.[item.mappedTo] || item.mappedTo} に代入済み</span>
             </div>
@@ -544,19 +544,19 @@ export function AiExtractionSidebar({
       </AnimatePresence>
 
       {/* サイドバーコンテナ */}
-      <div className={`ai-extraction-sidebar rounded-xl border border-slate-700/50 bg-slate-900/40 shadow-sm ${hideHeader ? '' : 'mb-4'}`}>
+      <div className={`ai-extraction-sidebar rounded-xl border border-slate-200 bg-white shadow-sm ${hideHeader ? '' : 'mb-4'}`}>
         {/* ヘッダー（トグル） */}
         {!hideHeader && (
           <button
           type="button"
           onClick={onToggle}
-          className="w-full flex items-center justify-between px-4 py-3 bg-slate-800/80 hover:bg-slate-700/80 transition-colors border-b border-slate-700/50"
+          className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors border-b border-slate-200 rounded-t-xl"
         >
           <div className="flex items-center gap-2">
-            <FileSearch size={16} className="text-indigo-400" />
-            <span className="text-sm font-bold text-slate-200">📄 書類から自動入力</span>
+            <FileSearch size={16} className="text-indigo-600" />
+            <span className="text-sm font-bold text-slate-800">📄 書類から自動入力</span>
             {totalCount > 0 && (
-              <span className="text-xs font-medium text-indigo-300 bg-indigo-900/40 rounded-full px-2 py-0.5">
+              <span className="text-xs font-medium text-indigo-600 bg-indigo-100 rounded-full px-2 py-0.5">
                 {mappedCount}/{totalCount}
               </span>
             )}
@@ -591,10 +591,10 @@ export function AiExtractionSidebar({
               />
               
               {/* ─── 高精度抽出トグル ─── */}
-              <div className="px-4 py-2 border-b border-slate-700/50 bg-slate-800/30 flex items-center justify-between">
+              <div className="px-4 py-2 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Wand2 size={14} className={useHybridMode ? "text-amber-400" : "text-slate-400"} />
-                  <span className="text-xs text-slate-300">高精度ハイブリッド抽出 (コスト増)</span>
+                  <span className="text-xs text-slate-600">高精度ハイブリッド抽出 (コスト増)</span>
                 </div>
                 <button
                   type="button"
@@ -613,8 +613,8 @@ export function AiExtractionSidebar({
 
               {/* ─── 推奨書類ヒント（クリックして事前選択可能） ─── */}
               {hints.length > 0 && (
-                <div className="px-4 py-2 border-b border-slate-700/50 bg-slate-800/30">
-                  <div className="text-xs text-slate-400 mb-2">推奨書類 (アップロード前に選択):</div>
+                <div className="px-4 py-2 border-b border-slate-200 bg-slate-50/50">
+                  <div className="text-xs text-slate-500 mb-2">推奨書類 (アップロード前に選択):</div>
                   <div className="flex flex-wrap gap-2">
                     {hints.map((hint) => {
                       const isSelected = selectedHint === hint;
@@ -629,7 +629,7 @@ export function AiExtractionSidebar({
                               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
                               : isSelected 
                                 ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-500/20' 
-                                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
                           }`}
                           title={isDone ? 'アップロード済み' : '選択してアップロード'}
                         >
@@ -644,7 +644,7 @@ export function AiExtractionSidebar({
               )}
 
               {/* 添付ファイル一覧表示 */}
-              <div className="px-4 py-2 border-b border-slate-700/50">
+              <div className="px-4 py-2 border-b border-slate-200">
                 <FileList 
                   attachments={currentAttachments} 
                   onDelete={(id) => deleteFile(tabId, id)} 
@@ -727,7 +727,7 @@ export function AiExtractionSidebar({
               {/* カードリスト */}
               <div className="px-3 py-3 space-y-2">
                 {ctf.extractedData.length === 0 && !extraction.isLoading ? (
-                  <div className="text-center py-4 text-slate-400 text-xs">
+                  <div className="text-center py-4 text-slate-500 text-xs">
                     書類をアップロードすると、AIが自動で情報を読み取ります
                   </div>
                 ) : (
@@ -746,7 +746,7 @@ export function AiExtractionSidebar({
 
               {/* マッピング履歴 */}
               {ctf.mappingLog.length > 0 && (
-                <div className="border-t border-slate-100 px-4 py-3">
+                <div className="border-t border-slate-200 px-4 py-3">
                   <h4 className="text-xs font-bold text-slate-500 mb-2">マッピング履歴</h4>
                   <div className="space-y-1.5">
                     {ctf.mappingLog.map((log, i) => (
@@ -764,7 +764,7 @@ export function AiExtractionSidebar({
               )}
 
               {/* フッター */}
-              <div className="border-t border-slate-100 px-4 py-2 flex justify-end">
+              <div className="border-t border-slate-200 px-4 py-2 flex justify-end">
                 <button
                   type="button"
                   onClick={handleFullReset}

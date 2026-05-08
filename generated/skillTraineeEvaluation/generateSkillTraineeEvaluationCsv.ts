@@ -1,5 +1,5 @@
 import type { SkillTraineeEvaluationFormData } from './skillTraineeEvaluationSchema';
-import { createCsvString } from '@/lib/csv/csvUtils';
+import { createCsvString } from '../../src/lib/csv/csvUtils';
 
 /**
  * 技能実習生に関する評価調書 の CSV データを生成します。
@@ -31,7 +31,7 @@ export const generateSkillTraineeEvaluationCsv = (data: SkillTraineeEvaluationFo
   row[6] = data.traineeInfo?.occupationType || '';
   // ═══ ２．技能実習実施状況 ═══
   // [7] training_year
-  row[7] = data.trainingStatus?.trainingYear || '';
+  row[7] = String(data.trainingStatus?.trainingYear || '');
   // [8] scheduled_days_01
   row[8] = ''; // TODO: マッピング未特定 — 手動で割り当ててください
   // [9] attendance_days_01
@@ -153,15 +153,15 @@ export const generateSkillTraineeEvaluationCsv = (data: SkillTraineeEvaluationFo
   // [67] paid_leave_days_12
   row[67] = ''; // TODO: マッピング未特定 — 手動で割り当ててください
   // [68] total_scheduled_days
-  row[68] = data.trainingStatus?.totalScheduledDays || '';
+  row[68] = String(data.trainingStatus?.totalScheduledDays || '');
   // [69] total_attendance_days
-  row[69] = data.trainingStatus?.totalAttendanceDays || '';
+  row[69] = String(data.trainingStatus?.totalAttendanceDays || '');
   // [70] total_attendance_rate
-  row[70] = data.trainingStatus?.totalAttendanceRate || '';
+  row[70] = String(data.trainingStatus?.totalAttendanceRate || '');
   // [71] total_absent_days
-  row[71] = data.trainingStatus?.totalAbsentDays || '';
+  row[71] = String(data.trainingStatus?.totalAbsentDays || '');
   // [72] total_paid_leave_days
-  row[72] = data.trainingStatus?.totalPaidLeaveDays || '';
+  row[72] = String(data.trainingStatus?.totalPaidLeaveDays || '');
   // ═══ ３．技能検定・技能実習評価試験 ═══
   // [73] skill_test_name_and_organization
   row[73] = data.skillTestInfo?.skillTestNameAndOrganization || '';

@@ -62,7 +62,7 @@ export const fillTestCoeExcel = async (
   // ─── 所属機関 ───
   ws2.getCell('H3').value = data.organizationInfo?.employerName || ''; // 勤務先
   // ─── 家族情報 ───
-  ws2.getCell('X24').value = String(data.cohabitingFamily?.cohabitingFamily || '');
+  // ws2.getCell('X24').value = String(data.cohabitingFamily?.cohabitingFamily || '');
   ws2.getCell('B4').value = String(data.familyInfo?.relative || ''); // 親族1
   ws2.getCell('B5').value = String(data.familyInfo?.relative || ''); // 親族2
   ws2.getCell('B6').value = String(data.familyInfo?.relative || ''); // 親族3

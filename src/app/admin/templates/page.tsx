@@ -158,7 +158,7 @@ export default function AdminTemplatesPage() {
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
-              href="/admin/organizations"
+              href="/"
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
             >
               <ArrowLeft size={20} />
