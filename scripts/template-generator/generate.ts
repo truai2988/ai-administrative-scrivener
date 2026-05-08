@@ -34,30 +34,17 @@ import { generateZodSchema } from './generators/generateZodSchema';
 import { generateCsvHeaders } from './generators/generateCsvHeaders';
 import { generateCsvMapper } from './generators/generateCsvMapper';
 import { generateFormOptions } from './generators/generateFormOptions';
+import { generateUiConfig } from './generators/generateUiConfig';
 import { generateExcelFiller } from './generators/generateExcelFiller';
 import { generateWordFiller } from './generators/generateWordFiller';
 import type { GenerateOptions, ParsedFormStructure } from './types';
 import { getAdminDb, getAdminStorage } from '../../src/lib/firebase/admin';
 import { generateCamelCaseId } from './ai/generateCamelCaseId';
 
-// ─── .env.local から GEMINI_API_KEY を読み込む ────────────────────────────────
-function loadEnv(): void {
-  const envPath = path.resolve(process.cwd(), '.env.local');
-  if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, 'utf-8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx === -1) continue;
-      const key = trimmed.substring(0, eqIdx).trim();
-      const val = trimmed.substring(eqIdx + 1).trim();
-      if (!process.env[key]) {
-        process.env[key] = val;
-      }
-    }
-  }
-}
+import * as dotenv from 'dotenv';
+
+// ─── .env.local から環境変数を読み込む ────────────────────────────────
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 // ─── ファイル書き出しヘルパー ─────────────────────────────────────────────────
 function writeOutput(outputDir: string, fileName: string, content: string): void {
@@ -85,18 +72,20 @@ async function main(opts: GenerateOptions): Promise<void> {
   let actualInput = opts.input;
   let actualName = opts.name;
   let actualLabel = opts.label;
+  const safeFormLabel = opts.label || opts.name;
   let actualType = opts.type;
 
   // ─── Step 0: Firebase連携 (--id 指定時) ──────────────────────────
   if (opts.id) {
-    console.log(`🔍 FirestoreからID [${opts.id}] のメタデータを取得中...`);
+    console.log(`🔍 FirestoreからformId [${opts.id}] のメタデータを検索中...`);
     const db = getAdminDb();
-    const docSnap = await db.collection('document_templates').doc(opts.id).get();
-    if (!docSnap.exists) {
-      console.error(`❌ Firestoreにテンプレート(ID: ${opts.id})が見つかりません。`);
+    const querySnap = await db.collection('document_templates').where('formId', '==', opts.id).limit(1).get();
+    if (querySnap.empty) {
+      console.error(`❌ Firestoreにテンプレート(formId: ${opts.id})が見つかりません。`);
       process.exit(1);
     }
-    const data = docSnap.data()!;
+    const docSnap = querySnap.docs[0];
+    const data = docSnap.data();
     actualLabel = data.formName;
     actualType = data.fileType === 'excel' ? 'csv' : 'word'; // デフォルト
     
@@ -104,7 +93,7 @@ async function main(opts: GenerateOptions): Promise<void> {
     
     // GeminiでキャメルケースIDを自動生成
     console.log(`🤖 日本語名から英語のキー名を生成中...`);
-    actualName = await generateCamelCaseId(actualLabel, apiKey);
+    actualName = await generateCamelCaseId(actualLabel as string, apiKey);
     console.log(`   ✨ 生成されたキー名: ${actualName}`);
     
     // Storageからダウンロード
@@ -262,6 +251,10 @@ async function main(opts: GenerateOptions): Promise<void> {
     console.log('  ⏭️  enum フィールドなし — FormOptions の生成をスキップ');
   }
 
+  // ── 共通: Schema-Driven UI Config ──
+  const uiConfigCode = generateUiConfig(definition);
+  writeOutput(outputDir, `${opts.name}UiConfig.ts`, uiConfigCode);
+
   if (opts.type === 'csv') {
     // ═══ CSV モード: ヘッダー + マッパー ═══
     console.log('\n  📊 CSV モード固有ファイル:');
@@ -326,8 +319,6 @@ async function main(opts: GenerateOptions): Promise<void> {
 }
 
 // ─── CLI 定義 ─────────────────────────────────────────────────────────────────
-loadEnv();
-
 const program = new Command();
 
 program

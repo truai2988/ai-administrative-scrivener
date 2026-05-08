@@ -71,7 +71,7 @@ export function generateWordFiller(definition: AnalyzedFormDefinition): string {
   const mappings = buildPlaceholderMappings(definition);
 
   // ─── ファイルヘッダー ──────────────────────────────────────────
-  lines.push(`import type { ${PascalKey}FormData } from '@/lib/schemas/${definition.formKey}Schema';`);
+  lines.push(`import type { ${PascalKey}FormData } from './${definition.formKey}Schema';`);
   lines.push("import * as fs from 'fs';");
   lines.push("import PizZip from 'pizzip';");
   lines.push("import Docxtemplater from 'docxtemplater';");

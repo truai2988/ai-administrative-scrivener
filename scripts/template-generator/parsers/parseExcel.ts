@@ -66,7 +66,7 @@ function inferSection(label: string, currentSection: string): string {
 /** ラベルや値から入力タイプを推定 */
 function inferInputType(
   label: string,
-  validations: XLSX.DataValidation[] | undefined,
+  validations: any | undefined,
   cellRef: string
 ): { type: FieldInputType; options?: string[] } {
   // データバリデーションがあればドロップダウン
@@ -167,7 +167,7 @@ export function parseExcel(filePath: string): ParsedFormStructure {
     // シートの範囲を取得
     const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
     // データバリデーション情報
-    const validations = (sheet as Record<string, unknown>)['!dataValidation'] as XLSX.DataValidation[] | undefined;
+    const validations = (sheet as Record<string, any>)['!dataValidation'] as any[] | undefined;
 
     // 全セルを走査
     for (let row = range.s.r; row <= range.e.r; row++) {

@@ -133,7 +133,10 @@ ${exampleText ? `\n# 記載例テキスト（参考）\n${exampleText.substring(
           "repeatMax": null,
           "enumValues": null,
           "description": ".describe()に付与する日本語説明",
-          "csvSpec": "CSV仕様コメント（例: 半角英数字、12文字以内）"
+          "csvSpec": "CSV仕様コメント（例: 半角英数字、12文字以内）",
+          "isComputed": false,
+          "dependencies": [],
+          "computedLogic": null
         }
       ]
     }
@@ -159,7 +162,13 @@ ${exampleText ? `\n# 記載例テキスト（参考）\n${exampleText.substring(
    フィールドは1つだけ定義し、繰り返しの個別番号は含めない。
 8. csvFiles は書類が複数の CSV に分かれる場合（本体 + 区分V 等）を想定して配列にする。
 9. セクション分割は入管の公式様式に準拠すること。
-10. ドロップダウンの選択肢がある場合は enumValues に含める。`;
+10. ドロップダウンの選択肢がある場合は enumValues に含める。
+11. 自動計算フィールドの推論:
+    - 項目名が「合計」「総計」「年齢」などの場合、または他のフィールドの組み合わせで算出可能な場合は "isComputed": true とする。
+    - その場合、計算に必要な他のフィールドの fieldKey を "dependencies": ["fieldA", "fieldB"] のように配列で指定する。
+    - "computedLogic" には、計算を行うJSのアロー関数文字列を指定する。
+      例: "(fieldA, fieldB) => Number(fieldA || 0) + Number(fieldB || 0)"
+      例: "(birthDate) => birthDate ? Math.floor((new Date() - new Date(birthDate.slice(0,4)+'-'+birthDate.slice(4,6)+'-'+birthDate.slice(6,8)))/31557600000) : 0"`;
 }
 
 // ─── メイン関数 ───────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import type { TestCoeFormData } from '@/lib/schemas/testCoeSchema';
+import type { TestCoeFormData } from './testCoeSchema';
 import type { Workbook } from 'exceljs';
 
 /**
@@ -62,14 +62,14 @@ export const fillTestCoeExcel = async (
   // ─── 所属機関 ───
   ws2.getCell('H3').value = data.organizationInfo?.employerName || ''; // 勤務先
   // ─── 家族情報 ───
-  ws2.getCell('B4').value = data.familyInfo?.relative || ''; // 親族1
-  ws2.getCell('B5').value = data.familyInfo?.relative || ''; // 親族2
-  ws2.getCell('B6').value = data.familyInfo?.relative || ''; // 親族3
-  ws2.getCell('B7').value = data.familyInfo?.relative || ''; // 親族4
-  ws2.getCell('B8').value = data.familyInfo?.relative || ''; // 親族5
-  ws2.getCell('B9').value = data.familyInfo?.relative || ''; // 親族6
-  ws2.getCell('B12').value = data.familyInfo?.hasCriminalRecord || ''; // 犯罪を理由とする処分の有無
-  ws2.getCell('B13').value = data.familyInfo?.criminalRecordDetails || ''; // 処分の内容
+  ws2.getCell('X24').value = String(data.cohabitingFamily?.cohabitingFamily || '');
+  ws2.getCell('B4').value = String(data.familyInfo?.relative || ''); // 親族1
+  ws2.getCell('B5').value = String(data.familyInfo?.relative || ''); // 親族2
+  ws2.getCell('B6').value = String(data.familyInfo?.relative || ''); // 親族3
+  ws2.getCell('B7').value = String(data.familyInfo?.relative || ''); // 親族4
+  ws2.getCell('B8').value = String(data.familyInfo?.relative || ''); // 親族5
+  ws2.getCell('B9').value = String(data.familyInfo?.relative || ''); // 親族6
+  ws2.getCell('B10').value = String(data.familyInfo?.relative || ''); // 親族7処分の内容
 
   // ═══════════════════════════════════════════════════════════════
   // シート3: "所属機関"

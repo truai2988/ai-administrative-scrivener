@@ -123,7 +123,7 @@ export function generateExcelFiller(
   const unmatched = mappings.filter(m => m.fieldKey === '__unknown__').length;
 
   // ─── ファイルヘッダー ──────────────────────────────────────────
-  lines.push(`import type { ${PascalKey}FormData } from '@/lib/schemas/${definition.formKey}Schema';`);
+  lines.push(`import type { ${PascalKey}FormData } from './${definition.formKey}Schema';`);
   lines.push("import type { Workbook } from 'exceljs';");
   lines.push('');
   lines.push('/**');

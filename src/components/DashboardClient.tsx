@@ -220,8 +220,16 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         {/* Navigation - Scrollable */}
         <nav className="flex-1 overflow-y-auto px-8 py-4 space-y-2 no-scrollbar">
           {canCreateForeigner(userRole) && (
-            <SidebarItem icon={QrCode} label="新規申請" active onClick={() => setShowShareModal(true)} />
+            <SidebarItem icon={QrCode} label="招待QR発行" active onClick={() => setShowShareModal(true)} />
           )}
+
+          {/* 新規書類作成導線 */}
+          <SidebarItem
+            icon={FilePen}
+            label="新規書類作成"
+            href="/applications/new"
+          />
+
           {COMING_SOON_ITEMS.map((item) => (
             <SidebarItem
               key={item.label}

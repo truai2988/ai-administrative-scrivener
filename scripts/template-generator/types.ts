@@ -98,6 +98,35 @@ export interface AnalyzedField {
   description: string;
   /** CSV仕様コメント（例: "半角英数字、12文字以内"） */
   csvSpec?: string;
+  /** AIによって推論された、他のフィールドから自動計算される項目か */
+  isComputed?: boolean;
+  /** 計算ロジックに必要な依存フィールドのキー配列（例: ["amountA", "amountB"]） */
+  dependencies?: string[];
+  /** 計算ロジックのJS関数の文字列表現（例: "(A, B) => Number(A || 0) + Number(B || 0)"） */
+  computedLogic?: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ③ UI Config 出力型 (Schema-Driven UI 用)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface ComputedRule {
+  targetField: string;
+  dependencies: string[];
+  logic: string;
+}
+
+export interface UiSection {
+  sectionKey: string;
+  sectionLabel: string;
+  fields: { fieldKey: string; label: string; inputType: string }[];
+}
+
+export interface FormUiConfig {
+  formKey: string;
+  formName: string;
+  sections: UiSection[];
+  computedRules: ComputedRule[];
 }
 
 /** AI が推定したセクション定義 */

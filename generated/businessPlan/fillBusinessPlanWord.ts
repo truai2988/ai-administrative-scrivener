@@ -1,4 +1,4 @@
-import type { BusinessPlanFormData } from '@/lib/schemas/businessPlanSchema';
+import type { BusinessPlanFormData } from './businessPlanSchema';
 import * as fs from 'fs';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';

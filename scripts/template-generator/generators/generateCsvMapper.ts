@@ -90,8 +90,8 @@ export function generateCsvMapper(definition: AnalyzedFormDefinition): string {
     .replace(/^_/, '');
 
   // ─── ファイルヘッダー ──────────────────────────────────────────
-  lines.push(`import type { ${PascalKey}FormData } from '@/lib/schemas/${definition.formKey}Schema';`);
-  lines.push(`import { createCsvString } from '../csvUtils';`);
+  lines.push(`import type { ${PascalKey}FormData } from './${definition.formKey}Schema';`);
+  lines.push(`import { createCsvString } from '@/lib/csv/csvUtils';`);
   lines.push('');
   lines.push('/**');
   lines.push(` * ${definition.formName} の CSV データを生成します。`);
@@ -139,7 +139,7 @@ export function generateCsvMapper(definition: AnalyzedFormDefinition): string {
             lines.push(`  row[${i}] = ''; // TODO: data.${m.sectionKey}?.${m.field.fieldKey}?.[N] の展開ロジックを実装`);
           } else {
             lines.push(`  // [${i}] ${header}`);
-            lines.push(`  row[${i}] = ${buildAccessPath(m.sectionKey, m.field)};`);
+            lines.push(`  row[${i}] = String(${buildAccessPath(m.sectionKey, m.field)} ?? '');`);
           }
         } else {
           // マッピング不明
