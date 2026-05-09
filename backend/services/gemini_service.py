@@ -15,7 +15,7 @@ import google.generativeai as genai
 logger = logging.getLogger(__name__)
 
 # Gemini API の設定
-_MODEL_NAME = "gemini-1.5-pro"
+_MODEL_NAME = "gemini-2.5-pro"
 _TIMEOUT_SECONDS = 120
 
 # JSON出力を強制するためのスキーマ定義
@@ -129,7 +129,7 @@ async def analyze_documents(combined_text: str, filenames: list[str]) -> dict[st
         )
 
         logger.info(f"Gemini API にリクエスト送信中... (テキスト長: {len(combined_text)} 文字)")
-        response = model.generate_content(
+        response = await model.generate_content_async(
             prompt,
             request_options={"timeout": _TIMEOUT_SECONDS},
         )

@@ -46,8 +46,12 @@ def extract_excel_text(file_bytes: bytes, filename: str) -> str:
                     if (row, col) != (merged_range.min_row, merged_range.min_col):
                         merged_cells_map[(row, col)] = str(top_left_value) if top_left_value else ""
 
+        # 最大行・列を制限（OOMクラッシュ防止のため）
+        actual_max_row = min(ws.max_row, 2000) if ws.max_row else 2000
+        actual_max_col = min(ws.max_column, 50) if ws.max_column else 50
+
         consecutive_empty = 0
-        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, max_col=ws.max_column):
+        for row in ws.iter_rows(min_row=1, max_row=actual_max_row, max_col=actual_max_col):
             cells: list[str] = []
             for cell in row:
                 coord = (cell.row, cell.column)
@@ -82,9 +86,13 @@ def _extract_with_pandas(file_bytes: bytes, filename: str) -> str:
     sections: list[str] = [f"=== ファイル: {filename} ===\n"]
 
     for sheet_name in xls.sheet_names:
-        df = pd.read_excel(xls, sheet_name=sheet_name, header=None, dtype=str)
+        # OOMクラッシュ防止のため、最大2000行に制限
+        df = pd.read_excel(xls, sheet_name=sheet_name, header=None, dtype=str, nrows=2000)
         df = df.fillna("")
         sections.append(f"\n--- シート: {sheet_name} ---")
+
+        # 列数を最大50列に制限
+        df = df.iloc[:, :50]
 
         for _, row_data in df.iterrows():
             values = [str(v).strip() for v in row_data if str(v).strip()]

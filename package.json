@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "predev": "kill-port 3000 8000 || exit 0",
+    "dev": "concurrently -c \"cyan,magenta\" -n \"NEXT,FASTAPI\" \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "next dev",
+    "dev:backend": "cd backend && .\\venv\\Scripts\\uvicorn.exe main:app --host 0.0.0.0 --port 8000 --reload",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "clean:ports": "kill-port 3000 8000"
   },
   "dependencies": {
     "@google-cloud/documentai": "^9.6.0",
@@ -48,8 +52,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "commander": "^14.0.3",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.0",
+    "kill-port": "^2.0.1",
     "mammoth": "^1.12.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",

@@ -5,8 +5,6 @@
  * ※ UIの描画順序や自動計算ロジック（computedRules）を定義しています。
  */
 
-import type { FormUiConfig } from '@/components/forms/types/uiConfigTypes';
-
 export const skillTraineeEvaluationUiConfig = {
   "formKey": "skillTraineeEvaluation",
   "formName": "技能実習生に関する評価調書",

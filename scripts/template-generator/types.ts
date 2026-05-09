@@ -161,6 +161,8 @@ export interface AnalyzedFormDefinition {
   sections: AnalyzedSection[];
   /** CSV ファイル定義一覧 */
   csvFiles: AnalyzedCsvFile[];
+  /** 自動計算ルール一覧（UI Config 生成に使用） */
+  computedRules?: ComputedRule[];
   /** 元のFirestoreテンプレートID（もしあれば） */
   templateId?: string;
   /** AI推論による初期フィールドマッピング（breadcrumbKey → sectionKey.fieldKey） */

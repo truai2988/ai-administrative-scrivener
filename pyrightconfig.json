@@ -1,0 +1,12 @@
+{
+  "executionEnvironments": [
+    {
+      "root": "backend",
+      "pythonVersion": "3.12",
+      "extraPaths": ["."],
+      "venvPath": ".",
+      "venv": "venv"
+    }
+  ],
+  "exclude": ["**/node_modules", "**/venv", "**/.next"]
+}

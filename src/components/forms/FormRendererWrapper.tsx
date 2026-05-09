@@ -23,7 +23,6 @@ import { technicalInternEvaluationFormOptions } from '@/components/forms/generat
 // フォームレジストリのエントリ型
 interface FormRegistryEntry {
   config: FormUiConfig;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zodResolverとの互換性のためany許容
   schema: Parameters<typeof zodResolver>[0];
   options: Record<string, { value: string; label: string }[]>;
   csvGenerator: (data: FieldValues) => string;

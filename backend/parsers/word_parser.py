@@ -9,6 +9,7 @@ import io
 import logging
 
 import docx
+import docx.oxml.ns
 
 logger = logging.getLogger(__name__)
 

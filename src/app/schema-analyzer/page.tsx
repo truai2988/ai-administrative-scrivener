@@ -53,7 +53,7 @@ interface AnalysisResponse {
 }
 
 // ── バックエンドURL ──
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 // ============================================================
 // カテゴリツリーコンポーネント
@@ -215,7 +215,10 @@ export default function SchemaAnalyzerPage() {
       const data: AnalysisResponse = await response.json();
       setResult(data);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '解析中にエラーが発生しました';
+      let msg = err instanceof Error ? err.message : '解析中にエラーが発生しました';
+      if (msg.includes('Failed to fetch')) {
+        msg = 'バックエンドサーバー（FastAPI）に接続できませんでした。別ターミナルで `backend` ディレクトリに移動し、`uvicorn main:app --port 8000` を実行してサーバーを起動してください。';
+      }
       setError(msg);
     } finally {
       setIsAnalyzing(false);
