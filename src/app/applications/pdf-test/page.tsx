@@ -8,8 +8,14 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { PdfOverlayRenderer } from '@/components/forms/PdfOverlayRenderer';
+import dynamic from 'next/dynamic';
 import type { OverlayField } from '@/types/pdfOverlay';
+
+// SSRを無効化してPdfOverlayRendererを動的インポートする
+const PdfOverlayRenderer = dynamic(
+  () => import('@/components/forms/PdfOverlayRenderer').then(mod => mod.PdfOverlayRenderer),
+  { ssr: false }
+);
 
 // ============================================================
 // ダミーフィールド定義

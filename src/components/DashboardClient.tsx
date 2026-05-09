@@ -281,6 +281,16 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
+          {/* AIスキーマ解析（scrivener / hq_admin） */}
+          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
+            <SidebarItem
+              icon={Database}
+              label="AIスキーマ解析"
+              href="/schema-analyzer"
+            />
+          )}
+
+
 
           {/* 設定（scrivener用） */}
           {userRole === 'scrivener' && (
