@@ -146,6 +146,10 @@ async def analyze_files(files: list[UploadFile] = File(...)) -> AnalysisResponse
     combined_text = "\n\n".join(extracted_texts)
     logger.info(f"🤖 Gemini API に送信 (結合テキスト: {len(combined_text)} 文字, ファイル数: {len(filenames)})")
 
+    # 各ファイルのテキスト長をデバッグ出力
+    for fname, text in zip(filenames, extracted_texts):
+        logger.info(f"  📊 {fname}: {len(text)} 文字")
+
     try:
         result = await analyze_documents(combined_text, filenames)
     except RuntimeError as e:
@@ -170,4 +174,11 @@ if __name__ == "__main__":
 
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        reload=True,
+        timeout_keep_alive=600,  # 長時間のGemini API処理に対応（10分）
+    )
+

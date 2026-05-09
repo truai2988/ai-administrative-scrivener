@@ -202,10 +202,17 @@ export default function SchemaAnalyzerPage() {
       const formData = new FormData();
       files.forEach((file) => formData.append('files', file));
 
+      // タイムアウト10分（Gemini APIのリトライを考慮して長めに設定）
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000);
+
       const response = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: '不明なエラー' }));
@@ -218,7 +225,12 @@ export default function SchemaAnalyzerPage() {
       let msg = err instanceof Error ? err.message : '解析中にエラーが発生しました';
       if (msg.includes('Failed to fetch')) {
         msg = 'バックエンドサーバー（FastAPI）に接続できませんでした。別ターミナルで `backend` ディレクトリに移動し、`uvicorn main:app --port 8000` を実行してサーバーを起動してください。';
+      } else if (err instanceof DOMException && err.name === 'AbortError') {
+        msg = 'リクエストがタイムアウトしました（10分）。ファイルサイズを小さくするか、ファイル数を減らしてお試しください。';
+      } else if (msg.includes('timed out') || msg.includes('504') || msg.includes('タイムアウト')) {
+        msg = `AI解析がタイムアウトしました。バックエンドで自動リトライを実行しましたが成功しませんでした。ファイルを分割して少数ずつアップロードするか、しばらく待ってから再試行してください。`;
       }
+      console.error('[SchemaAnalyzer] 解析エラー:', err);
       setError(msg);
     } finally {
       setIsAnalyzing(false);

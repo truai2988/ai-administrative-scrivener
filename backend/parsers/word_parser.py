@@ -13,6 +13,11 @@ import docx.oxml.ns
 
 logger = logging.getLogger(__name__)
 
+# 段落数の上限（OOMおよびタイムアウト防止）
+_MAX_PARAGRAPHS = 3000
+# 表の行数上限
+_MAX_TABLE_ROWS = 500
+
 
 def extract_word_text(file_bytes: bytes, filename: str) -> str:
     """
@@ -21,6 +26,7 @@ def extract_word_text(file_bytes: bytes, filename: str) -> str:
     - 段落テキストをそのまま出力
     - 表データを行ごとに「|」区切りで出力
     - ヘッダー/フッターも抽出
+    - 段落数・表の行数に上限を設定してOOM/タイムアウトを防止
     """
     try:
         document = docx.Document(io.BytesIO(file_bytes))
@@ -39,10 +45,21 @@ def extract_word_text(file_bytes: bytes, filename: str) -> str:
                 sections.append(f"[ヘッダー] {header_text}")
 
     # 本文の段落と表を出現順に処理
+    para_count = 0
+    table_row_total = 0
+    truncated = False
+
     for element in document.element.body:
         tag = element.tag.split("}")[-1]  # 名前空間を除去
 
         if tag == "p":
+            para_count += 1
+            if para_count > _MAX_PARAGRAPHS:
+                if not truncated:
+                    sections.append(f"\n... (段落数上限 {_MAX_PARAGRAPHS} に到達。以降省略) ...")
+                    truncated = True
+                continue
+
             # 段落
             para = docx.oxml.ns.qn("w:p")
             if element.tag == para or tag == "p":
@@ -60,7 +77,13 @@ def extract_word_text(file_bytes: bytes, filename: str) -> str:
             sections.append("\n  [表]")
             for table in document.tables:
                 if table._element is element:
+                    row_count = 0
                     for row in table.rows:
+                        row_count += 1
+                        table_row_total += 1
+                        if row_count > _MAX_TABLE_ROWS:
+                            sections.append(f"    ... (表の行数上限 {_MAX_TABLE_ROWS} に到達。以降省略)")
+                            break
                         cells = [cell.text.strip() for cell in row.cells]
                         sections.append(f"    {' | '.join(cells)}")
                     sections.append("")
@@ -74,4 +97,10 @@ def extract_word_text(file_bytes: bytes, filename: str) -> str:
             if footer_text:
                 sections.append(f"[フッター] {footer_text}")
 
-    return "\n".join(sections)
+    result_text = "\n".join(sections)
+    logger.info(
+        f"Word解析完了: {filename} "
+        f"(段落数: {para_count}, 表行数合計: {table_row_total}, "
+        f"テキスト長: {len(result_text)} 文字)"
+    )
+    return result_text

@@ -3,8 +3,8 @@
     {
       "root": "backend",
       "pythonVersion": "3.12",
-      "extraPaths": ["."],
-      "venvPath": ".",
+      "extraPaths": ["backend"],
+      "venvPath": "backend",
       "venv": "venv"
     }
   ],
