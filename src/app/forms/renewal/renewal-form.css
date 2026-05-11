@@ -301,12 +301,16 @@
   gap: 1rem;
 }
 
-.form-grid--2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
+.form-grid--2,
 .form-grid--3 {
   grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .form-grid--2,
+  .form-grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 720px) {
