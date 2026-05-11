@@ -183,6 +183,7 @@ def _build_multimodal_content(
 
 async def legal_check_documents(
     file_images: list[tuple[str, list[Image.Image]]],
+    custom_rules_text: str = "",
 ) -> dict[str, Any]:
     """
     PDFから変換したページ画像群を Gemini API にマルチモーダルで送信し、
@@ -190,6 +191,7 @@ async def legal_check_documents(
 
     Args:
         file_images: (ファイル名, [PIL Image, ...]) のリスト
+        custom_rules_text: AI診断ルール管理で登録されたカスタムルールのテキスト（空文字の場合は無視）
 
     Returns:
         Geminiが生成したリーガルチェック結果 (dict)
@@ -202,6 +204,7 @@ async def legal_check_documents(
 
     logger.info(
         f"リーガルチェック開始: {len(filenames)}ファイル, {total_pages}ページ"
+        + (f", カスタムルール: {len(custom_rules_text)}文字" if custom_rules_text else "")
     )
 
     # ── マルチモーダルコンテンツ配列を構築 ──
@@ -234,6 +237,21 @@ async def legal_check_documents(
 リスクが見つからない場合でも、risks は空配列 [] として出力してください。
 些細な問題も見逃さず、審査官として厳格に審査してください。
 """
+
+    # ── カスタムルール（AI診断ルール管理から取得）をプロンプトに結合 ──
+    if custom_rules_text.strip():
+        prompt_text += f"""
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【追加カスタムルール（事務所独自の基準）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+以下は事務所固有の追加チェック基準です。上記の基本審査基準と同等の厳密さで適用し、
+該当するリスクがあれば risks 配列に含めてください。
+
+{custom_rules_text.strip()}
+"""
+        logger.info("カスタムルールをプロンプトに結合しました")
 
     multimodal_content.append(prompt_text)
 

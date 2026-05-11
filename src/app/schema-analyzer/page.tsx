@@ -5,9 +5,11 @@
  *
  * 複数のPDFファイルをドラッグ＆ドロップでアップロードし、
  * FastAPI + Gemini AI のマルチモーダル機能で入管審査官視点のリーガルチェック（リスク判定）を実行する。
+ * AI診断ルール管理で登録されたカスタムルールも自動的に適用される。
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import {
   Upload,
@@ -25,8 +27,13 @@ import {
   Scale,
   FileWarning,
   CheckCircle2,
+  Sparkles,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { getIdToken } from '@/lib/firebase/auth';
+import type { AiDiagnosticRule } from '@/types/database';
 
 // ── 型定義 ──
 
@@ -196,11 +203,55 @@ function RiskCard({ risk, index }: { risk: RiskItem; index: number }) {
 // ============================================================
 
 export default function LegalCheckPage() {
+  const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [files, setFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<LegalCheckResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
+
+  // ── カスタムルール ──
+  const [customRules, setCustomRules] = useState<AiDiagnosticRule[]>([]);
+  const [rulesLoading, setRulesLoading] = useState(true);
+
+  // ── 認証チェック ──
+  useEffect(() => {
+    if (authLoading) return;
+    if (!currentUser) {
+      router.push('/login');
+    }
+  }, [currentUser, authLoading, router]);
+
+  // ── カスタムルール取得 ──
+  useEffect(() => {
+    if (authLoading || !currentUser) return;
+
+    const fetchRules = async () => {
+      try {
+        const token = await getIdToken();
+        if (!token) return;
+        const res = await fetch('/api/ai-rules', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const enabledRules = (data.rules ?? []).filter((r: AiDiagnosticRule) => r.enabled);
+          setCustomRules(enabledRules);
+          console.log(`[LegalCheck] カスタムルール取得完了: ${enabledRules.length}件`);
+        } else {
+          console.warn('[LegalCheck] カスタムルール取得失敗:', res.status);
+        }
+      } catch (err) {
+        console.warn('[LegalCheck] カスタムルール取得エラー:', err);
+      } finally {
+        setRulesLoading(false);
+      }
+    };
+
+    fetchRules();
+  }, [authLoading, currentUser]);
 
   // ── ドラッグ＆ドロップ設定 ──
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -234,6 +285,18 @@ export default function LegalCheckPage() {
     try {
       const formData = new FormData();
       files.forEach((file) => formData.append('files', file));
+
+      // ── カスタムルールをFormDataに追加 ──
+      if (customRules.length > 0) {
+        const rulesText = customRules.map((rule, index) => {
+          const ruleContent = rule.type === 'pdf'
+            ? (rule.pdfExtractedText || '（テキスト抽出なし）')
+            : (rule.content || '');
+          return `[ルール${index + 1}: ${rule.title}]\n${ruleContent}`;
+        }).join('\n\n');
+        formData.append('custom_rules', rulesText);
+        console.log(`[LegalCheck] カスタムルール ${customRules.length}件をリクエストに追加`);
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000);
@@ -285,6 +348,15 @@ export default function LegalCheckPage() {
     acc[r.type] = (acc[r.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  // ── 認証ローディング ──
+  if (authLoading || !currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-indigo-50/30 to-purple-50/20">
@@ -340,6 +412,55 @@ export default function LegalCheckPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* ── カスタムルール適用インジケーター ── */}
+        <section>
+          {rulesLoading ? (
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <Loader2 size={12} className="animate-spin" />
+              カスタムルールを読み込み中…
+            </div>
+          ) : customRules.length > 0 ? (
+            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-indigo-600" />
+                <span className="text-xs font-bold text-indigo-700">
+                  カスタムルール: {customRules.length}件適用中
+                </span>
+                <span className="text-xs text-indigo-500">
+                  （{customRules.map(r => r.title).join('、')}）
+                </span>
+              </div>
+              {(currentUser.role === 'scrivener' || currentUser.role === 'hq_admin') && (
+                <Link
+                  href="/settings/ai-rules"
+                  className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >
+                  <Settings size={12} />
+                  ルール管理
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-slate-400" />
+                <span className="text-xs font-medium text-slate-500">
+                  カスタムルール: 未登録（基本審査基準のみ適用）
+                </span>
+              </div>
+              {(currentUser.role === 'scrivener' || currentUser.role === 'hq_admin') && (
+                <Link
+                  href="/settings/ai-rules"
+                  className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >
+                  <Settings size={12} />
+                  ルール追加
+                </Link>
+              )}
+            </div>
+          )}
         </section>
 
         {/* ── アップロード済みファイル一覧 ── */}

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pdf2image import convert_from_bytes
 from PIL import Image
@@ -150,7 +150,10 @@ async def health_check() -> dict[str, str]:
         500: {"model": ErrorResponse, "description": "サーバーエラー"},
     },
 )
-async def legal_check(files: list[UploadFile] = File(...)) -> LegalCheckResponse:
+async def legal_check(
+    files: list[UploadFile] = File(...),
+    custom_rules: str = Form(""),
+) -> LegalCheckResponse:
     """
     複数のPDFファイルを受け取り、ページ画像に変換後
     Gemini APIのマルチモーダル機能でリーガルチェックを実行する。
@@ -210,7 +213,9 @@ async def legal_check(files: list[UploadFile] = File(...)) -> LegalCheckResponse
     )
 
     try:
-        result = await legal_check_documents(file_images)
+        if custom_rules.strip():
+            logger.info(f"カスタムルール適用中（{len(custom_rules)}文字）")
+        result = await legal_check_documents(file_images, custom_rules_text=custom_rules)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
