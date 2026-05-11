@@ -262,20 +262,3 @@ export interface AiDiagnosticRule {
   updatedAt: string;                 // ISO 8601
   createdBy: string;                 // ユーザーUID
 }
-
-// ─── DocumentTemplate (出力用テンプレートマスタ) ──────────────────────────────
-/**
- * Firestore: document_templates コレクション
- * 行政書士がアップロードした原本（Excel/Word）テンプレートメタデータ
- */
-export interface DocumentTemplate {
-  id: string;          // Firestore Document ID
-  formId: string;      // 例: "specifiedSkilledWorker"
-  formName: string;    // 例: "特定技能ビザ申請書"
-  fileType: 'excel' | 'word';
-  storagePath: string; // Storage のパス (templates/{formId}/{fileType}/{fileName})
-  downloadUrl: string; // 表示・ダウンロード用URL
-  uploadedBy: string;  // アップロードした管理者ID
-  createdAt: string;   // ISO 8601
-  updatedAt: string;   // ISO 8601
-}

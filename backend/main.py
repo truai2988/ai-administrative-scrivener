@@ -12,6 +12,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
 
+import json
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -151,15 +153,27 @@ async def health_check() -> dict[str, str]:
     },
 )
 async def legal_check(
-    files: list[UploadFile] = File(...),
+    files: list[UploadFile] = File([]),
     custom_rules: str = Form(""),
+    application_data: str = Form(""),
+    document_urls: str = Form(""),
 ) -> LegalCheckResponse:
     """
     複数のPDFファイルを受け取り、ページ画像に変換後
     Gemini APIのマルチモーダル機能でリーガルチェックを実行する。
     """
-    if not files:
-        raise HTTPException(status_code=400, detail="ファイルが選択されていません")
+    urls_list = []
+    if document_urls.strip():
+        try:
+            urls_list = json.loads(document_urls)
+            # 形式チェック (list of dicts with url and filename)
+            if not isinstance(urls_list, list):
+                raise ValueError("document_urls must be a JSON array")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"document_urlsの形式が不正です: {str(e)}")
+
+    if not files and not urls_list:
+        raise HTTPException(status_code=400, detail="ファイルまたはURLが選択されていません")
 
     # ── バリデーション ──
     for f in files:
@@ -178,6 +192,7 @@ async def legal_check(
     filenames: list[str] = []
     total_pages = 0
 
+    # アップロードされたファイルを処理
     for f in files:
         assert f.filename is not None
         try:
@@ -203,6 +218,47 @@ async def legal_check(
                 detail=f"ファイルの処理中にエラーが発生しました: {f.filename} - {str(e)}",
             )
 
+    # URLからファイルをダウンロードして処理
+    if urls_list:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for item in urls_list:
+                url = item.get("url")
+                filename = item.get("filename", "downloaded_file.pdf")
+                if not url:
+                    continue
+                try:
+                    logger.info(f"🌐 クラウドからファイルを取得中: {filename}")
+                    response = await client.get(url)
+                    response.raise_for_status()
+                    content = response.content
+                    if len(content) > MAX_FILE_SIZE:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"ファイルサイズが上限を超えています: {filename}",
+                        )
+                    images = _pdf_to_images(content, filename)
+                    file_images.append((filename, images))
+                    filenames.append(filename)
+                    total_pages += len(images)
+                except httpx.HTTPStatusError as e:
+                    logger.error(f"HTTPエラー ({e.response.status_code}): {filename} - {url}")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"ファイルの取得に失敗しました (HTTP {e.response.status_code}): {filename}. 権限がないか、URLが期限切れの可能性があります。",
+                    )
+                except httpx.RequestError as e:
+                    logger.error(f"通信エラー: {filename} - {url} - {e}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"ファイルの取得中に通信エラーが発生しました: {filename}",
+                    )
+                except Exception as e:
+                    logger.error(f"ファイル処理エラー: {filename} - {e}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"取得したファイルの処理中にエラーが発生しました: {filename} - {str(e)}",
+                    )
+
     if not file_images:
         raise HTTPException(status_code=400, detail="有効な画像を抽出できませんでした")
 
@@ -215,7 +271,14 @@ async def legal_check(
     try:
         if custom_rules.strip():
             logger.info(f"カスタムルール適用中（{len(custom_rules)}文字）")
-        result = await legal_check_documents(file_images, custom_rules_text=custom_rules)
+        if application_data.strip():
+            logger.info(f"申請フォームデータ突合（クロスチェック）有効")
+        
+        result = await legal_check_documents(
+            file_images, 
+            custom_rules_text=custom_rules,
+            application_data_text=application_data
+        )
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 

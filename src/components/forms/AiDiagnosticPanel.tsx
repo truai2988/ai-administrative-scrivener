@@ -13,6 +13,7 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
+import Link from 'next/link';
 import {
   AlertCircle,
   AlertTriangle,
@@ -87,6 +88,8 @@ export interface AiDiagnosticPanelProps {
   linkingField?: string | null;
   /** 学習済みフィールドのセット（学習済みかどうかの表示用） */
   learnedFields?: Set<string>;
+  /** 本格リーガルチェックへ遷移するための申請ID */
+  applicationId?: string;
 }
 
 // ─── クイックルール追加フォーム ───────────────────────────────────────────────
@@ -355,9 +358,10 @@ export function AiDiagnosticPanel({
   onDiagnose,
   onFieldClick,
   onStartLinking,
-  isLinkingMode,
+  isLinkingMode = false,
   linkingField,
-  learnedFields,
+  learnedFields = new Set(),
+  applicationId,
 }: AiDiagnosticPanelProps) {
 
   // カテゴリ別グループ化
@@ -388,33 +392,36 @@ export function AiDiagnosticPanel({
         aria-label="AI診断結果パネル"
       >
         {/* ヘッダー */}
-        <div className="ai-diag-header">
-          {onDiagnose ? (
+        <div className="flex items-center gap-2 p-4 border-b border-indigo-500/30 bg-slate-800/80">
+          {/* フォーム簡易チェック導線 */}
+          {onDiagnose && (
             <button
               type="button"
-              className={`ai-check-btn ${status === 'loading' ? 'ai-check-btn--loading' : ''} flex-1 justify-center`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 border border-slate-600 bg-slate-700/50 hover:bg-slate-700 text-slate-200 text-[11px] font-bold rounded-lg transition-colors ${status === 'loading' ? 'opacity-70 cursor-wait' : ''}`}
               onClick={onDiagnose}
               disabled={status === 'loading'}
-              title="入力内容・整合性・法的リスクをAIが診断します"
+              title="現在の入力内容のみで簡易チェックを実行します（PDF書類との照合なし）"
             >
               {status === 'loading' ? (
-                <Loader2 size={16} className="spin" />
+                <Loader2 size={14} className="spin text-slate-400" />
               ) : (
-                <Sparkles size={16} />
+                <Sparkles size={14} className="text-purple-400" />
               )}
-              <span className="hidden sm:inline">
-                {status === 'loading' ? 'AI診断中...' : 'AIで書類・入力内容を診断する'}
-              </span>
-              <span className="sm:hidden">
-                {status === 'loading' ? '解析中...' : 'AI診断'}
+              <span>
+                {status === 'loading' ? '実行中...' : '簡易チェック'}
               </span>
             </button>
-          ) : (
-            <div className="ai-diag-header-title">
-              <Sparkles size={18} className="ai-diag-sparkle" />
-              <span>AI診断レポート</span>
-            </div>
           )}
+
+          {/* 本格リーガルチェック導線 */}
+          <Link
+            href={applicationId ? `/schema-analyzer?applicationId=${applicationId}` : `/schema-analyzer`}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg shadow-sm shadow-indigo-500/20 transition-all hover:scale-[1.01]"
+            title="PDF書類と入力データを突合し、本格的な法的リスクチェックを行います"
+          >
+            <FileSearch size={14} />
+            リーガルチェック
+          </Link>
         </div>
 
         {/* ─── タブナビゲーション ─── */}
@@ -435,7 +442,7 @@ export function AiDiagnosticPanel({
             }`}
           >
             <BookOpen size={14} />
-            AIルール学習
+            ルールのクイック追加
           </button>
         </div>
 

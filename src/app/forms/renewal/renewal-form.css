@@ -7,7 +7,7 @@
 .renewal-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-  padding: 0 0 4rem; /* スマホでは全画面表示（左右余白なし） */
+  padding: 0; /* 余白なし */
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -15,7 +15,7 @@
 
 @media (min-width: 768px) {
   .renewal-page {
-    padding: 0 1rem 4rem; /* デスクトップでは左右に余白を確保しつつ、上部は密着(top: 0)させる */
+    padding: 0 1rem 0; /* デスクトップでは左右に余白を確保しつつ、上下は密着させる */
   }
 }
 
@@ -2152,6 +2152,7 @@
   min-width: 0; /* Prevents flex items from overflowing */
   display: flex;
   flex-direction: column;
+  padding-bottom: 4rem; /* スクロール用の余白をメインコンテンツに移動 */
 }
 
 .form-side-panel {
@@ -2162,8 +2163,8 @@
   .form-side-panel {
     width: 380px;
     position: sticky;
-    top: 1.5rem;
-    height: calc(100vh - 3rem); /* Leaves some margin */
+    top: 0;
+    height: 100vh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;

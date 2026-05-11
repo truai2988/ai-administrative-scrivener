@@ -8,13 +8,10 @@
  * AI診断ルール管理で登録されたカスタムルールも自動的に適用される。
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDropzone } from 'react-dropzone';
 import {
-  Upload,
   FileText,
-  Trash2,
   Loader2,
   ShieldAlert,
   ShieldCheck,
@@ -29,11 +26,13 @@ import {
   CheckCircle2,
   Sparkles,
   Settings,
+  Cloud,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getIdToken } from '@/lib/firebase/auth';
 import type { AiDiagnosticRule } from '@/types/database';
+import type { AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
 
 // ── 型定義 ──
 
@@ -206,11 +205,16 @@ export default function LegalCheckPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [files, setFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<LegalCheckResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
+
+  // ── 申請フォームデータ（連携用） ──
+  const [applicationData, setApplicationData] = useState<Record<string, unknown> | null>(null);
+  const [appDataLoading, setAppDataLoading] = useState(false);
+  const [attachedDocs, setAttachedDocs] = useState<AttachmentMeta[]>([]);
+  const [excludedDocIds, setExcludedDocIds] = useState<Set<string>>(new Set());
 
   // ── カスタムルール ──
   const [customRules, setCustomRules] = useState<AiDiagnosticRule[]>([]);
@@ -253,28 +257,57 @@ export default function LegalCheckPage() {
     fetchRules();
   }, [authLoading, currentUser]);
 
-  // ── ドラッグ＆ドロップ設定 ──
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles((prev) => [...prev, ...acceptedFiles]);
-    setError(null);
+  // ── 申請フォームデータの取得 ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const appId = searchParams.get('applicationId');
+    if (appId) {
+      setAppDataLoading(true);
+      fetch(`/api/applications/${appId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.formData) {
+            setApplicationData(data.formData);
+            console.log(`[LegalCheck] 申請フォームデータ連携成功: ${appId}`);
+          }
+          if (data.attachments) {
+            const docs: AttachmentMeta[] = [];
+            ['foreignerInfo', 'employerInfo', 'simultaneous'].forEach(tab => {
+              if (data.attachments[tab] && Array.isArray(data.attachments[tab])) {
+                docs.push(...data.attachments[tab]);
+              }
+            });
+            setAttachedDocs(docs);
+            console.log(`[LegalCheck] 添付ファイル ${docs.length}件を取得しました`);
+          }
+        })
+        .catch(err => {
+          console.warn('[LegalCheck] 申請データ取得エラー:', err);
+        })
+        .finally(() => {
+          setAppDataLoading(false);
+        });
+    }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-    },
-    maxSize: 50 * 1024 * 1024,
-  });
-
-  const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+  const toggleDocExclusion = (docId: string) => {
+    setExcludedDocIds(prev => {
+      const next = new Set(prev);
+      if (next.has(docId)) {
+        next.delete(docId);
+      } else {
+        next.add(docId);
+      }
+      return next;
+    });
   };
 
   // ── リーガルチェック実行 ──
   const handleLegalCheck = async () => {
-    if (files.length === 0) {
-      setError('ファイルを1つ以上アップロードしてください');
+    const includedDocs = attachedDocs.filter(d => !excludedDocIds.has(d.id));
+    if (includedDocs.length === 0) {
+      setError('審査対象の書類が1つ以上必要です');
       return;
     }
 
@@ -284,7 +317,22 @@ export default function LegalCheckPage() {
 
     try {
       const formData = new FormData();
-      files.forEach((file) => formData.append('files', file));
+
+      // ── クラウド上の書類URLリストをFormDataに追加 ──
+      if (includedDocs.length > 0) {
+        const documentUrls = includedDocs.map(doc => ({
+          url: doc.url,
+          filename: doc.name
+        }));
+        formData.append('document_urls', JSON.stringify(documentUrls));
+        console.log(`[LegalCheck] クラウド上ファイルURL ${includedDocs.length}件をリクエストに追加`);
+      }
+
+      // ── 申請フォームデータをFormDataに追加 ──
+      if (applicationData) {
+        formData.append('application_data', JSON.stringify(applicationData));
+        console.log(`[LegalCheck] 申請フォームデータ（クロスチェック用）を追加しました`);
+      }
 
       // ── カスタムルールをFormDataに追加 ──
       if (customRules.length > 0) {
@@ -363,56 +411,45 @@ export default function LegalCheckPage() {
       {/* ── ヘッダー ── */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-4">
-          <Link
-            href="/"
+          <button
+            onClick={() => router.back()}
             className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
           >
             <ArrowLeft size={16} />
-            <span className="font-medium">ダッシュボード</span>
-          </Link>
+            <span className="font-medium">戻る</span>
+          </button>
           <div className="h-4 w-px bg-slate-200" />
-          <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <ShieldAlert size={20} className="text-indigo-500" />
-            リーガルチェック
+          <h1 className="text-lg font-black text-slate-800 flex items-center gap-2">
+            <ShieldCheck size={20} className="text-indigo-600" />
+            AI審査官 リーガルチェック
           </h1>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        {/* ── ドロップゾーン ── */}
-        <section>
-          <div
-            {...getRootProps()}
-            className={`
-              relative rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer
-              transition-all duration-300
-              ${
-                isDragActive
-                  ? 'border-indigo-400 bg-indigo-50 shadow-lg shadow-indigo-100/50 scale-[1.01]'
-                  : 'border-slate-300 bg-white hover:border-indigo-400 hover:bg-indigo-50/30 hover:shadow-md'
-              }
-            `}
-          >
-            <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-3">
-              <div
-                className={`p-4 rounded-2xl transition-colors ${
-                  isDragActive ? 'bg-indigo-100' : 'bg-slate-100'
-                }`}
-              >
-                <Upload size={32} className={isDragActive ? 'text-indigo-500' : 'text-slate-400'} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-700">
-                  {isDragActive ? 'ここにドロップしてください' : '審査対象の書類をドラッグ＆ドロップ'}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  PDF (.pdf) 形式 — 複数ファイル対応（最大50MB/ファイル）
-                </p>
-              </div>
+        {/* ── タイトル説明文と連携バッジ ── */}
+        <div className="mb-4">
+          <p className="text-slate-500 text-sm">
+            連携された申請書類（PDF）を用いて、Gemini AIによる横断的な入管審査リスク判定を実行します。
+          </p>
+
+          {/* 申請フォームデータ連携バッジ */}
+          {(applicationData || appDataLoading) && (
+            <div className="mt-4 flex items-center gap-2">
+              {appDataLoading ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold border border-slate-200">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>申請データ確認中...</span>
+                </div>
+              ) : applicationData ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-sm">
+                  <FileText size={14} />
+                  <span>📄 申請フォームデータとの突合チェック：有効</span>
+                </div>
+              ) : null}
             </div>
-          </div>
-        </section>
+          )}
+        </div>
 
         {/* ── カスタムルール適用インジケーター ── */}
         <section>
@@ -462,67 +499,88 @@ export default function LegalCheckPage() {
             </div>
           )}
         </section>
-
-        {/* ── アップロード済みファイル一覧 ── */}
-        {files.length > 0 && (
+        {/* ── 案件に紐づけられた書類（クラウド上のファイル） ── */}
+        {attachedDocs.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-700">
-              📎 審査対象ファイル ({files.length}件)
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {files.map((file, i) => (
-                <div
-                  key={`${file.name}-${i}`}
-                  className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm"
-                >
-                  {getFileIcon(file.name)}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 truncate">{file.name}</p>
-                    <p className="text-xs text-slate-400">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                    title="削除"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Cloud size={16} className="text-indigo-500" />
+                案件に紐づけられた書類 ({attachedDocs.length}件)
+              </h2>
+              <span className="text-xs text-slate-500">
+                チェックを外したファイルは審査から除外されます
+              </span>
             </div>
-
-            {/* チェック開始ボタン */}
-            <button
-              type="button"
-              onClick={handleLegalCheck}
-              disabled={isAnalyzing}
-              className={`
-                w-full py-3 rounded-xl font-bold text-sm transition-all
-                flex items-center justify-center gap-2
-                ${
-                  isAnalyzing
-                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                    : 'bg-linear-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg shadow-indigo-200/50 hover:shadow-xl'
-                }
-              `}
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  AI審査官がチェック中…（数十秒かかります）
-                </>
-              ) : (
-                <>
-                  <ShieldAlert size={18} />
-                  リーガルチェック開始（{files.length}件のファイル）
-                </>
-              )}
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {attachedDocs.map((doc) => {
+                const isExcluded = excludedDocIds.has(doc.id);
+                return (
+                  <div
+                    key={doc.id}
+                    className={`flex items-center gap-3 bg-white rounded-xl border px-4 py-3 shadow-sm transition-opacity ${
+                      isExcluded ? 'border-slate-200 opacity-50' : 'border-indigo-100 hover:border-indigo-300'
+                    }`}
+                  >
+                    <label className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={!isExcluded}
+                        onChange={() => toggleDocExclusion(doc.id)}
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      {getFileIcon(doc.name)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{doc.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {(doc.size / 1024).toFixed(1)} KB {doc.tag ? ` • ${doc.tag}` : ''}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </section>
         )}
+
+        {/* チェック開始ボタン */}
+        <section>
+          <button
+            type="button"
+            onClick={handleLegalCheck}
+            disabled={
+              isAnalyzing || 
+              attachedDocs.length === 0 || 
+              attachedDocs.filter(d => !excludedDocIds.has(d.id)).length === 0
+            }
+            className={`
+              w-full py-4 rounded-2xl font-black text-lg transition-all
+              flex items-center justify-center gap-3 shadow-lg
+              ${
+                isAnalyzing || attachedDocs.length === 0 || attachedDocs.filter(d => !excludedDocIds.has(d.id)).length === 0
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                  : 'bg-linear-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 hover:-translate-y-1 hover:shadow-indigo-300/50'
+              }
+            `}
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 size={24} className="animate-spin" />
+                AI審査官がチェック中…（数十秒かかります）
+              </>
+            ) : attachedDocs.length === 0 ? (
+              <>
+                <FileWarning size={24} />
+                審査対象の書類がありません
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={24} />
+                🚀 AIリーガルチェックを実行する（計{attachedDocs.filter(d => !excludedDocIds.has(d.id)).length}件のファイル）
+              </>
+            )}
+          </button>
+        </section>
 
         {/* ── エラー表示 ── */}
         {error && (

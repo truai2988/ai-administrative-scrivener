@@ -12,7 +12,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, ShieldAlert, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, Database } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, Database } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -223,13 +223,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <SidebarItem icon={QrCode} label="招待QR発行" active onClick={() => setShowShareModal(true)} />
           )}
 
-          {/* 新規書類作成導線 */}
-          <SidebarItem
-            icon={FilePen}
-            label="新規書類作成"
-            href="/applications/new"
-          />
-
           {COMING_SOON_ITEMS.map((item) => (
             <SidebarItem
               key={item.label}
@@ -260,15 +253,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
               icon={Shield}
               label="組織・ユーザー管理"
               href="/admin/organizations"
-            />
-          )}
-
-          {/* リーガルチェック（scrivener / hq_admin） */}
-          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
-            <SidebarItem
-              icon={ShieldAlert}
-              label="リーガルチェック"
-              href="/schema-analyzer"
             />
           )}
 

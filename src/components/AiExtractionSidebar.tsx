@@ -25,14 +25,12 @@ import {
   GripVertical,
   CheckCircle2,
   X,
-  RotateCcw,
   FileSearch,
   ChevronDown,
   Upload,
   Loader2,
   AlertCircle,
   ImagePlus,
-  FileImage,
   Wand2,
 } from 'lucide-react';
 import type { FieldValues } from 'react-hook-form';
@@ -103,15 +101,11 @@ function UploadArea({
   onFileSelect,
   isLoading,
   error,
-  hasData,
-  fileName,
   onClearError,
 }: {
-  onFileSelect: (file: File) => void;
+  onFileSelect: (files: File[]) => void;
   isLoading: boolean;
   error: string | null;
-  hasData: boolean;
-  fileName: string | null;
   onClearError: () => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,8 +115,8 @@ function UploadArea({
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
-      const file = e.dataTransfer.files[0];
-      if (file) onFileSelect(file);
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) onFileSelect(files);
     },
     [onFileSelect],
   );
@@ -138,8 +132,8 @@ function UploadArea({
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) onFileSelect(file);
+      const files = Array.from(e.target.files || []);
+      if (files.length > 0) onFileSelect(files);
       // 同じファイルの再選択を許可
       e.target.value = '';
     },
@@ -149,7 +143,7 @@ function UploadArea({
   // ── ローディング中 ──
   if (isLoading) {
     return (
-      <div className="px-4 py-6 border-b border-slate-200">
+      <div className="px-4 py-6 border-b border-slate-700">
         <div className="flex flex-col items-center gap-3">
           <motion.div
             animate={{ rotate: 360 }}
@@ -181,12 +175,12 @@ function UploadArea({
   // ── エラー表示 ──
   if (error) {
     return (
-      <div className="px-4 py-3 border-b border-slate-200">
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-50 border border-rose-200">
+      <div className="px-4 py-3 border-b border-slate-700">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-900/20 border border-rose-800/50">
           <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-rose-600">読み取りエラー</p>
-            <p className="text-xs text-rose-500 mt-0.5 wrap-break-word">{error}</p>
+            <p className="text-xs font-semibold text-rose-400">読み取りエラー</p>
+            <p className="text-xs text-rose-300 mt-0.5 wrap-break-word">{error}</p>
           </div>
           <button
             type="button"
@@ -200,35 +194,9 @@ function UploadArea({
     );
   }
 
-  // ── アップロード済みの場合（コンパクト表示） ──
-  if (hasData && fileName) {
-    return (
-      <div className="px-4 py-2 border-b border-slate-200">
-        <div className="flex items-center gap-2 text-xs text-slate-600">
-          <FileImage size={14} className="text-emerald-400 shrink-0" />
-          <span className="truncate font-medium">{fileName}</span>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="ml-auto text-indigo-600 hover:text-indigo-700 font-medium transition-colors whitespace-nowrap"
-          >
-            別のファイル
-          </button>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-      </div>
-    );
-  }
-
   // ── 初期状態（ドラッグ&ドロップエリア） ──
   return (
-    <div className="px-3 pt-3 pb-2 border-b border-slate-200">
+    <div className="px-3 pt-3 pb-2 border-b border-slate-700">
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -239,8 +207,8 @@ function UploadArea({
           cursor-pointer transition-all duration-200
           ${
             isDragOver
-              ? 'border-indigo-400 bg-indigo-50 shadow-inner'
-              : 'border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/50'
+              ? 'border-indigo-400 bg-indigo-900/30 shadow-inner'
+              : 'border-slate-600 bg-slate-800/40 hover:border-indigo-400 hover:bg-indigo-900/20'
           }
         `}
       >
@@ -256,7 +224,7 @@ function UploadArea({
         </motion.div>
 
         <div className="text-center">
-          <p className="text-xs font-semibold text-slate-700">
+          <p className="text-xs font-semibold text-slate-300">
             {isDragOver ? 'ここにドロップ' : '書類をアップロード'}
           </p>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -267,6 +235,7 @@ function UploadArea({
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept="image/jpeg,image/png,image/webp,application/pdf"
           onChange={handleFileChange}
           className="hidden"
@@ -311,12 +280,12 @@ function ExtractedCard({
         group relative w-full text-left rounded-xl border p-3 transition-all duration-200 
         ${
           isHolding
-            ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-200/50 scale-[1.02] cursor-pointer'
+            ? 'border-indigo-500 bg-indigo-900/40 ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-900/50 scale-[1.02] cursor-pointer'
             : item.mapped
               ? item.autoFilled
-                ? 'border-violet-200 bg-violet-50 opacity-80 hover:opacity-100 hover:border-indigo-400 cursor-pointer hover:shadow-md'
-                : 'border-emerald-200 bg-emerald-50 opacity-70 hover:opacity-100 hover:border-indigo-400 cursor-pointer hover:shadow-md'
-              : 'border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100/50 cursor-pointer'
+                ? 'border-violet-700 bg-violet-900/20 opacity-80 hover:opacity-100 hover:border-indigo-400 cursor-pointer hover:shadow-md'
+                : 'border-emerald-700 bg-emerald-900/20 opacity-70 hover:opacity-100 hover:border-indigo-400 cursor-pointer hover:shadow-md'
+              : 'border-slate-700 bg-slate-800 hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-900/50 cursor-pointer'
         }
       `}
       whileTap={!isHolding ? { scale: 0.97 } : undefined}
@@ -358,7 +327,7 @@ function ExtractedCard({
               ? item.autoFilled
                 ? 'text-violet-600 line-through decoration-violet-400/50'
                 : 'text-emerald-600 line-through decoration-emerald-400/50'
-              : 'text-slate-800'
+              : 'text-slate-200'
           }`}
         >
           {item.value}
@@ -427,18 +396,7 @@ export function AiExtractionSidebar({
 
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [autoFilledCount, setAutoFilledCount] = useState<number>(0);
-  const [selectedHint, setSelectedHint] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
-  const [useHybridMode, setUseHybridMode] = useState<boolean>(false);
-
-  // 動的推奨タグの定義
-  const hintsMap: Record<AttachmentTabId, string[]> = {
-    foreignerInfo: ['パスポート写し', '在留カード写し', '顔写真 (3x4cm)', '住民税課税証明書', '住民税納税証明書'],
-    employerInfo: ['労働条件通知書', '36協定', '決算書（転職時）', '雇用保険被保険料納付証明', '社会保険料納付証明'],
-    simultaneous: ['婚姻証明書（配偶者の場合）', '出生証明書（子の場合）', '再入国許可申請書', '資格外活動許可証明書'],
-  };
-  const hints = hintsMap[tabId] || [];
-
   // 外部 items が変わったら初期化（アップロード結果がない場合のみ）
   useEffect(() => {
     if (items && items.length > 0 && extraction.items.length === 0) {
@@ -484,67 +442,56 @@ export function AiExtractionSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctf.extractedData.length, ctf.learnedMappings]);
 
-  // ファイルアップロード処理
+  // ファイル一括アップロード処理
   const handleFileSelect = useCallback(
-    async (file: File) => {
-      setUploadedFileName(file.name);
+    async (files: File[]) => {
+      // 最初のファイル名を表示用とする
+      if (files.length > 0) {
+        setUploadedFileName(files[0].name);
+      }
       setAutoFilledCount(0);
-      // リセットして新規抽出開始
       ctf.resetAll();
       
-      const tag = selectedHint || undefined;
+      const tag = undefined;
       
-      let fileToProcess = file;
+      // 複数ファイルを順番に処理（並行にすると負荷がかかるため）
+      for (const file of files) {
+        let fileToProcess = file;
 
-      // 画像ファイルの場合はクライアントサイド圧縮を実行
-      if (file.type.startsWith('image/')) {
-        setIsCompressing(true);
-        try {
-          const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true,
-          };
-          console.log(`[Compression] Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-          const compressedBlob = await imageCompression(file, options);
-          
-          // BlobをFileオブジェクトに変換し、元のファイル名を維持
-          fileToProcess = new File([compressedBlob], file.name, {
-            type: compressedBlob.type,
-            lastModified: Date.now(),
-          });
-          console.log(`[Compression] Compressed size: ${(fileToProcess.size / 1024 / 1024).toFixed(2)} MB`);
-        } catch (error) {
-          console.error('[Compression] 画像の圧縮に失敗しました:', error);
-          // 失敗した場合は元のファイルをそのまま使用する（フォールバック）
-        } finally {
-          setIsCompressing(false);
+        // 画像ファイルの場合はクライアントサイド圧縮を実行
+        if (file.type.startsWith('image/')) {
+          setIsCompressing(true);
+          try {
+            const options = {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+            };
+            const compressedBlob = await imageCompression(file, options);
+            fileToProcess = new File([compressedBlob], file.name, {
+              type: compressedBlob.type,
+              lastModified: Date.now(),
+            });
+          } catch (error) {
+            console.error('[Compression] 画像の圧縮に失敗しました:', error);
+          } finally {
+            setIsCompressing(false);
+          }
         }
+        
+        // 並行処理で Firebase Storage 保存と OCR を実行
+        await Promise.all([
+          uploadToTab(fileToProcess, tabId, tag),
+          extraction.extractFromFile(fileToProcess, false) // 常にハイブリッドモードOFF（高速化）
+        ]);
       }
-      
-      // 並行処理で Firebase Storage 保存と OCR を実行
-      await Promise.all([
-        uploadToTab(fileToProcess, tabId, tag),
-        extraction.extractFromFile(fileToProcess, useHybridMode)
-      ]);
-      
-      // アップロード開始後に選択状態とハイブリッド設定をクリア
-      setSelectedHint(null);
-      setUseHybridMode(false);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [extraction.extractFromFile, uploadToTab, tabId, selectedHint, useHybridMode],
+    [extraction.extractFromFile, uploadToTab, tabId, ctf.resetAll],
   );
 
   const mappedCount = ctf.extractedData.filter((d) => d.mapped).length;
   const totalCount = ctf.extractedData.length;
-
-  const handleFullReset = useCallback(() => {
-    ctf.resetAll();
-    extraction.clearItems();
-    setUploadedFileName(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extraction.clearItems]);
 
   return (
     <>
@@ -554,17 +501,17 @@ export function AiExtractionSidebar({
       </AnimatePresence>
 
       {/* サイドバーコンテナ */}
-      <div className={`ai-extraction-sidebar rounded-xl border border-slate-200 bg-white shadow-sm ${hideHeader ? '' : 'mb-4'}`}>
+      <div className={`ai-extraction-sidebar rounded-xl border border-slate-700 bg-slate-800/50 shadow-sm ${hideHeader ? '' : 'mb-4'}`}>
         {/* ヘッダー（トグル） */}
         {!hideHeader && (
           <button
           type="button"
           onClick={onToggle}
-          className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors border-b border-slate-200 rounded-t-xl"
+          className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 hover:bg-slate-700 transition-colors border-b border-slate-700 rounded-t-xl"
         >
           <div className="flex items-center gap-2">
-            <FileSearch size={16} className="text-indigo-600" />
-            <span className="text-sm font-bold text-slate-800">📄 書類から自動入力</span>
+            <FileSearch size={16} className="text-indigo-400" />
+            <span className="text-sm font-bold text-slate-200">📄 書類から自動入力</span>
             {totalCount > 0 && (
               <span className="text-xs font-medium text-indigo-600 bg-indigo-100 rounded-full px-2 py-0.5">
                 {mappedCount}/{totalCount}
@@ -595,73 +542,17 @@ export function AiExtractionSidebar({
                 onFileSelect={handleFileSelect}
                 isLoading={isCompressing || extraction.isLoading || isUploading}
                 error={extraction.error}
-                hasData={ctf.extractedData.length > 0}
-                fileName={uploadedFileName}
                 onClearError={extraction.clearError}
               />
               
-              {/* ─── 高精度抽出トグル ─── */}
-              <div className="px-4 py-2 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wand2 size={14} className={useHybridMode ? "text-amber-400" : "text-slate-400"} />
-                  <span className="text-xs text-slate-600">高精度ハイブリッド抽出 (コスト増)</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setUseHybridMode(!useHybridMode)}
-                  className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
-                    useHybridMode ? 'bg-amber-500' : 'bg-slate-600'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                      useHybridMode ? 'translate-x-4' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* ─── 推奨書類ヒント（クリックして事前選択可能） ─── */}
-              {hints.length > 0 && (
-                <div className="px-4 py-2 border-b border-slate-200 bg-slate-50/50">
-                  <div className="text-xs text-slate-500 mb-2">推奨書類 (アップロード前に選択):</div>
-                  <div className="flex flex-wrap gap-2">
-                    {hints.map((hint) => {
-                      const isSelected = selectedHint === hint;
-                      const isDone = currentAttachments.some(a => a.tag === hint);
-                      return (
-                        <button
-                          key={hint}
-                          type="button"
-                          onClick={() => setSelectedHint(isSelected ? null : hint)}
-                          className={`px-2.5 py-1 text-[10px] rounded-full transition-all border ${
-                            isDone 
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                              : isSelected 
-                                ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-500/20' 
-                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-                          }`}
-                          title={isDone ? 'アップロード済み' : '選択してアップロード'}
-                        >
-                          {isDone && <CheckCircle2 size={10} className="inline mr-1" />}
-                          {!isDone && isSelected && <CheckCircle2 size={10} className="inline mr-1" />}
-                          {hint}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* 添付ファイル一覧表示 */}
-              <div className="px-4 py-2 border-b border-slate-200">
+              <div className="px-4 py-2 border-b border-slate-700">
                 <FileList 
                   attachments={currentAttachments} 
                   onDelete={(id) => deleteFile(tabId, id)} 
                   readonly={false} 
                 />
               </div>
-
               {/* ホールド中バナー */}
               <AnimatePresence>
                 {ctf.heldData && (
@@ -669,7 +560,7 @@ export function AiExtractionSidebar({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden border-b border-indigo-200 bg-linear-to-r from-indigo-50 to-purple-50"
+                    className="overflow-hidden border-b border-indigo-800 bg-indigo-900/30"
                   >
                     <div className="px-4 py-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -679,14 +570,14 @@ export function AiExtractionSidebar({
                         >
                           <MousePointerClick size={14} className="text-indigo-600" />
                         </motion.div>
-                        <span className="text-xs font-medium text-indigo-700">
+                        <span className="text-xs font-medium text-indigo-300">
                           「<span className="font-bold">{ctf.heldData}</span>」を保持中
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={ctf.releaseItem}
-                        className="p-1 rounded-md hover:bg-indigo-100 transition-colors"
+                        className="p-1 rounded-md hover:bg-indigo-800/50 transition-colors"
                       >
                         <X size={14} className="text-indigo-500" />
                       </button>
@@ -735,13 +626,9 @@ export function AiExtractionSidebar({
               </AnimatePresence>
 
               {/* カードリスト */}
-              <div className="px-3 py-3 space-y-2">
-                {ctf.extractedData.length === 0 && !extraction.isLoading ? (
-                  <div className="text-center py-4 text-slate-500 text-xs">
-                    書類をアップロードすると、AIが自動で情報を読み取ります
-                  </div>
-                ) : (
-                  ctf.extractedData.map((item) => (
+              {ctf.extractedData.length > 0 && (
+                <div className="px-3 py-3 space-y-2">
+                  {ctf.extractedData.map((item) => (
                     <ExtractedCard
                       key={item.id}
                       item={item}
@@ -750,9 +637,9 @@ export function AiExtractionSidebar({
                       onDeselect={ctf.releaseItem}
                       fieldLabels={fieldLabels}
                     />
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
 
               {/* マッピング履歴 */}
               {ctf.mappingLog.length > 0 && (
@@ -772,18 +659,6 @@ export function AiExtractionSidebar({
                   </div>
                 </div>
               )}
-
-              {/* フッター */}
-              <div className="border-t border-slate-200 px-4 py-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleFullReset}
-                  className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
-                >
-                  <RotateCcw size={12} />
-                  リセット
-                </button>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>

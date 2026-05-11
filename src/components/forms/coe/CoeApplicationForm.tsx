@@ -469,7 +469,8 @@ export function CoeApplicationFormInner({
         onStartLinking: jumpLearning.startLinking,
         isLinkingMode: jumpLearning.isLinkingMode,
         linkingField: jumpLearning.linkingField,
-        learnedFields: jumpLearning.learnedFields
+        learnedFields: jumpLearning.learnedFields,
+        applicationId: savedRecordId || recordId,
       }}
     />
     </div>

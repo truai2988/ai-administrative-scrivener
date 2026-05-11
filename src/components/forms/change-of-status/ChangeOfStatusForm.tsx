@@ -538,7 +538,8 @@ export function ChangeOfStatusFormInner({
           onStartLinking: jumpLearning.startLinking,
           isLinkingMode: jumpLearning.isLinkingMode,
           linkingField: jumpLearning.linkingField,
-          learnedFields: jumpLearning.learnedFields
+          learnedFields: jumpLearning.learnedFields,
+          applicationId: savedRecordId || recordId,
         }}
       />
       </div> {/* form-split-layout */}

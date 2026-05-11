@@ -184,6 +184,7 @@ def _build_multimodal_content(
 async def legal_check_documents(
     file_images: list[tuple[str, list[Image.Image]]],
     custom_rules_text: str = "",
+    application_data_text: str = "",
 ) -> dict[str, Any]:
     """
     PDFから変換したページ画像群を Gemini API にマルチモーダルで送信し、
@@ -252,6 +253,25 @@ async def legal_check_documents(
 {custom_rules_text.strip()}
 """
         logger.info("カスタムルールをプロンプトに結合しました")
+
+    # ── 申請フォームデータ（クロスチェック用）をプロンプトに結合 ──
+    if application_data_text.strip():
+        prompt_text += f"""
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【申請フォームデータ（クロスチェック用）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+以下のJSONデータは、システム上で入力されている現在の申請フォームデータです。
+提供された『申請フォームのデータ内容』と、画像として提供された『立証資料（PDF）』の間に、
+数値や事実の矛盾（食い違い）がないか厳密に突合（クロスチェック）してください。
+矛盾がある場合は risks 配列の "整合性エラー" として含めてください。
+
+```json
+{application_data_text.strip()}
+```
+"""
+        logger.info("申請フォームデータをプロンプトに結合しました")
 
     multimodal_content.append(prompt_text)
 
