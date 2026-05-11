@@ -2,9 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# システム依存関係
+# システム依存関係（poppler-utils: pdf2image に必要）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Python依存関係

@@ -12,7 +12,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Database, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, FileText } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, ShieldAlert, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, FileText, Database } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -281,11 +281,11 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
-          {/* AIスキーマ解析（scrivener / hq_admin） */}
+          {/* リーガルチェック（scrivener / hq_admin） */}
           {(userRole === 'scrivener' || userRole === 'hq_admin') && (
             <SidebarItem
-              icon={Database}
-              label="AIスキーマ解析"
+              icon={ShieldAlert}
+              label="リーガルチェック"
               href="/schema-analyzer"
             />
           )}
