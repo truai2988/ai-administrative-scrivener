@@ -288,6 +288,23 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // /union_masters コレクション
+    // 組合マスタ情報を管理するコレクション
+    // -------------------------------------------------------------------------
+    match /union_masters/{masterId} {
+      allow read: if isAuthenticated() && (
+        isScrivener() ||
+        (isUnionStaff() && resource.data.organizationId == getUserOrganizationId())
+      );
+      allow create: if isAuthenticated() && isScrivener();
+      allow update: if isAuthenticated() && (
+        isScrivener() ||
+        (isUnionStaff() && resource.data.organizationId == getUserOrganizationId() && request.resource.data.organizationId == resource.data.organizationId)
+      );
+      allow delete: if isAuthenticated() && isScrivener();
+    }
+
+    // -------------------------------------------------------------------------
     // /inquiries コレクション
     // サポートへの問い合わせ
     // -------------------------------------------------------------------------

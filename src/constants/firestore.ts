@@ -10,6 +10,7 @@ export const COLLECTIONS = {
   BRANCHES: 'branches',
   USERS: 'users',
   COMPANY_MASTERS: 'company_masters',
+  UNION_MASTERS: 'union_masters',
 } as const;
 
 /**

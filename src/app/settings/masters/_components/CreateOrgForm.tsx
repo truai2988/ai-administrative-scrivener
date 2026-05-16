@@ -37,12 +37,12 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
     setSavingOrg(true);
     try {
       await createOrganization(parsed.data);
-      showToast('success', '組織を作成しました');
+      showToast('success', 'テナントを作成しました');
       setOrgFormData({ name: '', type: 'union', address: '', phone: '' });
       onSuccess();
     } catch (err: unknown) {
       const e = err as Error;
-      setOrgFormError(e.message ?? '組織の作成に失敗しました');
+      setOrgFormError(e.message ?? 'テナントの作成に失敗しました');
     } finally {
       setSavingOrg(false);
     }
@@ -61,7 +61,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
           <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <h2 className="font-bold text-base flex items-center gap-2">
               <Plus size={17} className="text-indigo-500" />
-              新規組織の登録
+              新規テナントの登録
             </h2>
             <button
               onClick={onClose}
@@ -80,10 +80,10 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* 組織名 */}
+              {/* テナント名 */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  組織名 <span className="text-rose-400">*</span>
+                  テナント名 <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
@@ -98,10 +98,10 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
                 </div>
               </div>
 
-              {/* 組織種別 */}
+              {/* テナント種別 */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  組織種別 <span className="text-rose-400">*</span>
+                  テナント種別 <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
@@ -167,7 +167,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
                 className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50"
               >
                 {savingOrg ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                組織を作成
+                テナントを作成
               </button>
             </div>
           </form>

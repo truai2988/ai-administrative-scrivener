@@ -1,18 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Building2, Plus, Trash2, Pencil, Save, Loader2,
-  ArrowLeft, X, CheckCircle2, AlertCircle
+  X, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { companyMasterService } from '@/services/companyMasterService';
 import type { CompanyMaster } from '@/types/database';
 import { isGlobalAdmin } from '@/types/database';
 import type { UserRole } from '@/types/database';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
-import Link from 'next/link';
 
 // ────────────────────────────────────────────────────────
 // 空フォーム
@@ -124,7 +122,7 @@ function CompanyFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* ヘッダー */}
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Building2 size={20} className="text-indigo-600" />
             {initial ? '企業マスタを編集' : '新規企業マスタを登録'}
@@ -448,15 +446,11 @@ function CompanyFormModal({
   );
 }
 
-/** アクセス許可ロール（モジュールレベル定数） */
-const ALLOWED_ROLES: UserRole[] = ['scrivener', 'union_staff'];
-
 // ────────────────────────────────────────────────────────
-// メインページ
+// メインコンポーネント
 // ────────────────────────────────────────────────────────
-export default function CompanyMastersPage() {
+export function CompanyMasterContent() {
   const { currentUser, loading: authLoading } = useAuth();
-  const router = useRouter();
   const { toasts, dismiss, show: showToast } = useToast();
 
   const [companies, setCompanies] = useState<CompanyMaster[]>([]);
@@ -474,9 +468,6 @@ export default function CompanyMastersPage() {
     return currentUser.organizationId ?? null;
   })();
 
-  // 戻るリンクは常にダッシュボード（ホーム）へ
-  const backHref = '/';
-
   const load = async () => {
     if (!organizationId) return;
     setLoading(true);
@@ -492,16 +483,7 @@ export default function CompanyMastersPage() {
   };
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!currentUser) {
-      router.push('/login');
-      return;
-    }
-    // 許可されていないロールはトップへリダイレクト
-    if (!ALLOWED_ROLES.includes(currentUser.role as UserRole)) {
-      router.push('/');
-      return;
-    }
+    if (authLoading || !currentUser) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, authLoading]);
@@ -530,133 +512,113 @@ export default function CompanyMastersPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
-      {/* ─── ヘッダー ─────────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-xs">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href={backHref}
-              className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
-            >
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <Building2 size={22} className="text-indigo-600" />
-                企業マスタ管理
-              </h1>
-              <p className="text-xs text-slate-500 mt-1 font-medium">
-                申請フォームで自動入力される「所属機関（雇用主）」情報を事前登録します
-              </p>
-            </div>
-          </div>
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">企業マスタ（所属機関）</h2>
+          <p className="text-xs text-slate-500 mt-1">申請フォームで自動入力される「所属機関（雇用主）」情報を管理します</p>
+        </div>
+        <button
+          onClick={() => { setEditTarget(undefined); setShowModal(true); }}
+          className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+        >
+          <Plus size={16} />
+          新規登録
+        </button>
+      </div>
+
+      {companies.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-12 text-center">
+          <Building2 size={40} className="text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500 font-medium">企業マスタが登録されていません</p>
+          <p className="text-slate-400 text-sm mt-1 mb-6">
+            登録すると申請フォームのプルダウンに表示され、法人情報を一括自動入力できます。
+          </p>
           <button
             onClick={() => { setEditTarget(undefined); setShowModal(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
           >
             <Plus size={16} />
-            新規登録
+            最初の企業を登録する
           </button>
         </div>
-      </header>
-
-      {/* ─── メインコンテンツ ─────────────────────────────────────────── */}
-      <main className="max-w-4xl mx-auto px-6 py-8">
-
-        {companies.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-12 text-center">
-            <Building2 size={40} className="text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500 font-medium">企業マスタが登録されていません</p>
-            <p className="text-slate-400 text-sm mt-1 mb-6">
-              登録すると申請フォームのプルダウンに表示され、法人情報を一括自動入力できます。
-            </p>
-            <button
-              onClick={() => { setEditTarget(undefined); setShowModal(true); }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+      ) : (
+        <div className="space-y-3">
+          {companies.map((company) => (
+            <div
+              key={company.id}
+              className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col sm:flex-row sm:items-center gap-4"
             >
-              <Plus size={16} />
-              最初の企業を登録する
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {companies.map((company) => (
-              <div
-                key={company.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col sm:flex-row sm:items-center gap-4"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Building2 size={16} className="text-indigo-500 shrink-0" />
-                    <span className="font-bold text-slate-800 truncate">{company.companyNameJa}</span>
-                    {company.hasCorporateNumber && company.corporateNumber && (
-                      <span className="shrink-0 text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">
-                        法人番号: {company.corporateNumber}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-500">
-                    {[company.companyPref, company.companyCity, company.companyAddressLines]
-                      .filter(Boolean)
-                      .join('')}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    {company.representativeName && (
-                      <span className="text-xs text-slate-500">代表: {company.representativeName}</span>
-                    )}
-                    {company.companyPhone && (
-                      <span className="text-xs text-slate-500">☎ {company.companyPhone}</span>
-                    )}
-                    {company.employeeCount && (
-                      <span className="text-xs text-slate-500">従業員 {company.employeeCount}名</span>
-                    )}
-                    {company.isSocialInsuranceApplicable && (
-                      <span className="text-xs flex items-center gap-1 text-emerald-600">
-                        <CheckCircle2 size={12} /> 社保
-                      </span>
-                    )}
-                    {company.isLaborInsuranceApplicable && (
-                      <span className="text-xs flex items-center gap-1 text-emerald-600">
-                        <CheckCircle2 size={12} /> 労保
-                      </span>
-                    )}
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 size={16} className="text-indigo-500 shrink-0" />
+                  <span className="font-bold text-slate-800 truncate">{company.companyNameJa}</span>
+                  {company.hasCorporateNumber && company.corporateNumber && (
+                    <span className="shrink-0 text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">
+                      法人番号: {company.corporateNumber}
+                    </span>
+                  )}
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => { setEditTarget(company); setShowModal(true); }}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
-                  >
-                    <Pencil size={13} />
-                    編集
-                  </button>
-                  <button
-                    onClick={() => handleDelete(company.id, company.companyNameJa)}
-                    disabled={deletingId === company.id}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-100 disabled:opacity-50"
-                  >
-                    {deletingId === company.id ? (
-                      <Loader2 size={13} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={13} />
-                    )}
-                    削除
-                  </button>
+                <p className="text-sm text-slate-500">
+                  {[company.companyPref, company.companyCity, company.companyAddressLines]
+                    .filter(Boolean)
+                    .join('')}
+                </p>
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  {company.representativeName && (
+                    <span className="text-xs text-slate-500">代表: {company.representativeName}</span>
+                  )}
+                  {company.companyPhone && (
+                    <span className="text-xs text-slate-500">☎ {company.companyPhone}</span>
+                  )}
+                  {company.employeeCount && (
+                    <span className="text-xs text-slate-500">従業員 {company.employeeCount}名</span>
+                  )}
+                  {company.isSocialInsuranceApplicable && (
+                    <span className="text-xs flex items-center gap-1 text-emerald-600">
+                      <CheckCircle2 size={12} /> 社保
+                    </span>
+                  )}
+                  {company.isLaborInsuranceApplicable && (
+                    <span className="text-xs flex items-center gap-1 text-emerald-600">
+                      <CheckCircle2 size={12} /> 労保
+                    </span>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </main>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => { setEditTarget(company); setShowModal(true); }}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+                >
+                  <Pencil size={13} />
+                  編集
+                </button>
+                <button
+                  onClick={() => handleDelete(company.id, company.companyNameJa)}
+                  disabled={deletingId === company.id}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-100 disabled:opacity-50"
+                >
+                  {deletingId === company.id ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={13} />
+                  )}
+                  削除
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ─── モーダル ──────────────────────────────────────────────────── */}
       {showModal && organizationId && (

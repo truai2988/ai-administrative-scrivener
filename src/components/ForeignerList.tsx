@@ -302,7 +302,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   {!readonly && (
                     <td className="px-2 py-3 align-middle">
                       <div className="flex flex-nowrap whitespace-nowrap items-center justify-center gap-1.5 min-w-0">
-                        {/* ── scrivener: フル操作（Excel/同意書/書類編集） ── */}
+                        {/* ── scrivener: フル操作（Excel/同意書/申請書類） ── */}
                         {userRole === 'scrivener' && (
                           <>
                             <ExcelDownloadButton foreigner={person} variant="icon" />
@@ -318,7 +318,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                                 className="relative flex items-center justify-center gap-1.5 h-8 px-3 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm min-w-[96px]"
                               >
                                 <FilePen className="w-3.5 h-3.5" />
-                                書類編集
+                                申請書類
                                 {hasAnyDiagIssue && (
                                   <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white shadow-sm" />
                                 )}

@@ -20,7 +20,7 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
 };
 
 /**
- * 組織種別
+ * テナント種別
  * - union    : 組合（union_staff が所属）
  * - enterprise: 企業（enterprise_staff が所属）
  */
@@ -39,8 +39,6 @@ export interface Organization {
   id: string;             // Firestore Document ID
   name: string;           // 例: 「〇〇協同組合」「株式会社〇〇」
   type: OrganizationType;
-  address?: string;
-  phone?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,10 +53,10 @@ export interface User {
   displayName: string;
   role: UserRole;
   /**
-   * 所属組織ID（organizations コレクションのドキュメントID）
-   * - scrivener は null（組織に縛られない）
-   * - union_staff は union組織のID
-   * - enterprise_staff は enterprise組織のID
+   * 所属テナントID（organizations コレクションのドキュメントID）
+   * - scrivener は null（テナントに縛られない）
+   * - union_staff は unionテナントのID
+   * - enterprise_staff は enterpriseテナントのID
    */
   organizationId: string | null;
   createdAt: string;
@@ -66,7 +64,7 @@ export interface User {
 }
 
 /**
- * ロールがグローバル管理者か（全組織横断アクセス可能）
+ * ロールがグローバル管理者か（全テナント横断アクセス可能）
  */
 export function isGlobalAdmin(role: UserRole): boolean {
   return role === 'scrivener';
@@ -231,6 +229,33 @@ export interface CompanyMaster {
   isLaborInsuranceApplicable?: boolean;    // 労働保険適用の有無
   laborInsuranceNumber?: string;           // 労働保険番号
   employmentInsuranceNumber?: string;      // 雇用保険適用事業所番号
+  // メタデータ
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── UnionMaster (組合マスタ) ───────────────────────────────────────────────
+/**
+ * 事前登録しておく「監理団体・登録支援機関（組合）」のマスタデータ。
+ * 申請フォームの関連フィールドに一括自動入力される。
+ * organizationId で RBAC フィルタリングを行う（自支部の組合マスタのみ参照可）。
+ */
+export interface UnionMaster {
+  id: string;                         // Firestore Document ID
+  organizationId: string;             // 所属支部ID（RBAC フィルタリング用）
+  unionNameJa: string;                // 組合名（日本語）
+  hasCorporateNumber: boolean;        // 法人番号の有無
+  corporateNumber?: string;           // 法人番号（13桁）
+  permissionNumber?: string;          // 許可・登録番号（監理団体の許可番号や、登録支援機関の登録番号）
+  zipCode: string;                    // 郵便番号
+  pref: string;                       // 都道府県
+  city: string;                       // 市区町村
+  addressLines: string;               // 番地等
+  address?: string;                   // 結合住所（任意）
+  phone: string;                      // 電話番号
+  representativeTitle: string;        // 代表者役職
+  representativeName: string;         // 代表者氏名
+  contactPerson: string;              // 担当者氏名
   // メタデータ
   createdAt: string;
   updatedAt: string;

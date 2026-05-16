@@ -12,7 +12,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, Database, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, Database, ClipboardList, Landmark } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -234,12 +234,12 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
           ))}
 
 
-          {/* 企業マスタ管理（scrivener / union_staff） */}
+          {/* 設定・マスタ管理（scrivener / union_staff） */}
           {(userRole === 'scrivener' || userRole === 'union_staff') && (
             <SidebarItem
               icon={Building2}
-              label="企業マスタ管理"
-              href="/settings/companies"
+              label="設定・マスタ管理"
+              href="/settings/masters"
             />
           )}
 
@@ -261,14 +261,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
-          {/* 組織・ユーザー管理（scrivener） */}
-          {userRole === 'scrivener' && (
-            <SidebarItem
-              icon={Shield}
-              label="組織・ユーザー管理"
-              href="/admin/organizations"
-            />
-          )}
+
 
 
 

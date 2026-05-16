@@ -15,7 +15,7 @@ function roleToOrganizationType(role: UserRole): OrganizationType | 'any' {
     case 'enterprise_staff':
       return 'enterprise';
     default:
-      return 'any'; // scrivener は組織不要
+      return 'any'; // scrivener はテナント不要
   }
 }
 
@@ -150,7 +150,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
                       setUserFormData({
                         ...userFormData,
                         role: e.target.value as UserRole,
-                        organizationId: '', // ロール変更時は組織をリセット
+                        organizationId: '', // ロール変更時はテナントをリセット
                       })
                     }
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none"
@@ -205,12 +205,12 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
                 </div>
               </div>
 
-              {/* 所属組織 */}
+              {/* 所属テナント */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  所属組織 <span className="text-rose-400">*</span>
+                  所属テナント <span className="text-rose-400">*</span>
                   <span className="ml-2 normal-case text-slate-400 font-normal">
-                    （ロールに合わせた組織のみ表示）
+                    （ロールに合わせたテナントのみ表示）
                   </span>
                 </label>
                 <div className="relative">
@@ -221,9 +221,9 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none"
                     required
                   >
-                    <option value="">── 組織を選択してください ──</option>
+                    <option value="">── テナントを選択してください ──</option>
                     {filteredOrgs.length === 0 ? (
-                      <option disabled>対象組織が見つかりません（先に組織を作成してください）</option>
+                      <option disabled>対象テナントが見つかりません（先にテナントを作成してください）</option>
                     ) : (
                       filteredOrgs.map((org) => (
                         <option key={org.id} value={org.id}>

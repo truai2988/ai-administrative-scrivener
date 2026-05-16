@@ -8,8 +8,6 @@ export const organizationSchema = z.object({
   id: z.string(),
   name: z.string().min(1, '組織名は必須です').max(100, '組織名は100文字以内です'),
   type: organizationTypeSchema,
-  address: z.string().max(200).optional(),
-  phone: z.string().max(20).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -18,8 +16,6 @@ export const organizationSchema = z.object({
 export const createOrganizationSchema = z.object({
   name: z.string().min(1, '組織名は必須です').max(100, '組織名は100文字以内です'),
   type: organizationTypeSchema,
-  address: z.string().max(200).optional(),
-  phone: z.string().max(20).optional(),
 });
 
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
