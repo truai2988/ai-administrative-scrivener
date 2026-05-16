@@ -12,8 +12,8 @@ rules_version = '2';
  *  | ロール         | 読み取り | 書き込み | 削除 |
  *  |----------------|----------|----------|------|
  *  | scrivener      | ○        | ○        | ○    |
- *  | hq_admin       | ○        | ○        | ○    |
- *  | branch_staff   | ○        | 担当タブのみ | 担当タブのみ |
+ *  | union_staff    | ○        | 担当タブのみ | 担当タブのみ |
+ *  | enterprise_staff| ○        | 担当タブのみ | 担当タブのみ |
  */
 service firebase.storage {
   match /b/{bucket}/o {
@@ -30,24 +30,24 @@ service firebase.storage {
     }
 
     function isScrivener()   { return getUserRole() == 'scrivener'; }
-    function isHqAdmin()     { return getUserRole() == 'hq_admin'; }
-    function isBranchStaff() { return getUserRole() == 'branch_staff'; }
+    function isUnionStaff() { return getUserRole() == 'union_staff'; }
+    function isEnterpriseStaff() { return getUserRole() == 'enterprise_staff'; }
 
-    /** scrivener または hq_admin は全権限を持つグローバル管理者 */
+    /** scrivener は全権限を持つグローバル管理者 */
     function isGlobalAdmin() {
-      return isScrivener() || isHqAdmin();
+      return isScrivener();
     }
 
     /**
-     * branch_staff が特定の申請書の特定タブへの書き込み権限を持つか判定。
+     * union_staff / enterprise_staff が特定の申請書の特定タブへの書き込み権限を持つか判定。
      * Firestore の renewal_applications/{applicationId} ドキュメントの
      * formData.assignments[tabId] に自身のUID が設定されている場合のみ許可。
      */
-    function isBranchStaffAssignedToTab(applicationId, tabId) {
+    function isStaffAssignedToTab(applicationId, tabId) {
       let appData = firestore.get(
         /databases/(default)/documents/renewal_applications/$(applicationId)
       ).data;
-      return isBranchStaff() &&
+      return (isUnionStaff() || isEnterpriseStaff()) &&
              appData != null &&
              appData.formData != null &&
              appData.formData.assignments != null &&
@@ -89,22 +89,22 @@ service firebase.storage {
 
       /**
        * 書き込み（アップロード）:
-       * - グローバル管理者（scrivener / hq_admin）: 常時許可
-       * - branch_staff: 当該タブの担当者のみ、かつバリデーション通過
+       * - グローバル管理者（scrivener）: 常時許可
+       * - union_staff/enterprise_staff: 当該タブの担当者のみ、かつバリデーション通過
        */
       allow write: if isAuthenticated() && isValidUpload() && (
         isGlobalAdmin() ||
-        isBranchStaffAssignedToTab(applicationId, tabId)
+        isStaffAssignedToTab(applicationId, tabId)
       );
 
       /**
        * 削除:
        * - グローバル管理者: 常時許可
-       * - branch_staff: 当該タブの担当者のみ
+       * - union_staff/enterprise_staff: 当該タブの担当者のみ
        */
       allow delete: if isAuthenticated() && (
         isGlobalAdmin() ||
-        isBranchStaffAssignedToTab(applicationId, tabId)
+        isStaffAssignedToTab(applicationId, tabId)
       );
     }
 

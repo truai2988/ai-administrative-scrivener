@@ -2,7 +2,7 @@
  * PUT    /api/ai-rules/[id]  — ルール更新（内容変更・有効/無効切替）
  * DELETE /api/ai-rules/[id]  — ルール削除
  *
- * 権限: scrivener / hq_admin のみ
+ * 権限: scrivener のみ
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -35,7 +35,7 @@ async function verifyAdminAuth(req: NextRequest): Promise<
     }
 
     const role = userDoc.data()?.role as string;
-    if (role !== 'scrivener' && role !== 'hq_admin') {
+    if (role !== 'scrivener') {
       return { error: NextResponse.json({ error: '権限がありません' }, { status: 403 }) };
     }
 

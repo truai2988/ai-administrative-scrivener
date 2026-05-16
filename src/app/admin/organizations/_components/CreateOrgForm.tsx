@@ -17,7 +17,7 @@ interface CreateOrgFormProps {
 export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: CreateOrgFormProps) {
   const [orgFormData, setOrgFormData] = useState({
     name: '',
-    type: 'branch' as OrganizationType,
+    type: 'union' as OrganizationType,
     address: '',
     phone: '',
   });
@@ -38,7 +38,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
     try {
       await createOrganization(parsed.data);
       showToast('success', '組織を作成しました');
-      setOrgFormData({ name: '', type: 'branch', address: '', phone: '' });
+      setOrgFormData({ name: '', type: 'union', address: '', phone: '' });
       onSuccess();
     } catch (err: unknown) {
       const e = err as Error;
@@ -112,7 +112,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
                     }
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none"
                   >
-                    <option value="branch">支部（branch）</option>
+                    <option value="union">組合（union）</option>
                     <option value="enterprise">企業（enterprise）</option>
                   </select>
                 </div>

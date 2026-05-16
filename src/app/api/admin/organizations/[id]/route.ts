@@ -1,20 +1,20 @@
 /**
  * DELETE /api/admin/organizations/[id]  - 組織削除
  *
- * - scrivener / hq_admin ロールのみ実行可能（branch_staff 以下は 403）
+ * - scrivener ロールのみ実行可能（union_staff 以下は 403）
  * - 所属スタッフ（users コレクション）がいる場合は削除不可
- * - 所属外国人（foreigners コレクション）は自動的に「本部直轄（hq_direct）」へ移管
+ * - 所属外国人（foreigners コレクション）は自動的に「直接受任（scrivener_direct）」へ移管
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, getAdminDb } from '@/lib/firebase/admin';
 import type { UserRole } from '@/types/database';
 
-/** 本部直轄の branchId / organizationId */
-const HQ_DIRECT_ID = 'hq_direct';
+/** 直接受任の unionId / organizationId */
+const DEFAULT_UNION_ID = 'scrivener_direct';
 
 /** 組織の削除が許可されたロール */
-const BRANCH_MANAGER_ROLES: UserRole[] = ['scrivener', 'hq_admin'];
+const BRANCH_MANAGER_ROLES: UserRole[] = ['scrivener'];
 
 interface CallerInfo {
   callerUid: string;
@@ -69,12 +69,12 @@ export async function DELETE(
 
   const { callerRole } = result.info;
 
-  // 削除権限チェック: scrivener / hq_admin のみ
+  // 削除権限チェック: scrivener のみ
   if (!BRANCH_MANAGER_ROLES.includes(callerRole)) {
     return NextResponse.json(
       {
         error:
-          'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます（403 Forbidden）',
+          'この操作は行政書士（scrivener）のみ実行できます（403 Forbidden）',
       },
       { status: 403 }
     );
@@ -86,10 +86,10 @@ export async function DELETE(
     return NextResponse.json({ error: '組織IDが指定されていません' }, { status: 400 });
   }
 
-  // 本部直轄自体は削除不可
-  if (orgId === HQ_DIRECT_ID) {
+  // 直接受任自体は削除不可
+  if (orgId === DEFAULT_UNION_ID) {
     return NextResponse.json(
-      { error: '本部直轄組織は削除できません' },
+      { error: '直接受任組織は削除できません' },
       { status: 400 }
     );
   }
@@ -120,10 +120,10 @@ export async function DELETE(
       );
     }
 
-    // ── 所属外国人を本部直轄へ移管（Firestoreバッチ処理）──
+    // ── 所属外国人を直接受任へ移管（Firestoreバッチ処理）──
     const foreignersSnapshot = await db
       .collection('foreigners')
-      .where('branchId', '==', orgId)
+      .where('unionId', '==', orgId)
       .get();
 
     const now = new Date().toISOString();
@@ -140,7 +140,7 @@ export async function DELETE(
 
         for (const doc of chunk) {
           batch.update(doc.ref, {
-            branchId: HQ_DIRECT_ID,
+            unionId: DEFAULT_UNION_ID,
             updatedAt: now,
           });
         }
@@ -156,7 +156,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: true,
-        message: `「${orgName}」を削除しました。${migratedCount > 0 ? `所属外国人 ${migratedCount} 名を本部直轄へ移管しました。` : ''}`,
+        message: `「${orgName}」を削除しました。${migratedCount > 0 ? `所属外国人 ${migratedCount} 名を直接受任へ移管しました。` : ''}`,
         migratedForeigners: migratedCount,
       },
       { status: 200 }
@@ -177,12 +177,12 @@ export async function PATCH(
 
   const { callerRole } = result.info;
 
-  // 更新権限チェック: scrivener / hq_admin のみ
+  // 更新権限チェック: scrivener のみ
   if (!BRANCH_MANAGER_ROLES.includes(callerRole)) {
     return NextResponse.json(
       {
         error:
-          'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます（403 Forbidden）',
+          'この操作は行政書士（scrivener）のみ実行できます（403 Forbidden）',
       },
       { status: 403 }
     );
@@ -194,10 +194,10 @@ export async function PATCH(
     return NextResponse.json({ error: '組織IDが指定されていません' }, { status: 400 });
   }
 
-  // 本部直轄の更新は不可（必要に応じて許可してもよいが、一旦制限）
-  if (orgId === HQ_DIRECT_ID) {
+  // 直接受任の更新は不可（必要に応じて許可してもよいが、一旦制限）
+  if (orgId === DEFAULT_UNION_ID) {
     return NextResponse.json(
-      { error: '本部直轄組織は設定から変更できません' },
+      { error: '直接受任組織は設定から変更できません' },
       { status: 400 }
     );
   }

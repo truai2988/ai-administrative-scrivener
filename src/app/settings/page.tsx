@@ -18,7 +18,7 @@ import { foreignerService } from '@/services/foreignerService';
 
 /** 担当者アサインに使用するロール（行政書士・本部管理者は除外） */
 const ASSIGNABLE_ROLES: { role: string; label: string }[] = [
-  { role: 'branch_staff', label: USER_ROLE_LABELS.branch_staff },
+  { role: 'union_staff', label: USER_ROLE_LABELS.union_staff },
   { role: 'enterprise_staff', label: USER_ROLE_LABELS.enterprise_staff },
 ];
 

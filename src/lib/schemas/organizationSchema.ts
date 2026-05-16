@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // ─── 組織（Organization）スキーマ ───────────────────────────────────────────
 
-export const organizationTypeSchema = z.enum(['hq', 'branch', 'enterprise']);
+export const organizationTypeSchema = z.enum(['union', 'enterprise']);
 
 export const organizationSchema = z.object({
   id: z.string(),
@@ -26,7 +26,7 @@ export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 
 // ─── ユーザー（User）スキーマ ─────────────────────────────────────────────────
 
-export const userRoleSchema = z.enum(['scrivener', 'hq_admin', 'branch_staff', 'enterprise_staff']);
+export const userRoleSchema = z.enum(['scrivener', 'union_staff', 'enterprise_staff']);
 
 export const userSchema = z.object({
   id: z.string(),

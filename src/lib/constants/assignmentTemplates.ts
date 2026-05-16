@@ -27,7 +27,7 @@ export type GenericTabAssignments = Record<string, string>;
 export type ApplicationKind = 'renewal' | 'change' | 'certification';
 
 /** 各タブに割り当てるデフォルトのロール（null = 行政書士のみ） */
-export type DefaultAssignmentRole = 'branch_staff' | 'enterprise_staff' | null;
+export type DefaultAssignmentRole = 'union_staff' | 'enterprise_staff' | null;
 
 export interface TabAssignmentTemplate {
   /** 申請種別の日本語ラベル */

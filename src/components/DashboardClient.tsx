@@ -12,7 +12,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, Database } from 'lucide-react';
+import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, Database, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -51,18 +51,18 @@ const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage:
   { icon: UserCircle, label: '外国人管理・台帳', toastMessage: '高度な外国人台帳管理' },
 ];
 
-// ─── Scrivener専用: 問い合わせ受信箱サイドバー項目 ──────────────────────────
-function ScrivenerInboxItem({ onOpen, userRole }: { onOpen: () => void; userRole: string }) {
+// ─── Scrivener専用: 通知ベルアイコン（ページ右上配置） ──────────────────────
+function NotificationBell({ onOpen, userRole }: { onOpen: () => void; userRole: string }) {
   const unreadCount = useInquiryUnreadCount(userRole);
   return (
     <button
       onClick={onOpen}
-      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium"
+      className="relative p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-95"
+      title="通知"
     >
-      <Bell className="h-5 w-5 shrink-0" />
-      <span className="text-sm">通知</span>
+      <Bell className="h-5 w-5" />
       {unreadCount > 0 && (
-        <span className="ml-auto text-xs font-black px-2 py-0.5 rounded-full bg-rose-50 text-rose-500 animate-pulse">
+        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-black px-1 rounded-full bg-rose-500 text-white shadow-sm animate-pulse">
           {unreadCount}
         </span>
       )}
@@ -72,8 +72,7 @@ function ScrivenerInboxItem({ onOpen, userRole }: { onOpen: () => void; userRole
 
 // ─── Role Badge Colors ───────────────────────────────────────────────────────
 const ROLE_BADGE_STYLES: Record<string, string> = {
-  branch_staff: 'bg-sky-50 text-sky-600 border-sky-100',
-  hq_admin: 'bg-violet-50 text-violet-600 border-violet-100',
+  union_staff: 'bg-sky-50 text-sky-600 border-sky-100',
   scrivener: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   enterprise_staff: 'bg-amber-50 text-amber-600 border-amber-100',
 };
@@ -122,7 +121,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     setMounted(true);
   }, []);
 
-  // 組織一覧を取得して表示名マップを構築（getBranchLabel で使用）
+  // 組織一覧を取得して表示名マップを構築（getOrganizationLabel で使用）
   useEffect(() => {
     if (!currentUser) return;
     const roles = ['scrivener', 'hq_admin'];
@@ -180,18 +179,17 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const roleLabel = userRole ? (USER_ROLE_LABELS[userRole] || userRole) : '';
   const roleBadgeStyle = userRole ? (ROLE_BADGE_STYLES[userRole] || 'bg-slate-50 text-slate-600 border-slate-100') : '';
 
-  // hq_admin のみ有効なフィルター適用
-  const isHqAdmin = userRole === 'hq_admin';
+  const isGlobalView = userRole === 'scrivener';
   const displayedData = data; // useForeigners が既に activeTab でフィルタリングされたデータを返します
 
   // サマリータブによるフロントエンドフィルタリングは廃止（バックエンドでのクエリフィルタに移行）
   // displayedData（useForeignersが直接フィルタリングして返したデータ）をそのまま利用する
   const filteredData = displayedData;
 
-  /** branchId → 表示名のマッピング（組織APIから動的取得） */
-  const getBranchLabel = (branchId: string): string => {
-    if (branchId === 'hq_direct') return '本部直轄';
-    return organizationLabelMap[branchId] ?? branchId;
+  /** orgId → 表示名のマッピング（組織APIから動的取得） */
+  const getOrganizationLabel = (orgId: string): string => {
+    if (orgId === 'scrivener_direct') return '直接受任';
+    return organizationLabelMap[orgId] ?? orgId;
   };
 
   if (!mounted || authLoading) return null;
@@ -220,7 +218,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         {/* Navigation - Scrollable */}
         <nav className="flex-1 overflow-y-auto px-8 py-4 space-y-2 no-scrollbar">
           {canCreateForeigner(userRole) && (
-            <SidebarItem icon={QrCode} label="招待QR発行" active onClick={() => setShowShareModal(true)} />
+            <SidebarItem icon={QrCode} label="新規作成" active onClick={() => setShowShareModal(true)} />
           )}
 
           {COMING_SOON_ITEMS.map((item) => (
@@ -233,13 +231,9 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           ))}
 
-          {/* 通知・問い合わせ受信笱 (scrivenerのみ) */}
-          {userRole === 'scrivener' && (
-            <ScrivenerInboxItem onOpen={() => setShowInquiryInbox(true)} userRole={userRole} />
-          )}
 
-          {/* 企業マスタ管理（scrivener / hq_admin / branch_staff） */}
-          {(userRole === 'scrivener' || userRole === 'hq_admin' || userRole === 'branch_staff') && (
+          {/* 企業マスタ管理（scrivener / union_staff） */}
+          {(userRole === 'scrivener' || userRole === 'union_staff') && (
             <SidebarItem
               icon={Building2}
               label="企業マスタ管理"
@@ -247,8 +241,26 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
-          {/* 組織・ユーザー管理（scrivener / hq_admin） */}
-          {(userRole === 'scrivener' || userRole === 'hq_admin') && (
+          {/* AI診断ルール管理（scrivenerのみ） */}
+          {userRole === 'scrivener' && (
+            <SidebarItem
+              icon={Sparkles}
+              label="AI診断ルール管理"
+              href="/settings/ai-rules"
+            />
+          )}
+
+          {/* 未確認一覧（scrivenerのみ） */}
+          {userRole === 'scrivener' && (
+            <SidebarItem
+              icon={ClipboardList}
+              label="未確認一覧"
+              href="/pending-review"
+            />
+          )}
+
+          {/* 組織・ユーザー管理（scrivener） */}
+          {userRole === 'scrivener' && (
             <SidebarItem
               icon={Shield}
               label="組織・ユーザー管理"
@@ -282,7 +294,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             </div>
             <div className="min-w-0">
               <p className="text-sm font-black text-slate-900 leading-tight truncate">{currentUser.displayName} 様</p>
-              {currentUser.displayName.replace(/\s+/g, '') !== roleLabel.replace(/\s+/g, '') && userRole !== 'branch_staff' && (
+              {currentUser.displayName.replace(/\s+/g, '') !== roleLabel.replace(/\s+/g, '') && userRole !== 'union_staff' && (
                 <p className={`text-xs font-bold px-1.5 py-0.5 rounded-md border ${roleBadgeStyle} inline-block mt-0.5`}>
                   {roleLabel}
                 </p>
@@ -334,15 +346,20 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col px-6 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8 lg:px-10 lg:pt-6 lg:pb-10 max-w-[1600px] mx-auto w-full relative">
+        {/* 右上: 通知ベルアイコン (scrivenerのみ) */}
+        {userRole === 'scrivener' && (
+          <div className="flex justify-end mb-2">
+            <NotificationBell onOpen={() => setShowInquiryInbox(true)} userRole={userRole} />
+          </div>
+        )}
+
         {/* InquiryInbox (scrivenerのみ) */}
         {userRole === 'scrivener' && (
-          <div className="flex justify-end mb-4">
-            <InquiryInbox
-              userRole={userRole}
-              isOpen={showInquiryInbox}
-              onClose={() => setShowInquiryInbox(false)}
-            />
-          </div>
+          <InquiryInbox
+            userRole={userRole}
+            isOpen={showInquiryInbox}
+            onClose={() => setShowInquiryInbox(false)}
+          />
         )}
 
         {/* Content */}
@@ -377,9 +394,8 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
                 data={filteredData} 
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
-                readonly={isHqAdmin}
-                showBranch={isHqAdmin}
-                getBranchLabel={getBranchLabel}
+                showOrganization={isGlobalView}
+                getOrganizationLabel={getOrganizationLabel}
                 userRole={userRole}
                 aiDiagnosticMap={aiDiagMap}
                 onDeleteSelected={async () => {

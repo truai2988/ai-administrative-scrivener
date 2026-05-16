@@ -18,6 +18,6 @@ export interface Inquiry extends SupportFormData {
   createdAt: string;
   userId: string;
   userRole: UserRole;
-  branchId: string;
+  unionId: string;
   tenantId: string;
 }

@@ -19,9 +19,9 @@ import {
   QueryConstraint
 } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
-import { Foreigner, UserRole, DEFAULT_BRANCH_ID } from "../types/database";
+import { Foreigner, UserRole, DEFAULT_UNION_ID } from "../types/database";
 import { emailService } from "./emailService";
-import { canViewAllBranches } from "../utils/permissions";
+import { canViewAllForeigners } from "../utils/permissions";
 import { isValidPersonName } from "../lib/utils/firestoreUtils";
 
 const COLLECTION_NAME = "foreigners";
@@ -46,13 +46,11 @@ function getStatsChanges(oldStatus?: string, newStatus?: string): { pending: num
   return { pending, completed };
 }
 
-// バッチ書き込みで集計ドキュメント（グローバル・支部）を更新するヘルパー
-function applyStatsIncrement(batch: WriteBatch, branchId: string, diff: { total: number, pending: number, completed: number }) {
+// バッチ書き込みで集計ドキュメント（グローバル・組合・企業）を更新するヘルパー
+function applyStatsIncrement(batch: WriteBatch, diff: { total: number, pending: number, completed: number }, unionId?: string, enterpriseId?: string) {
   if (diff.total === 0 && diff.pending === 0 && diff.completed === 0) return;
 
   const globalRef = doc(db, 'foreigner_stats', 'global');
-  const branchRef = doc(db, 'foreigner_stats', branchId);
-
   const payload = {
     total: increment(diff.total),
     pending: increment(diff.pending),
@@ -60,7 +58,15 @@ function applyStatsIncrement(batch: WriteBatch, branchId: string, diff: { total:
   };
 
   batch.set(globalRef, payload, { merge: true });
-  batch.set(branchRef, payload, { merge: true });
+
+  if (unionId) {
+    const unionRef = doc(db, 'foreigner_stats', unionId);
+    batch.set(unionRef, payload, { merge: true });
+  }
+  if (enterpriseId) {
+    const entRef = doc(db, 'foreigner_stats', enterpriseId);
+    batch.set(entRef, payload, { merge: true });
+  }
 }
 
 
@@ -93,24 +99,25 @@ export const foreignerService = {
 
   /**
    * ロールに基づいて外国人データを取得
-   * - branch_staff: 自分の支部のデータのみ
-   * - hq_admin / scrivener: 全支部のデータ
+   * - union_staff: 自分の支部のデータのみ
+   * - scrivener: 全支部のデータ
    */
-  async getForeignersByRole(role: UserRole, branchId?: string): Promise<Foreigner[]> {
+  async getForeignersByRole(role: UserRole, organizationId?: string): Promise<Foreigner[]> {
     let q;
 
-    if (canViewAllBranches(role)) {
-      // 本部管理者・行政書士: 全データ取得
+    if (canViewAllForeigners(role)) {
+      // 行政書士: 全データ取得
       q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"), limit(50));
     } else {
-      // 支部事務員: 自支部のデータのみ
-      if (!branchId) {
-        console.error("[foreignerService] branch_staff requires branchId");
+      // 組合職員 / 企業担当者: 自組織のデータのみ
+      if (!organizationId) {
+        console.error(`[foreignerService] ${role} requires organizationId`);
         return [];
       }
+      const fieldName = role === 'union_staff' ? 'unionId' : 'enterpriseId';
       q = query(
         collection(db, COLLECTION_NAME),
-        where("branchId", "==", branchId),
+        where(fieldName, "==", organizationId),
         orderBy("updatedAt", "desc"),
         limit(50)
       );
@@ -128,21 +135,22 @@ export const foreignerService = {
    */
   subscribeForeignersByRole(
     role: UserRole, 
-    branchId: string | undefined, 
+    organizationId: string | undefined, 
     callback: (data: Foreigner[]) => void
   ): () => void {
     let q;
 
-    if (canViewAllBranches(role)) {
+    if (canViewAllForeigners(role)) {
       q = query(collection(db, COLLECTION_NAME), orderBy("updatedAt", "desc"), limit(50));
     } else {
-      if (!branchId) {
-        console.error("[foreignerService] branch_staff requires branchId");
+      if (!organizationId) {
+        console.error(`[foreignerService] ${role} requires organizationId`);
         return () => {}; // return empty unsubscribe
       }
+      const fieldName = role === 'union_staff' ? 'unionId' : 'enterpriseId';
       q = query(
         collection(db, COLLECTION_NAME),
-        where("branchId", "==", branchId),
+        where(fieldName, "==", organizationId),
         orderBy("updatedAt", "desc"),
         limit(50)
       );
@@ -162,7 +170,7 @@ export const foreignerService = {
    */
   async getForeignersPage(
     role: UserRole,
-    branchId: string | undefined,
+    organizationId: string | undefined,
     pageSize: number,
     lastDoc?: QueryDocumentSnapshot<DocumentData> | null,
     statusFilter: string = 'all'
@@ -171,9 +179,10 @@ export const foreignerService = {
     const constraints: QueryConstraint[] = [];
 
     // 支部による絞り込み
-    if (!canViewAllBranches(role) || branchId) {
-      if (!branchId) throw new Error("[foreignerService] branch_staff requires branchId");
-      constraints.push(where("branchId", "==", branchId));
+    if (!canViewAllForeigners(role) || organizationId) {
+      if (!organizationId) throw new Error("[foreignerService] union_staff requires organizationId");
+      const fieldName = role === 'union_staff' ? 'unionId' : 'enterpriseId';
+      constraints.push(where(fieldName, "==", organizationId));
     }
 
     // ステータスタブによる絞り込み
@@ -225,15 +234,16 @@ export const foreignerService = {
 
   /**
    * 本人用フォームからの新規申請保存（または更新）
-   * branchId を自動設定する
+   * unionId / enterpriseId を自動設定する
    */
-  async submitForeignerEntry(id: string, data: Partial<Foreigner>, branchId?: string): Promise<void> {
+  async submitForeignerEntry(id: string, data: Partial<Foreigner>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
     const docSnap = await getDoc(docRef);
 
     const commonData = {
       ...data,
-      branchId: branchId || data.branchId || DEFAULT_BRANCH_ID,
+      unionId: data.unionId || DEFAULT_UNION_ID,
+      enterpriseId: data.enterpriseId || undefined,
       updatedAt: new Date().toISOString(),
     };
 
@@ -246,7 +256,7 @@ export const foreignerService = {
       batch.update(docRef, commonData);
       
       const statsDiff = getStatsChanges(oldStatus, newStatus);
-      applyStatsIncrement(batch, docSnap.data().branchId, { total: 0, ...statsDiff });
+      applyStatsIncrement(batch, { total: 0, ...statsDiff }, docSnap.data().unionId, docSnap.data().enterpriseId);
     } else {
       const newStatus = data.status || '準備中';
       const insertData = {
@@ -257,7 +267,7 @@ export const foreignerService = {
       batch.set(docRef, insertData);
 
       const statsDiff = getStatsChanges(undefined, newStatus);
-      applyStatsIncrement(batch, commonData.branchId, { total: 1, ...statsDiff });
+      applyStatsIncrement(batch, { total: 1, ...statsDiff }, commonData.unionId, commonData.enterpriseId);
     }
 
     await batch.commit();
@@ -277,7 +287,7 @@ export const foreignerService = {
 
     const oldStatus = currentDoc.data().status;
     const newStatus = data.status || oldStatus;
-    const branchId = currentDoc.data().branchId;
+    
 
     const batch = writeBatch(db);
     batch.update(docRef, {
@@ -287,7 +297,7 @@ export const foreignerService = {
     });
 
     const statsDiff = getStatsChanges(oldStatus, newStatus);
-    applyStatsIncrement(batch, branchId, { total: 0, ...statsDiff });
+    applyStatsIncrement(batch, { total: 0, ...statsDiff }, currentDoc.data().unionId, currentDoc.data().enterpriseId);
 
     await batch.commit();
 
@@ -357,7 +367,7 @@ export const foreignerService = {
 
     // 4. 集計値の更新（ステータスが「編集中」に変わる）
     const statsDiff = getStatsChanges(currentData.status, '編集中');
-    applyStatsIncrement(batch, currentData.branchId, { total: 0, ...statsDiff });
+    applyStatsIncrement(batch, { total: 0, ...statsDiff }, currentData.unionId, currentData.enterpriseId);
 
     // 5. バッチ送信
     await batch.commit();
@@ -372,7 +382,7 @@ export const foreignerService = {
   /**
    * 支部事務員用：自支部のデータを編集
    */
-  async updateForeignerByStaff(id: string, data: Partial<Foreigner>, userBranchId: string): Promise<void> {
+  async updateForeignerByStaff(id: string, data: Partial<Foreigner>, userOrganizationId: string): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
     const currentDoc = await getDoc(docRef);
 
@@ -381,8 +391,8 @@ export const foreignerService = {
     }
 
     // 支部IDが一致するかチェック
-    const branchId = currentDoc.data().branchId;
-    if (branchId !== userBranchId) {
+    const currentData = currentDoc.data();
+    if (currentData.unionId !== userOrganizationId && currentData.enterpriseId !== userOrganizationId) {
       throw new Error("権限エラー: 他の支部のデータは編集できません");
     }
 
@@ -396,7 +406,7 @@ export const foreignerService = {
     });
 
     const statsDiff = getStatsChanges(oldStatus, newStatus);
-    applyStatsIncrement(batch, branchId, { total: 0, ...statsDiff });
+    applyStatsIncrement(batch, { total: 0, ...statsDiff }, currentData.unionId, currentData.enterpriseId);
 
     await batch.commit();
   },
@@ -410,14 +420,14 @@ export const foreignerService = {
     if (!snap.exists()) return;
 
     const data = snap.data();
-    const branchId = data.branchId;
+    
     const oldStatus = data.status;
 
     const batch = writeBatch(db);
     batch.delete(docRef);
 
     const statsDiff = getStatsChanges(oldStatus, undefined);
-    applyStatsIncrement(batch, branchId, { total: -1, ...statsDiff });
+    applyStatsIncrement(batch, { total: -1, ...statsDiff }, data.unionId, data.enterpriseId);
 
     await batch.commit();
   },
@@ -431,58 +441,84 @@ export const foreignerService = {
   async deleteForeignersBatch(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
 
-    // 1. 削除対象ドキュメントを並列取得（集計用にステータス・branchIdが必要）
-    const snaps = await Promise.all(
+    // 1. 削除対象ドキュメントを並列取得（集計用にステータス等が必要）
+    const docSnaps = await Promise.all(
       ids.map(id => getDoc(doc(db, COLLECTION_NAME, id)))
     );
 
     // 2. 存在するものだけを対象とし、支部別の集計差分を計算
     type StatsDiff = { total: number; pending: number; completed: number };
-    const branchDiffs = new Map<string, StatsDiff>();
+    const orgDiffs = new Map<string, StatsDiff>();
+    
+    const batch = writeBatch(db);
+    for (const snap of docSnaps) {
+      if (snap.exists()) batch.delete(snap.ref);
+    }
 
-    const existingSnaps = snaps.filter(s => s.exists());
-    for (const snap of existingSnaps) {
+    for (const snap of docSnaps) {
+      if (!snap.exists()) continue;
       const data = snap.data();
-      const branchId: string = data.branchId ?? DEFAULT_BRANCH_ID;
-      const oldStatus: string | undefined = data.status;
-      const statsDiff = getStatsChanges(oldStatus, undefined);
-      const current = branchDiffs.get(branchId) ?? { total: 0, pending: 0, completed: 0 };
-      branchDiffs.set(branchId, {
-        total: current.total - 1,
-        pending: current.pending + statsDiff.pending,
-        completed: current.completed + statsDiff.completed,
-      });
+      const statsDiff = getStatsChanges(data.status, undefined);
+      const diff = { total: -1, ...statsDiff };
+      
+      const unionId = data.unionId;
+      if (unionId) {
+        const current = orgDiffs.get(unionId) ?? { total: 0, pending: 0, completed: 0 };
+        orgDiffs.set(unionId, {
+          total: current.total + diff.total,
+          pending: current.pending + diff.pending,
+          completed: current.completed + diff.completed
+        });
+      }
+      const enterpriseId = data.enterpriseId;
+      if (enterpriseId) {
+        const current = orgDiffs.get(enterpriseId) ?? { total: 0, pending: 0, completed: 0 };
+        orgDiffs.set(enterpriseId, {
+          total: current.total + diff.total,
+          pending: current.pending + diff.pending,
+          completed: current.completed + diff.completed
+        });
+      }
     }
 
-    // 3. 500件上限に対応した分割バッチで削除
-    const BATCH_LIMIT = 500;
-    for (let i = 0; i < existingSnaps.length; i += BATCH_LIMIT) {
-      const batch = writeBatch(db);
-      const chunk = existingSnaps.slice(i, i + BATCH_LIMIT);
+    const globalRef = doc(db, 'foreigner_stats', 'global');
+    let globalTotal = 0, globalPending = 0, globalCompleted = 0;
 
-      for (const snap of chunk) {
-        batch.delete(snap.ref);
-      }
-
-      // 集計更新は先頭バッチにのみ追加（全支部分をまとめて反映）
-      if (i === 0) {
-        for (const [branchId, diff] of branchDiffs.entries()) {
-          applyStatsIncrement(batch, branchId, diff);
-        }
-      }
-
-      await batch.commit();
+    for (const snap of docSnaps) {
+      if (!snap.exists()) continue;
+      const diff = getStatsChanges(snap.data().status, undefined);
+      globalTotal -= 1;
+      globalPending += diff.pending;
+      globalCompleted += diff.completed;
     }
+    
+    if (globalTotal !== 0 || globalPending !== 0 || globalCompleted !== 0) {
+      batch.set(globalRef, {
+        total: increment(globalTotal),
+        pending: increment(globalPending),
+        completed: increment(globalCompleted)
+      }, { merge: true });
+    }
+
+    for (const [orgId, diff] of orgDiffs.entries()) {
+      batch.set(doc(db, 'foreigner_stats', orgId), {
+        total: increment(diff.total),
+        pending: increment(diff.pending),
+        completed: increment(diff.completed)
+      }, { merge: true });
+    }
+
+    await batch.commit();
   },
 
 
   /**
    * デモデータ一括投入
    */
-  async seedDemoData(branchId?: string): Promise<{ success: boolean; error?: string }> {
+  async seedDemoData(unionId?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const now = new Date();
-      const activeBranchId = branchId || DEFAULT_BRANCH_ID;
+      const activeUnionId = unionId || DEFAULT_UNION_ID;
       
       const date1 = new Date();
       date1.setMonth(now.getMonth() + 2);
@@ -490,7 +526,8 @@ export const foreignerService = {
 
       const demo1: Foreigner = {
         id: `demo-normal-${idSuffix}`,
-        branchId: activeBranchId,
+        unionId: activeUnionId,
+        enterpriseId: undefined,
         name: 'CHEN WEI',
         residenceCardNumber: 'AB12345678CD',
         expiryDate: date1.toISOString().split('T')[0],
@@ -523,7 +560,8 @@ export const foreignerService = {
       
       const demo2: Foreigner = {
         id: `demo-warning-${idSuffix}`,
-        branchId: activeBranchId,
+        unionId: activeUnionId,
+        enterpriseId: undefined,
         name: 'NGUYEN VAN A',
         residenceCardNumber: 'XY98765432ZZ',
         expiryDate: date2.toISOString().split('T')[0],
@@ -555,7 +593,8 @@ export const foreignerService = {
       
       const demo3: Foreigner = {
         id: `demo-completed-${idSuffix}`,
-        branchId: activeBranchId,
+        unionId: activeUnionId,
+        enterpriseId: undefined,
         name: 'MARIA GARCIA',
         residenceCardNumber: 'JK11223344ML',
         expiryDate: date3.toISOString().split('T')[0],
@@ -590,7 +629,7 @@ export const foreignerService = {
       batch.set(doc(db, COLLECTION_NAME, demo2.id), demo2);
       batch.set(doc(db, COLLECTION_NAME, demo3.id), demo3);
 
-      applyStatsIncrement(batch, activeBranchId, { total: 3, pending: 2, completed: 1 });
+      applyStatsIncrement(batch, { total: 3, pending: 2, completed: 1 }, activeUnionId, undefined);
       
       await batch.commit();
 
@@ -646,15 +685,15 @@ export const foreignerService = {
 
     const docOld = await getDoc(docRef);
     if (docOld.exists()) {
-      const branchId = docOld.data().branchId;
-      const oldStatus = docOld.data().status;
+      const oldData = docOld.data();
+      const oldStatus = oldData.status;
       const newStatus = updateData.status || oldStatus;
 
       const batch = writeBatch(db);
       batch.update(docRef, updateData);
 
       const statsDiff = getStatsChanges(oldStatus, newStatus);
-      applyStatsIncrement(batch, branchId, { total: 0, ...statsDiff });
+      applyStatsIncrement(batch, { total: 0, ...statsDiff }, oldData.unionId, oldData.enterpriseId);
 
       await batch.commit();
     }
@@ -705,8 +744,8 @@ export const foreignerService = {
       }
 
       const buildQuery = (field: string, value: string) => {
-        if (organizationId && organizationId !== 'hq_direct') {
-          return query(foreignersCol, where(field, '==', value), where('branchId', '==', organizationId), limit(1));
+        if (organizationId && organizationId !== DEFAULT_UNION_ID) {
+          return query(foreignersCol, where(field, '==', value), where('unionId', '==', organizationId), limit(1));
         }
         return query(foreignersCol, where(field, '==', value), limit(1));
       };
@@ -726,8 +765,8 @@ export const foreignerService = {
       // 氏名＋生年月日で検索
       if (!matchedDocId && name && birthDate) {
         let q;
-        if (organizationId && organizationId !== 'hq_direct') {
-          q = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), where('branchId', '==', organizationId), limit(1));
+        if (organizationId && organizationId !== DEFAULT_UNION_ID) {
+          q = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), where('unionId', '==', organizationId), limit(1));
         } else {
           q = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), limit(1));
         }
@@ -750,7 +789,8 @@ export const foreignerService = {
       await setDoc(docRef, {
         ...syncData,
         id: newId,
-        branchId: organizationId || 'hq_direct',
+        unionId: organizationId || DEFAULT_UNION_ID,
+        enterpriseId: undefined,
         createdAt: now,
         updatedAt: now,
       }, { merge: true });

@@ -2,9 +2,9 @@
  * GET  /api/admin/organizations  - 組織一覧取得
  * POST /api/admin/organizations  - 新規組織作成
  *
- * GET  : scrivener / hq_admin / branch_staff が実行可能
- *        branch_staff は自分の所属支部のみ取得可能（他支部は非表示）
- * POST : scrivener / hq_admin のみ実行可能（branch_staff 以下は 403）
+ * GET  : scrivener / union_staff が実行可能
+ *        union_staff は自分の所属組織のみ取得可能（他組織は非表示）
+ * POST : scrivener のみ実行可能（union_staff 以下は 403）
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,10 +13,10 @@ import { createOrganizationSchema } from '@/lib/schemas/organizationSchema';
 import type { UserRole } from '@/types/database';
 
 /** 組織の作成・削除が許可されたロール */
-const BRANCH_MANAGER_ROLES: UserRole[] = ['scrivener', 'hq_admin'];
+const BRANCH_MANAGER_ROLES: UserRole[] = ['scrivener'];
 
 /** 組織の閲覧が許可されたロール */
-const ORG_VIEWER_ROLES: UserRole[] = ['scrivener', 'hq_admin', 'branch_staff'];
+const ORG_VIEWER_ROLES: UserRole[] = ['scrivener', 'union_staff'];
 
 interface CallerInfo {
   callerUid: string;
@@ -85,10 +85,10 @@ export async function GET(req: NextRequest) {
   try {
     let snapshot;
 
-    if (callerRole === 'branch_staff') {
-      // branch_staff は自分の所属支部1件のみ
+    if (callerRole === 'union_staff') {
+      // union_staff は自分の所属組織1件のみ
       if (!organizationId) {
-        // 支部未割当の branch_staff は空配列を返す
+        // 組織未割当の union_staff は空配列を返す
         return NextResponse.json({ organizations: [] }, { status: 200 });
       }
       snapshot = await adminDb
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
         .where('__name__', '==', organizationId) // Firestore: ドキュメントIDで絞り込み
         .get();
     } else {
-      // scrivener / hq_admin は全組織を取得
+      // scrivener は全組織を取得
       snapshot = await adminDb
         .collection('organizations')
         .orderBy('createdAt', 'desc')
@@ -122,12 +122,12 @@ export async function POST(req: NextRequest) {
 
   const { callerRole } = result.info;
 
-  // 作成権限チェック: scrivener / hq_admin のみ
+  // 作成権限チェック: scrivener のみ
   if (!BRANCH_MANAGER_ROLES.includes(callerRole)) {
     return NextResponse.json(
       {
         error:
-          'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます（403 Forbidden）',
+          'この操作は行政書士（scrivener）のみ実行できます（403 Forbidden）',
       },
       { status: 403 }
     );

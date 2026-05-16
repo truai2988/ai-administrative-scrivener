@@ -10,7 +10,7 @@ export interface Inquiry {
   status: 'open' | 'in_progress' | 'resolved';
   createdAt: Timestamp | Date;
   tenantId: string;
-  branchId: string;
+  organizationId: string;
   userId: string;
   userRole: UserRole | string;
 }
@@ -22,7 +22,7 @@ export function useInquiries(userRole?: UserRole | string) {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Only fetch if scrivener or hq_admin
+    // Only fetch if scrivener
     if (!isAllowed) {
       return;
     }

@@ -8,40 +8,35 @@
  * システム全体で使用するロール定義
  *
  * - scrivener     : 行政書士 / システム全体管理者（最上位権限）
- * - hq_admin      : 東京本部 / 全支部横断管理できる特権管理者
- * - branch_staff  : 支部事務員（自支部データのみアクセス可）
  * - enterprise_staff: 企業担当者（担当タブのみ編集可）
  */
-export type UserRole = 'scrivener' | 'hq_admin' | 'branch_staff' | 'enterprise_staff';
+export type UserRole = 'scrivener' | 'union_staff' | 'enterprise_staff';
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   scrivener: '行政書士',
-  hq_admin: '本部管理者',
-  branch_staff: '支部事務員',
+  union_staff: '組合職員',
   enterprise_staff: '企業担当者',
 };
 
 /**
  * 組織種別
- * - hq        : 東京本部（hq_admin が所属）
- * - branch    : 支部（branch_staff が所属）
+ * - union    : 組合（union_staff が所属）
  * - enterprise: 企業（enterprise_staff が所属）
  */
-export type OrganizationType = 'hq' | 'branch' | 'enterprise';
+export type OrganizationType = 'union' | 'enterprise';
 
 export const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
-  hq: '本部',
-  branch: '支部',
+  union: '組合',
   enterprise: '企業',
 };
 
 /**
  * Firestore: organizations コレクション
- * 支部・企業・本部をすべて一元管理するシングルテナント構造
+ * 組合・企業を一元管理するシングルテナント構造
  */
 export interface Organization {
   id: string;             // Firestore Document ID
-  name: string;           // 例: 「東京支部」「株式会社〇〇」
+  name: string;           // 例: 「〇〇協同組合」「株式会社〇〇」
   type: OrganizationType;
   address?: string;
   phone?: string;
@@ -61,8 +56,7 @@ export interface User {
   /**
    * 所属組織ID（organizations コレクションのドキュメントID）
    * - scrivener は null（組織に縛られない）
-   * - hq_admin は hq組織のID
-   * - branch_staff は branch組織のID
+   * - union_staff は union組織のID
    * - enterprise_staff は enterprise組織のID
    */
   organizationId: string | null;
@@ -72,14 +66,13 @@ export interface User {
 
 /**
  * ロールがグローバル管理者か（全組織横断アクセス可能）
- * hq_admin は全支部・全企業のデータを閲覧・編集できる
  */
 export function isGlobalAdmin(role: UserRole): boolean {
-  return role === 'scrivener' || role === 'hq_admin';
+  return role === 'scrivener';
 }
 
-/** 既存データ・本部直轄用のデフォルト organizationId */
-export const DEFAULT_BRANCH_ID = 'hq_direct';
+/** 既存データ・直接受任用のデフォルト organizationId */
+export const DEFAULT_UNION_ID = 'scrivener_direct';
 
 // ─── Foreigner (外国人データ) ─────────────────────────────────────────────────
 export type ForeignerStatus = '準備中' | '編集中' | 'チェック中' | '申請済' | '追加資料待機' | '入管審査中' | '完了' | '期限切れ警告' | '差し戻し';
@@ -96,7 +89,8 @@ export const APPROVAL_STATUS_LABELS: Record<NonNullable<ApprovalStatus>, string>
 
 export interface Foreigner {
   id: string; // Firestore Document ID
-  branchId: string; // 所属支部ID (RBAC フィルタリング用)
+  unionId?: string; // 組合ID (RBAC フィルタリング用)
+  enterpriseId?: string; // 企業ID (RBAC フィルタリング用)
   name: string;
   email?: string;
   residenceCardNumber: string; // 英字2桁 + 数字8桁 + 英字2桁

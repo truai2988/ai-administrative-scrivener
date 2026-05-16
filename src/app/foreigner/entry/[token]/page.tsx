@@ -6,12 +6,12 @@ export default async function ForeignerEntryPage(
 ) {
   const { token } = await params;
   const sp = await searchParams;
-  const branchId = typeof sp.b === 'string' ? sp.b : undefined;
+  const unionId = typeof sp.u === 'string' ? sp.u : undefined;
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="max-w-md mx-auto min-h-screen bg-white shadow-sm border-x border-slate-100">
-        <ForeignerEntryForm token={token} branchId={branchId} />
+        <ForeignerEntryForm token={token} unionId={unionId} />
       </div>
     </main>
   );

@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Foreigner } from '@/types/database';
 import { StatusBadge } from './StatusBadge';
 import { differenceInDays } from 'date-fns';
-import { Clock, CheckSquare, Square, MinusSquare, FilePen, Sparkles, XCircle, Check, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Clock, CheckSquare, Square, MinusSquare, FilePen, Sparkles, XCircle, Check, AlertCircle, RefreshCw, AlertTriangle, Upload } from 'lucide-react';
 import { UserRole } from '@/types/database';
 import { ExcelDownloadButton } from './ExcelDownloadButton';
 import { ConsentPdfButton } from './ConsentPdfButton';
@@ -16,16 +16,16 @@ interface ForeignerListProps {
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
   readonly?: boolean;
-  showBranch?: boolean;
-  getBranchLabel?: (branchId: string) => string;
+  showOrganization?: boolean;
+  getOrganizationLabel?: (orgId: string) => string;
   userRole?: UserRole;
   aiDiagnosticMap?: Record<string, ForeignerAiDiagnosticSummary>;
   onUpdate?: (updated: Foreigner) => void;
   onDeleteSelected?: () => void;
 }
 
-export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showBranch, getBranchLabel, userRole, aiDiagnosticMap, onDeleteSelected }) => {
-  const [filterBranch, setFilterBranch] = useState('');
+export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showOrganization, getOrganizationLabel, userRole, aiDiagnosticMap, onDeleteSelected }) => {
+  const [filterOrganization, setFilterOrganization] = useState('');
   const [filterNationality, setFilterNationality] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterVisaType, setFilterVisaType] = useState('');
@@ -66,7 +66,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
               </div>
               {options.map(opt => {
                 let label = getLabel ? getLabel(opt) : opt;
-                if (filterKey === 'branch' && opt === 'hq_direct') label = '本部直轄';
+                if (filterKey === 'organization' && opt === 'scrivener_direct') label = '直接受任';
                 return (
                   <div 
                     key={opt}
@@ -84,9 +84,9 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
     );
   };
 
-  const { branchOptions, nationalityOptions, companyOptions, visaTypeOptions, statusOptions } = useMemo(() => {
+  const { organizationOptions, nationalityOptions, companyOptions, visaTypeOptions, statusOptions } = useMemo(() => {
     return {
-      branchOptions: Array.from(new Set(['hq_direct', ...data.map(d => d.branchId).filter(Boolean) as string[]])),
+      organizationOptions: Array.from(new Set(['scrivener_direct', ...data.map(d => d.unionId).filter(Boolean) as string[], ...data.map(d => d.enterpriseId).filter(Boolean) as string[]])),
       nationalityOptions: Array.from(new Set(data.map(d => d.nationality).filter(Boolean) as string[])),
       companyOptions: Array.from(new Set(data.map(d => d.company).filter(Boolean) as string[])),
       visaTypeOptions: Array.from(new Set(data.map(d => d.visaType).filter(Boolean) as string[])),
@@ -96,14 +96,14 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
-      if (filterBranch && item.branchId !== filterBranch) return false;
+      if (filterOrganization && item.unionId !== filterOrganization && item.enterpriseId !== filterOrganization) return false;
       if (filterNationality && item.nationality !== filterNationality) return false;
       if (filterCompany && item.company !== filterCompany) return false;
       if (filterVisaType && item.visaType !== filterVisaType) return false;
       if (filterStatus && item.status !== filterStatus) return false;
       return true;
     });
-  }, [data, filterBranch, filterNationality, filterCompany, filterVisaType, filterStatus]);
+  }, [data, filterOrganization, filterNationality, filterCompany, filterVisaType, filterStatus]);
 
   const displayedData = filteredData.slice(0, 100);
 
@@ -138,13 +138,13 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
     onSelectionChange(next);
   };
 
-  const colName = readonly ? (showBranch ? 'w-[14%]' : 'w-[16%]') : (showBranch ? 'w-[12%]' : 'w-[14%]');
-  const colNat = readonly ? (showBranch ? 'w-[10%]' : 'w-[11%]') : (showBranch ? 'w-[8%]' : 'w-[9%]');
-  const colBranch = readonly ? 'w-[11%]' : 'w-[9%]';
-  const colComp = readonly ? (showBranch ? 'w-[17%]' : 'w-[20%]') : (showBranch ? 'w-[14%]' : 'w-[17%]');
-  const colVisa = readonly ? (showBranch ? 'w-[14%]' : 'w-[15%]') : (showBranch ? 'w-[11%]' : 'w-[12%]');
-  const colExp = readonly ? (showBranch ? 'w-[12%]' : 'w-[13%]') : (showBranch ? 'w-[9%]' : 'w-[10%]');
-  const colStat = readonly ? (showBranch ? 'w-[12%]' : 'w-[13%]') : (showBranch ? 'w-[9%]' : 'w-[10%]');
+  const colName = readonly ? (showOrganization ? 'w-[14%]' : 'w-[16%]') : (showOrganization ? 'w-[12%]' : 'w-[14%]');
+  const colNat = readonly ? (showOrganization ? 'w-[10%]' : 'w-[11%]') : (showOrganization ? 'w-[8%]' : 'w-[9%]');
+  const colOrg = readonly ? 'w-[11%]' : 'w-[9%]';
+  const colComp = readonly ? (showOrganization ? 'w-[17%]' : 'w-[20%]') : (showOrganization ? 'w-[14%]' : 'w-[17%]');
+  const colVisa = readonly ? (showOrganization ? 'w-[14%]' : 'w-[15%]') : (showOrganization ? 'w-[11%]' : 'w-[12%]');
+  const colExp = readonly ? (showOrganization ? 'w-[12%]' : 'w-[13%]') : (showOrganization ? 'w-[9%]' : 'w-[10%]');
+  const colStat = readonly ? (showOrganization ? 'w-[12%]' : 'w-[13%]') : (showOrganization ? 'w-[9%]' : 'w-[10%]');
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -194,9 +194,9 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
               <th className={`px-2 py-3 ${colNat} text-center`}>
                 {renderFilterHeader('nationality', '国籍', filterNationality, setFilterNationality, nationalityOptions)}
               </th>
-              {showBranch && (
-                <th className={`px-2 py-3 ${colBranch} text-center`}>
-                  {renderFilterHeader('branch', '管轄支部', filterBranch, setFilterBranch, branchOptions, getBranchLabel)}
+              {showOrganization && (
+                <th className={`px-2 py-3 ${colOrg} text-center`}>
+                  {renderFilterHeader('organization', '組合', filterOrganization, setFilterOrganization, organizationOptions, getOrganizationLabel)}
                 </th>
               )}
               <th className={`px-2 py-3 ${colComp} text-center`}>
@@ -258,10 +258,10 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   <td className="px-2 py-3 text-center">
                     <span className="block truncate text-xs text-slate-600" title={person.nationality}>{person.nationality}</span>
                   </td>
-                  {showBranch && (
+                  {showOrganization && (
                     <td className="px-2 py-3 text-center">
                       <span className="block truncate text-xs font-medium text-slate-700">
-                        {getBranchLabel && person.branchId ? getBranchLabel(person.branchId) : person.branchId || '未所属'}
+                        {getOrganizationLabel ? (getOrganizationLabel(person.unionId || "") || getOrganizationLabel(person.enterpriseId || "") || "未所属") : (person.unionId || person.enterpriseId || "未所属")}
                       </span>
                     </td>
                   )}
@@ -282,76 +282,141 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   {!readonly && (
                     <td className="px-2 py-3 align-middle">
                       <div className="flex flex-nowrap whitespace-nowrap items-center justify-center gap-1.5 min-w-0">
+                        {/* ── scrivener: フル操作（Excel/同意書/書類編集） ── */}
                         {userRole === 'scrivener' && (
                           <>
                             <ExcelDownloadButton foreigner={person} variant="icon" />
                             <ConsentPdfButton foreigner={person} variant="icon" />
+
+                            <div className="relative inline-block text-left">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdown(openDropdown === `edit-${person.id}` ? null : `edit-${person.id}`);
+                                }}
+                                title="申請書を作成・編集"
+                                className="relative flex items-center justify-center gap-1.5 h-8 px-3 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm min-w-[96px]"
+                              >
+                                <FilePen className="w-3.5 h-3.5" />
+                                書類編集
+                                {hasAnyDiagIssue && (
+                                  <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white shadow-sm" />
+                                )}
+                              </button>
+
+                              {openDropdown === `edit-${person.id}` && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                    }}
+                                  />
+                                  <div className="absolute right-0 top-[calc(100%+0.5rem)] w-max bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdown(null);
+                                        window.open(`/forms/coe/${person.id}`, '_blank');
+                                      }}
+                                      className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
+                                    >
+                                      {renderDiagIcon(diag?.coe)}
+                                      <span>在留資格認定証明書交付申請</span>
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdown(null);
+                                        window.open(`/forms/renewal/${person.id}`, '_blank');
+                                      }}
+                                      className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
+                                    >
+                                      {renderDiagIcon(diag?.renewal)}
+                                      <span>在留期間更新許可申請</span>
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdown(null);
+                                        window.open(`/forms/change-of-status/${person.id}`, '_blank');
+                                      }}
+                                      className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
+                                    >
+                                      {renderDiagIcon(diag?.changeOfStatus)}
+                                      <span>在留資格変更許可申請</span>
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </>
                         )}
 
-                        <div className="relative inline-block text-left">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenDropdown(openDropdown === `edit-${person.id}` ? null : `edit-${person.id}`);
-                            }}
-                            title="申請書を作成・編集"
-                            className="relative flex items-center justify-center gap-1.5 h-8 px-3 bg-white text-indigo-600 border border-indigo-200 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-sm min-w-[96px]"
-                          >
-                            <FilePen className="w-3.5 h-3.5" />
-                            書類編集
-                            {hasAnyDiagIssue && (
-                              <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white shadow-sm" />
-                            )}
-                          </button>
+                        {/* ── branch_staff / enterprise_staff: 書類アップロードのみ ── */}
+                        {(userRole === 'union_staff' || userRole === 'enterprise_staff') && (
+                          <div className="relative inline-block text-left">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdown(openDropdown === `upload-${person.id}` ? null : `upload-${person.id}`);
+                              }}
+                              title="書類をアップロード"
+                              className="flex items-center justify-center gap-1.5 h-8 px-3 bg-white text-violet-600 border border-violet-200 text-xs font-bold rounded-lg hover:bg-violet-50 transition-colors shadow-sm min-w-[120px]"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              書類アップロード ▾
+                            </button>
 
-                          {openDropdown === `edit-${person.id}` && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenDropdown(null);
-                                }}
-                              />
-                              <div className="absolute right-0 top-[calc(100%+0.5rem)] w-max bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
-                                <button
+                            {openDropdown === `upload-${person.id}` && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenDropdown(null);
-                                    window.open(`/forms/coe/${person.id}`, '_blank');
                                   }}
-                                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
-                                >
-                                  {renderDiagIcon(diag?.coe)}
-                                  <span>在留資格認定証明書交付申請</span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenDropdown(null);
-                                    window.open(`/forms/renewal/${person.id}`, '_blank');
-                                  }}
-                                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
-                                >
-                                  {renderDiagIcon(diag?.renewal)}
-                                  <span>在留期間更新許可申請</span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenDropdown(null);
-                                    window.open(`/forms/change-of-status/${person.id}`, '_blank');
-                                  }}
-                                  className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
-                                >
-                                  {renderDiagIcon(diag?.changeOfStatus)}
-                                  <span>在留資格変更許可申請</span>
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
+                                />
+                                <div className="absolute right-0 top-[calc(100%+0.5rem)] w-max bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                      window.open(`/forms/coe/${person.id}`, '_blank');
+                                    }}
+                                    className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
+                                  >
+                                    <Upload className="w-3 h-3" />
+                                    <span>在留資格認定証明書交付申請</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                      window.open(`/forms/renewal/${person.id}`, '_blank');
+                                    }}
+                                    className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
+                                  >
+                                    <Upload className="w-3 h-3" />
+                                    <span>在留期間更新許可申請</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                      window.open(`/forms/change-of-status/${person.id}`, '_blank');
+                                    }}
+                                    className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-teal-600 hover:bg-teal-50 transition-colors"
+                                  >
+                                    <Upload className="w-3 h-3" />
+                                    <span>在留資格変更許可申請</span>
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                   )}

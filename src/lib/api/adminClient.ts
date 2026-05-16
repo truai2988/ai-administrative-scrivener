@@ -158,7 +158,7 @@ export async function deleteOrganization(orgId: string): Promise<{ message: stri
   return { message: json.message ?? '組織を削除しました' };
 }
 
-/** 組織情報を更新する（scrivener/hq_admin専用） */
+/** 組織情報を更新する（scrivener専用） */
 export async function updateOrganizationAdmin(
   orgId: string,
   data: { name?: string; type?: OrganizationType; address?: string; phone?: string }

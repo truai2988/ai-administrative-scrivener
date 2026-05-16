@@ -6,7 +6,7 @@
  * タブ（セクション）ごとの編集権限を管理するコンテキスト。
  *
  * - scrivener（行政書士）は常に全タブ編集可能
- * - branch_staff / enterprise_staff は設定画面で設定されたテンプレートに従い、
+ * - union_staff / enterprise_staff は設定画面で設定されたテンプレートに従い、
  *   担当タブのみ編集可能
  *
  * ■ 担当者設定は「申請種別ごと」に設定画面（/settings）で一元管理する。
@@ -57,14 +57,13 @@ export function SectionPermissionProvider({
 }: SectionPermissionProviderProps) {
 
   const isEditable = useCallback(
-    (tabId: TabId): boolean => {
-      // 所属企業（enterprise_staff）は「所属機関タブ（employer）」のみ閲覧・編集可
-      if (currentUserRole === 'enterprise_staff') {
-        return tabId === 'employer';
-      }
-      
-      // それ以外の権限（行政書士、東京直轄、登録した担当支部）は全てのタブを閲覧・編集可
-      return true;
+    (): boolean => {
+      // 行政書士は全タブ編集可能
+      if (currentUserRole === 'scrivener') return true;
+
+      // union_staff / enterprise_staff はフォーム入力不可（読み取り専用）
+      // ※ 書類アップロード機能は AttachmentContext で別途制御するため、ここでは false
+      return false;
     },
     [currentUserRole]
   );

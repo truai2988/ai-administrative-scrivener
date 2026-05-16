@@ -53,9 +53,8 @@ import { CreateUserForm } from './_components/CreateUserForm';
 
 function orgTypeBadgeClass(type: OrganizationType): string {
   switch (type) {
-    case 'hq':
-      return 'bg-violet-100 text-violet-700 border-violet-200';
-    case 'branch':
+
+    case 'union':
       return 'bg-indigo-100 text-indigo-700 border-indigo-200';
     case 'enterprise':
       return 'bg-emerald-100 text-emerald-700 border-emerald-200';
@@ -103,7 +102,7 @@ export default function AdminOrganizationsPage() {
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [editOrgForm, setEditOrgForm] = useState({
     name: '',
-    type: 'branch' as OrganizationType,
+    type: 'union' as OrganizationType,
     address: '',
     phone: '',
   });
@@ -129,15 +128,15 @@ export default function AdminOrganizationsPage() {
   const [editUserForm, setEditUserForm] = useState({
     displayName: '',
     email: '',
-    role: 'branch_staff' as UserRole,
+    role: 'union_staff' as UserRole,
   });
   const [updatingUser, setUpdatingUser] = useState(false);
 
   // ── 権限フラグ
   // 組織の作成・削除・ユーザー管理が可能なロール
-  const canManage = currentUser?.role === 'scrivener' || currentUser?.role === 'hq_admin';
+  const canManage = currentUser?.role === 'scrivener';
   // 支部事務員（閲覧専用）
-  const isStaffViewer = currentUser?.role === 'branch_staff';
+  const isStaffViewer = currentUser?.role === 'union_staff';
 
   // ── 認証ガード
   useEffect(() => {
@@ -202,8 +201,8 @@ export default function AdminOrganizationsPage() {
   }, [editUser, editUserForm, loadUsersData, showToast]);
 
   useEffect(() => {
-    // scrivener / hq_admin がアクセス可能
-    const canView = currentUser?.role === 'scrivener' || currentUser?.role === 'hq_admin';
+    // scrivener がアクセス可能
+    const canView = currentUser?.role === 'scrivener';
     if (!authLoading && canView) {
       loadOrganizations();
       loadUsersData();
@@ -267,7 +266,7 @@ export default function AdminOrganizationsPage() {
   };
 
   // ── ロードガード表示
-  const allowedRoles = ['scrivener', 'hq_admin'];
+  const allowedRoles = ['scrivener'];
   if (authLoading || (currentUser && !allowedRoles.includes(currentUser.role) && !authLoading)) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -280,7 +279,7 @@ export default function AdminOrganizationsPage() {
   const orgCategories = [
     {
       title: '支援団体（支部）',
-      orgs: organizations.filter((o) => o.type === 'branch'),
+      orgs: organizations.filter((o) => o.type === 'union'),
       emptyMessage: 'まだ支部が登録されていません',
     },
     {
@@ -317,7 +316,7 @@ export default function AdminOrganizationsPage() {
             </div>
           </div>
 
-          {/* 管理権限（scrivener / hq_admin）のみボタンを表示 */}
+          {/* 管理権限（scrivener）のみボタンを表示 */}
           {canManage && (
             <div className="flex items-center gap-2">
               <button
@@ -336,7 +335,7 @@ export default function AdminOrganizationsPage() {
               </button>
             </div>
           )}
-          {/* branch_staff 向け: 閲覧専用バッジ */}
+          {/* union_staff 向け: 閲覧専用バッジ */}
           {isStaffViewer && (
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl">
               <ShieldCheck size={13} />
@@ -556,8 +555,8 @@ export default function AdminOrganizationsPage() {
 
         {/* ─── システム管理者（組織未割当）アカウント一覧: 管理権限のみ表示 ─── */}
         {canManage && (() => {
-          // 東京本部（hq_direct）所属 または 組織未所属のユーザーを特権管理者として表示
-          const sysAdmins = usersList.filter((u) => !u.organizationId || u.organizationId === 'hq_direct');
+          // 直接受任（scrivener_direct）所属 または 組織未所属のユーザーを特権管理者として表示
+          const sysAdmins = usersList.filter((u) => !u.organizationId || u.organizationId === 'scrivener_direct');
           if (sysAdmins.length === 0) return null;
           return (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-8">
@@ -874,7 +873,7 @@ export default function AdminOrganizationsPage() {
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">種別 *</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {['branch', 'enterprise'].map((t) => (
+                    {['union', 'enterprise'].map((t) => (
                       <button
                         key={t}
                         type="button"

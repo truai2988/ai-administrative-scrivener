@@ -22,9 +22,7 @@ interface SimultaneousApplicationSectionProps {
 
 export function SimultaneousApplicationSection({
   isEditable = true,
-  applicationId,
   initialAttachments,
-  globalLimitContext,
 }: SimultaneousApplicationSectionProps) {
   const {
     control,
@@ -55,7 +53,7 @@ export function SimultaneousApplicationSection({
   
   // 行政書士・本部は手動入力を常に許可する
   const { currentUser } = useAuth();
-  const hasFullAccess = currentUser?.role === 'scrivener' || currentUser?.role === 'hq_admin';
+  const hasFullAccess = currentUser?.role === 'scrivener';
 
   // 編集モードかつ（書類が添付されている OR 手動入力がオン OR フルアクセス権限）の場合のみフィールドを有効化
   const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled || hasFullAccess);

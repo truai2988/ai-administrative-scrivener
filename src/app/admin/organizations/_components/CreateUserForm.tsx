@@ -10,10 +10,8 @@ import { ORGANIZATION_TYPE_LABELS } from '@/types/database';
 
 function roleToOrganizationType(role: UserRole): OrganizationType | 'any' {
   switch (role) {
-    case 'hq_admin':
-      return 'hq';
-    case 'branch_staff':
-      return 'branch';
+    case 'union_staff':
+      return 'union';
     case 'enterprise_staff':
       return 'enterprise';
     default:
@@ -34,7 +32,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
     email: '',
     password: '',
     displayName: '',
-    role: 'branch_staff' as UserRole,
+    role: 'union_staff' as UserRole,
     organizationId: '',
   });
   const [userFormError, setUserFormError] = useState<string | null>(null);
@@ -65,7 +63,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
     try {
       await createUser(parsed.data);
       showToast('success', `ユーザー「${userFormData.displayName}」を作成しました`);
-      setUserFormData({ email: '', password: '', displayName: '', role: 'branch_staff', organizationId: '' });
+      setUserFormData({ email: '', password: '', displayName: '', role: 'union_staff', organizationId: '' });
       onSuccess();
     } catch (err: unknown) {
       const e = err as Error;
@@ -157,8 +155,7 @@ export function CreateUserForm({ showForm, onClose, onSuccess, showToast, organi
                     }
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none"
                   >
-                    <option value="hq_admin">本部管理者（hq_admin）</option>
-                    <option value="branch_staff">支部事務員（branch_staff）</option>
+                    <option value="union_staff">組合職員（union_staff）</option>
                     <option value="enterprise_staff">企業担当者（enterprise_staff）</option>
                   </select>
                 </div>

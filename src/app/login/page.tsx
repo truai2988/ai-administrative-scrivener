@@ -66,31 +66,7 @@ export default function LoginPage() {
           </h1>
         </div>
 
-        {/* Concept Banner */}
-        <div className="relative overflow-hidden bg-linear-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-3xl p-6 shadow-lg shadow-indigo-200/40 mb-6 w-full">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
-          <div className="absolute top-4 right-6 w-1 h-1 bg-white/30 rounded-full" />
-          <div className="absolute top-8 right-10 w-1.5 h-1.5 bg-white/20 rounded-full" />
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-               <span className="px-2 py-0.5 bg-white/15 backdrop-blur-sm text-white text-xs font-bold rounded-full border border-white/20 tracking-wider uppercase">
-                 Noctiluca Demo
-               </span>
-               <span className="px-2 py-0.5 bg-emerald-500/40 backdrop-blur-sm text-white text-xs font-bold rounded-full border border-white/20 tracking-wider">
-                 行政書士
-               </span>
-            </div>
-            <h2 className="text-[13px] md:text-[14px] font-black text-white leading-snug mb-2 tracking-tight">
-              行政監査は「書類の有無」から、<br />「プロセスの正当性とデータの完全な整合性」へ。
-            </h2>
-            <p className="text-xs md:text-xs text-indigo-100 font-medium">
-              法改正リスクをゼロにする、AI労務管理システムへようこそ
-            </p>
-          </div>
-        </div>
+
 
         {/* Login Card */}
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">

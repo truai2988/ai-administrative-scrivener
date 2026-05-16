@@ -1,14 +1,14 @@
 /**
  * GET /api/admin/users  - ユーザー一覧取得
  *
- * - scrivener / hq_admin ロールのみ実行可能。
- * - 組織（hq/branch/enterprise）関係なくすべてのユーザーを返す。
+ * - scrivener ロールのみ実行可能。
+ * - 組織（union/enterprise）関係なくすべてのユーザーを返す。
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, getAdminDb } from '@/lib/firebase/admin';
 
-const ALLOWED_ROLES = ['scrivener', 'hq_admin'];
+const ALLOWED_ROLES = ['scrivener'];
 
 /** 共通: Bearer トークンから callerUid を取得し、許可ロールか確認する */
 async function requireManagerRole(req: NextRequest): Promise<
@@ -35,7 +35,7 @@ async function requireManagerRole(req: NextRequest): Promise<
   if (!ALLOWED_ROLES.includes(callerRole)) {
     return {
       error: NextResponse.json(
-        { error: 'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます' },
+        { error: 'この操作は行政書士（scrivener）のみ実行できます' },
         { status: 403 }
       ),
     };

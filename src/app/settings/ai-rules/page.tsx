@@ -62,7 +62,7 @@ export default function AiRulesSettingsPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!currentUser) { router.push('/login'); return; }
-    if (currentUser.role !== 'scrivener' && currentUser.role !== 'hq_admin') {
+    if (currentUser.role !== 'scrivener') {
       showToast('error', '権限がありません');
       setTimeout(() => router.push('/'), 1500);
     }

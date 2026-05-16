@@ -4,7 +4,7 @@
  * PDFファイルをアップロードし、Document AIでテキストを抽出して
  * AI診断カスタムルールとして登録する。
  *
- * 権限: scrivener / hq_admin のみ
+ * 権限: scrivener のみ
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -68,7 +68,7 @@ async function verifyAdminAuth(req: NextRequest): Promise<
     }
 
     const role = userDoc.data()?.role as string;
-    if (role !== 'scrivener' && role !== 'hq_admin') {
+    if (role !== 'scrivener') {
       return { error: NextResponse.json({ error: '権限がありません' }, { status: 403 }) };
     }
 

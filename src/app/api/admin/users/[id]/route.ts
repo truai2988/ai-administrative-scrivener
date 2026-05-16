@@ -2,7 +2,7 @@
  * DELETE /api/admin/users/[id]  - ユーザー削除
  * PATCH  /api/admin/users/[id]  - ユーザー編集
  *
- * - scrivener / hq_admin ロールのみ実行可能。
+ * - scrivener ロールのみ実行可能。
  * - 自分自身（ログイン中のアカウント）は削除不可。
  * - Firebase Auth -> Firestore の順で安全に連携削除。
  */
@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, getAdminDb } from '@/lib/firebase/admin';
 
-const ALLOWED_ROLES = ['scrivener', 'hq_admin'];
+const ALLOWED_ROLES = ['scrivener'];
 
 async function requireManagerRole(req: NextRequest): Promise<
   { callerUid: string; error?: never } | { callerUid?: never; error: NextResponse }
@@ -36,7 +36,7 @@ async function requireManagerRole(req: NextRequest): Promise<
   if (!ALLOWED_ROLES.includes(callerRole)) {
     return {
       error: NextResponse.json(
-        { error: 'この操作は行政書士（scrivener）または本部管理者（hq_admin）のみ実行できます' },
+        { error: 'この操作は行政書士（scrivener）のみ実行できます' },
         { status: 403 }
       ),
     };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useFormContext, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { Plus, Trash2, Sparkles, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { RenewalApplicationFormData, AttachmentMeta } from '@/lib/schemas/renewalApplicationSchema';
@@ -120,7 +120,6 @@ export function ForeignerInfoSection({
     control,
     watch,
     setValue,
-    getValues,
     formState: { errors },
   } = useFormContext<RenewalApplicationFormData>();
 
@@ -183,15 +182,15 @@ export function ForeignerInfoSection({
   
   // 行政書士・本部は手動入力を常に許可する
   const { currentUser } = useAuth();
-  const hasFullAccess = currentUser?.role === 'scrivener' || currentUser?.role === 'hq_admin';
+  const hasFullAccess = currentUser?.role === 'scrivener';
   
   // 編集モードかつ（書類が添付されている OR 手動入力がオン OR フルアクセス権限）の場合のみフィールドを有効化
   const isFieldsEnabled = isEditable && (hasAttachments || isManualInputEnabled || hasFullAccess);
 
   // --- OCR 関連 state ---
-  const { runOcr, isOcring, ocrResult, ocrError } = useOcrExtract();
+  const { isOcring, ocrResult, ocrError } = useOcrExtract();
   // OCR で自動入力されたフィールドのパス集合（ハイライト用）
-  const [ocrHighlightedFields, setOcrHighlightedFields] = useState<Set<string>>(new Set());
+  const [ocrHighlightedFields] = useState<Set<string>>(new Set());
   
 
   /** フィールドが OCR で自動入力されたかを判定するヘルパー */

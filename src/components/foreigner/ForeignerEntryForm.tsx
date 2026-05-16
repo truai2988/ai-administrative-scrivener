@@ -16,7 +16,7 @@ import { Foreigner } from '@/types/database';
 
 interface ForeignerEntryFormProps {
   token: string;
-  branchId?: string;
+  unionId?: string;
   isCorrectionMode?: boolean;
   initialData?: Partial<Foreigner>;
   onCorrectionSuccess?: (updatedData: Partial<Foreigner>) => void;
@@ -26,7 +26,7 @@ interface ForeignerEntryFormProps {
 
 export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({ 
   token, 
-  branchId,
+  unionId,
   isCorrectionMode = false,
   initialData,
   onCorrectionSuccess,
@@ -127,7 +127,7 @@ export const ForeignerEntryForm: React.FC<ForeignerEntryFormProps> = ({
           residenceCardNumber: formData.residenceCardNumber,
           expiryDate: formData.expiryDate,
           visaType: formData.visaType,
-          branchId: branchId,
+          unionId: unionId,
         };
         if (photoUrl) updatedPayload.photoUrl = photoUrl;
         if (rcFrontUrl) updatedPayload.residenceCardFrontUrl = rcFrontUrl;

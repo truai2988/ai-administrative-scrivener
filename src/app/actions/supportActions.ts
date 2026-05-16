@@ -31,24 +31,24 @@ export async function submitSupportInquiry(formData: { subject: string; body: st
 
     const userData = userDoc.data()!;
     const userRole = (userData.role as UserRole) || 'applicant';
-    const branchId = userData.organizationId || 'hq_direct';
+    const organizationId = userData.organizationId || 'scrivener_direct';
     const tenantId = 'default';
     const senderEmail: string = userData.email || '';
     const senderName: string = userData.displayName || '不明（ユーザー名未登録）';
 
-    // 支部名を取得（失敗しても継続）
-    let branchName = branchId;
-    if (branchId && branchId !== 'hq_direct') {
+    // 組織名を取得（失敗しても継続）
+    let organizationName = organizationId;
+    if (organizationId && organizationId !== 'scrivener_direct') {
       try {
-        const orgDoc = await adminDb.collection('organizations').doc(branchId).get();
+        const orgDoc = await adminDb.collection('organizations').doc(organizationId).get();
         if (orgDoc.exists) {
-          branchName = (orgDoc.data()?.name as string) || branchId;
+          organizationName = (orgDoc.data()?.name as string) || organizationId;
         }
       } catch {
         // 失敗時はIDをそのまま表示
       }
-    } else if (branchId === 'hq_direct') {
-      branchName = '本部直轄';
+    } else if (organizationId === 'scrivener_direct') {
+      organizationName = '直接受任';
     }
 
     // 4. Save to Firestore
@@ -61,7 +61,7 @@ export async function submitSupportInquiry(formData: { subject: string; body: st
       createdAt: new Date().toISOString(),
       userId,
       userRole,
-      branchId,
+      organizationId,
       tenantId,
     };
 
@@ -87,7 +87,7 @@ export async function submitSupportInquiry(formData: { subject: string; body: st
             <div style="margin-bottom: 20px; background-color: #f9fafb; padding: 15px; border-radius: 8px;">
               <p style="margin: 0 0 10px;"><strong>件名:</strong> ${parsedData.subject}</p>
               <p style="margin: 0 0 10px;"><strong>送信者:</strong> ${senderName}${senderEmail ? ` &lt;${senderEmail}&gt;` : ''}</p>
-              <p style="margin: 0 0 10px;"><strong>支部名:</strong> ${branchName}</p>
+              <p style="margin: 0 0 10px;"><strong>組織名:</strong> ${organizationName}</p>
               <p style="margin: 0 0 10px;"><strong>ロール:</strong> ${userRole}</p>
               <p style="margin: 0 0 0;"><strong>ユーザーID:</strong> ${userId}</p>
             </div>

@@ -20,18 +20,25 @@ service cloud.firestore {
       return docData != null ? docData.data.get('role', 'none') : 'none';
     }
 
-    function getUserBranchId() {
+    function getUserOrganizationId() {
       let docData = getUserData();
       return docData != null ? docData.data.get('organizationId', 'none') : 'none';
     }
 
-    function isHqAdmin()     { return getUserRole() == 'hq_admin'; }
     function isScrivener()   { return getUserRole() == 'scrivener'; }
-    function isBranchStaff() { return getUserRole() == 'branch_staff'; }
+    function isUnionStaff() { return getUserRole() == 'union_staff'; }
+    function isEnterpriseStaff() { return getUserRole() == 'enterprise_staff'; }
 
-    // 本部管理者・行政書士は全支部閲覧可
-    function canViewAllBranches() {
-      return isHqAdmin() || isScrivener();
+    // 行政書士は全データ閲覧可
+    function canViewAllForeigners() {
+      return isScrivener();
+    }
+
+    // 特定の外国人データに対するアクセス権限があるか
+    function hasForeignerAccess(foreignerData) {
+      return canViewAllForeigners() ||
+             (isUnionStaff() && foreignerData.get('unionId', '') == getUserOrganizationId()) ||
+             (isEnterpriseStaff() && foreignerData.get('enterpriseId', '') == getUserOrganizationId());
     }
 
 
@@ -73,12 +80,8 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // /branches コレクション (旧/後方互換用)
+    // /branches コレクション (旧/後方互換用) - 削除またはOrganizationsで代用
     // -------------------------------------------------------------------------
-    match /branches/{branchId} {
-      allow read: if isAuthenticated();
-      allow write: if false;
-    }
 
 
     // -------------------------------------------------------------------------
@@ -90,10 +93,7 @@ service cloud.firestore {
       // 未認証ユーザーもURLトークンを知っていれば対象データのみ読み取り可能（getDoc用）
       allow get: if true; 
       
-      allow list: if isAuthenticated() && (
-        canViewAllBranches() ||
-        (isBranchStaff() && resource.data.get('branchId', '') == getUserBranchId())
-      );
+      allow list: if isAuthenticated() && hasForeignerAccess(resource.data);
 
       // ===== 作成 =====
       // - 行政書士・管理者: 認証済みユーザーによる作成
@@ -101,9 +101,7 @@ service cloud.firestore {
       allow create: if 
         // 認証済みユーザーによる作成（既存ルール）
         (isAuthenticated() && (
-          isScrivener() ||
-          (isHqAdmin()     && request.resource.data.get('branchId', '') == 'hq_direct') ||
-          (isBranchStaff() && request.resource.data.get('branchId', '') == getUserBranchId())
+          ( (isUnionStaff() || isEnterpriseStaff()) && hasForeignerAccess(request.resource.data) )
         )) ||
         // 未認証ユーザー（外国人本人）による申請フォームからの作成
         (!isAuthenticated() && request.resource.data.keys().hasAll(['name', 'updatedAt']));
@@ -118,18 +116,10 @@ service cloud.firestore {
         (isAuthenticated() && (
           isScrivener() ||
           (
-            isHqAdmin() &&
-            resource.data.get('branchId', '') == 'hq_direct' &&
-            (
-              !('status' in request.resource.data) ||
-              request.resource.data.status == resource.data.get('status', '') ||
-              request.resource.data.status == '編集中'
-            )
-          ) ||
-          (
-            isBranchStaff() &&
-            resource.data.get('branchId', '') == getUserBranchId() &&
-            request.resource.data.get('branchId', '') == resource.data.get('branchId', '') &&
+            (isUnionStaff() || isEnterpriseStaff()) &&
+            hasForeignerAccess(resource.data) &&
+            request.resource.data.get('unionId', '') == resource.data.get('unionId', '') &&
+            request.resource.data.get('enterpriseId', '') == resource.data.get('enterpriseId', '') &&
             (
               !('status' in request.resource.data) ||
               request.resource.data.status == resource.data.get('status', '') ||
@@ -146,22 +136,19 @@ service cloud.firestore {
         );
 
       // ===== 承認ワークフロー専用更新 =====
-      // branch_staff または hq_admin (本部直轄のみ): draft/returned → pending_review への遷移のみ許可
+      // union_staff/enterprise_staff: draft/returned → pending_review への遷移のみ許可
       // approvalStatus, status, updatedAt 以外フィールド変更禁止（hasOnly制約）
       allow update: if
         isAuthenticated() &&
-        (
-          (isBranchStaff() && resource.data.branchId == getUserBranchId()) ||
-          (isHqAdmin() && resource.data.branchId == 'hq_direct')
-        ) &&
+        ( (isUnionStaff() || isEnterpriseStaff()) && hasForeignerAccess(resource.data) ) &&
         (resource.data.get('approvalStatus', 'draft') in ['draft', 'returned'] || resource.data.get('approvalStatus', null) == null) &&
         request.resource.data.approvalStatus == 'pending_review' &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'status', 'returnReason', 'updatedAt']);
 
-      // scrivener または hq_admin: approved/returned への遷移（差し戻し理由も同時書き込み可）
+      // scrivener: approved/returned への遷移（差し戻し理由も同時書き込み可）
       allow update: if
         isAuthenticated() &&
-        (isScrivener() || isHqAdmin()) &&
+        isScrivener() &&
         resource.data.get('approvalStatus', 'draft') == 'pending_review' &&
         request.resource.data.approvalStatus in ['approved', 'returned'] &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus', 'status', 'returnReason', 'updatedAt']);
@@ -175,8 +162,7 @@ service cloud.firestore {
       // ===== 削除 =====
       allow delete: if isAuthenticated() && (
         isScrivener() || 
-        isHqAdmin() || 
-        (isBranchStaff() && resource.data.get('branchId', '') == getUserBranchId())
+        ( (isUnionStaff() || isEnterpriseStaff()) && hasForeignerAccess(resource.data) )
       );
     }
 
@@ -185,14 +171,12 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /foreigners/{foreignerId}/correction_histories/{historyId} {
       allow read: if isAuthenticated() && (
-        canViewAllBranches() ||
-        (isBranchStaff() && get(/databases/$(database)/documents/foreigners/$(foreignerId)).data.branchId == getUserBranchId())
+        ( (isUnionStaff() || isEnterpriseStaff()) && hasForeignerAccess(get(/databases/$(database)/documents/foreigners/$(foreignerId)).data) ) || canViewAllForeigners()
       );
       
       allow create: if isAuthenticated() && (
                       isScrivener() ||
-                      (isHqAdmin() && get(/databases/$(database)/documents/foreigners/$(foreignerId)).data.branchId == 'hq_direct') ||
-                      (isBranchStaff() && get(/databases/$(database)/documents/foreigners/$(foreignerId)).data.branchId == getUserBranchId())
+                      ( (isUnionStaff() || isEnterpriseStaff()) && hasForeignerAccess(get(/databases/$(database)/documents/foreigners/$(foreignerId)).data) )
                     ) && 
                     request.resource.data.keys().hasAll(['reason', 'diff', 'correctedBy', 'foreignerId', 'correctedAt']);
                     
@@ -268,7 +252,7 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /foreigner_stats/{statId} {
       allow read: if isAuthenticated() && (
-        canViewAllBranches() || statId == getUserBranchId() || statId == 'global'
+        canViewAllForeigners() || statId == getUserOrganizationId() || statId == 'global'
       );
       // ドキュメントの増減はクライアントが行うため認証ユーザーに許可
       allow write: if isAuthenticated();
@@ -281,7 +265,7 @@ service cloud.firestore {
     match /system_settings/{document=**} {
       // 読み取りは全ユーザー（認証問わず）に許可。未ログインからのフォーム生成でもテンプレートを使うため
       allow read: if true;
-      // 書き込みは認証済みユーザー（現在はダミーを含むため広め、本来は isScrivener() || isHqAdmin() とする）
+      // 書き込みは認証済みユーザー（現在はダミーを含むため広め、本来は isScrivener() とする）
       allow write: if isAuthenticated();
     }
 
@@ -291,7 +275,7 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /document_templates/{templateId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (isScrivener() || isHqAdmin());
+      allow write: if isAuthenticated() && isScrivener();
     }
 
     // -------------------------------------------------------------------------

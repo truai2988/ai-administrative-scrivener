@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   User, Building2, FileStack,
   AlertCircle, Save, Loader2, Download,
-  Mail, CheckCircle, XCircle
+  Mail, CheckCircle, XCircle, Send
 } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { AiAssistantSidePanel } from '@/components/forms/AiAssistantSidePanel';
@@ -258,13 +258,19 @@ export function ChangeOfStatusFormInner({
   });
 
   const {
+    isScrivener,
+    isUploader,
     hasApproveReturnPermission,
     canExecuteApproveReturn,
     hasRequestReviewPermission,
     canExecuteRequestReview,
+    canExecuteDirectApprove,
+    canNotifySubmission,
     handleApprove,
     handleReturn,
-    handleRequestReview
+    handleRequestReview,
+    handleDirectApprove,
+    handleNotifyDocumentSubmission
   } = useForeignerApproval(foreignerId);
 
   const hasForeignerErrors    = !!errors.foreignerInfo;
@@ -365,8 +371,23 @@ export function ChangeOfStatusFormInner({
 
               <div className="flex flex-col items-end gap-1.5 w-full md:w-auto shrink-0">
                 <div className="applicant-context-actions flex items-center gap-2 flex-wrap w-full md:w-auto pb-1 md:pb-0 shrink-0">
-                  {!hideHeader && (
+                  {/* === scrivener専用: 承認・保存・CSV === */}
+                  {!hideHeader && isScrivener && (
                     <>
+
+                      {/* scrivener専用: 確認依頼なしで直接承認 */}
+                      {isScrivener && (
+                        <button
+                          type="button"
+                          onClick={handleDirectApprove}
+                          disabled={!canExecuteDirectApprove}
+                          title={canExecuteDirectApprove ? "この内容で承認し、申請済みにする" : "現在は承認できません"}
+                          className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[120px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          承認（完了）
+                        </button>
+                      )}
 
                       {hasRequestReviewPermission && (
                         <button
@@ -477,6 +498,20 @@ export function ChangeOfStatusFormInner({
                       </div>
                     </>
                   )}
+
+                  {/* === union_staff / enterprise_staff 用: 書類提出完了通知ボタン === */}
+                  {!hideHeader && isUploader && (
+                    <button
+                      type="button"
+                      onClick={handleNotifyDocumentSubmission}
+                      disabled={!canNotifySubmission}
+                      title={canNotifySubmission ? "行政書士に書類の提出完了を通知します" : "現在は通知できません"}
+                      className="flex items-center justify-center gap-1.5 h-8 px-4 text-xs font-bold rounded-lg transition-colors shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      行政書士へ書類提出完了を通知する
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -560,7 +595,7 @@ export function ChangeOfStatusForm({
   templatesRecord,
 }: ChangeOfStatusFormProps) {
   const { currentUser } = useAuth();
-  const userRole = currentUser?.role ?? 'branch_staff';
+  const userRole = currentUser?.role ?? 'union_staff';
 
   return (
     <SectionPermissionProvider

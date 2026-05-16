@@ -412,7 +412,7 @@ export default function LegalCheckPage() {
       <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-4">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push('/')}
             className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
           >
             <ArrowLeft size={16} />
@@ -469,7 +469,7 @@ export default function LegalCheckPage() {
                   （{customRules.map(r => r.title).join('、')}）
                 </span>
               </div>
-              {(currentUser.role === 'scrivener' || currentUser.role === 'hq_admin') && (
+              {currentUser.role === 'scrivener' && (
                 <Link
                   href="/settings/ai-rules"
                   className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
@@ -487,7 +487,7 @@ export default function LegalCheckPage() {
                   カスタムルール: 未登録（基本審査基準のみ適用）
                 </span>
               </div>
-              {(currentUser.role === 'scrivener' || currentUser.role === 'hq_admin') && (
+              {currentUser.role === 'scrivener' && (
                 <Link
                   href="/settings/ai-rules"
                   className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
