@@ -1,20 +1,17 @@
 import type { RenewalApplicationFormData } from '@/lib/schemas/renewalApplicationSchema';
 import type { CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
-import { Foreigner, ForeignerStatus, ApprovalStatus } from '@/types/database';
-import { mapApplicationStatusToApprovalStatus } from '@/lib/utils/firestoreUtils';
-
+import { Foreigner, ForeignerStatus } from '@/types/database';
 
 /**
  * 申請書のステータスを外国人台帳（Foreigner）の表示ステータスに変換する
  */
 export function mapApplicationStatusToForeignerStatus(appStatus: string): ForeignerStatus {
   switch (appStatus) {
-    case 'draft':          return '準備中';
-    case 'editing':        return '編集中';
-    case 'pending_review': return 'チェック中';
-    case 'approved':       return '申請済';
-    default:               return '準備中';
+    case 'draft':          return '作成中';
+    case 'ready':          return '作成完了';
+    case 'submitted':      return '申請済';
+    default:               return '作成中';
   }
 }
 
@@ -50,9 +47,6 @@ export function mapFormDataToForeigner(
     current_status: appStatus,
     status: mapApplicationStatusToForeignerStatus(appStatus),
 
-    // ② 共通関数に統一
-    approvalStatus: mapApplicationStatusToApprovalStatus(appStatus) as ApprovalStatus,
-
     // 企業情報
     company: eInfo.companyNameJa || '',
     jobTitle: eInfo.mainJobType || '',
@@ -84,9 +78,6 @@ export function mapCoeFormDataToForeigner(
     current_application_id: applicationId,
     current_status: appStatus,
     status: mapApplicationStatusToForeignerStatus(appStatus),
-
-    // ② 共通関数に統一
-    approvalStatus: mapApplicationStatusToApprovalStatus(appStatus) as ApprovalStatus,
 
     // 企業情報
     company: eInfo?.companyNameJa || '',
@@ -121,9 +112,6 @@ export function mapChangeOfStatusFormDataToForeigner(
     current_application_id: applicationId,
     current_status: appStatus,
     status: mapApplicationStatusToForeignerStatus(appStatus),
-
-    // ② 共通関数に統一
-    approvalStatus: mapApplicationStatusToApprovalStatus(appStatus) as ApprovalStatus,
 
     // 企業情報
     company: eInfo?.companyNameJa || '',

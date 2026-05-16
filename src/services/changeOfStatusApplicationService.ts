@@ -55,7 +55,7 @@ export const changeOfStatusApplicationService = {
 
     // ⑦ マスタ同期用の識別子と変換済みデータを準備（ChangeOfStatusは在留カード＋パスポート両対応）
     const buildSyncParams = (applicationId: string) => ({
-      syncData: mapChangeOfStatusFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.EDITING) as import('@/types/database').Foreigner,
+      syncData: mapChangeOfStatusFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.DRAFT) as import('@/types/database').Foreigner,
       identifiers: {
         residenceCardNumber: safeFormData.foreignerInfo?.residenceCardNumber,
         passportNumber: safeFormData.foreignerInfo?.passportNumber,
@@ -99,7 +99,7 @@ export const changeOfStatusApplicationService = {
       const updateData: Record<string, unknown> = {
         formData: safeFormData,
         attachments: safeFormData.attachments ?? {},
-        status: APPLICATION_STATUS.EDITING,
+        status: APPLICATION_STATUS.DRAFT,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
       };
@@ -126,7 +126,7 @@ export const changeOfStatusApplicationService = {
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: ChangeOfStatusApplicationRecord = {
         id: newId,
-        status: APPLICATION_STATUS.EDITING,
+        status: APPLICATION_STATUS.DRAFT,
         formData: safeFormData,
         createdAt: now,
         updatedAt: now,

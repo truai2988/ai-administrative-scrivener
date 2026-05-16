@@ -2,11 +2,11 @@
 
 /**
  * /settings/masters/_components/SystemUserManagementContent
- * 行政書士（scrivener）専用の「組織・ユーザー管理」コンテンツ
+ * 行政書士（scrivener）専用の「テナント・ユーザー管理」コンテンツ
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -78,22 +78,19 @@ function useLocalToast() {
 
 export function SystemUserManagementContent() {
   const { currentUser, loading: authLoading } = useAuth();
-  const router = useRouter();
   const { toasts, show: showToast, dismiss } = useLocalToast();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(true);
 
-  // ── 組織作成フォーム状態
+  // ── テナント作成フォーム状態
   const [showOrgForm, setShowOrgForm] = useState(false);
 
-  // ── 組織編集フォーム状態
+  // ── テナント編集フォーム状態
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [editOrgForm, setEditOrgForm] = useState({
     name: '',
     type: 'union' as OrganizationType,
-    address: '',
-    phone: '',
   });
   const [updatingOrg, setUpdatingOrg] = useState(false);
 
@@ -122,7 +119,7 @@ export function SystemUserManagementContent() {
 
   const canManage = currentUser?.role === 'scrivener';
 
-  // ── 組織一覧ロード
+  // ── テナント一覧ロード
   const loadOrganizations = useCallback(async () => {
     setLoadingOrgs(true);
     try {
@@ -130,7 +127,7 @@ export function SystemUserManagementContent() {
       setOrganizations(orgs);
     } catch (err: unknown) {
       const e = err as Error;
-      showToast('error', e.message ?? '組織一覧の取得に失敗しました');
+      showToast('error', e.message ?? 'テナント一覧の取得に失敗しました');
     } finally {
       setLoadingOrgs(false);
     }
@@ -185,7 +182,7 @@ export function SystemUserManagementContent() {
       loadOrganizations();
     } catch (err: unknown) {
       const e = err as Error;
-      showToast('error', e.message ?? '組織の削除に失敗しました');
+      showToast('error', e.message ?? 'テナントの削除に失敗しました');
       setConfirmDeleteOrg(null);
     } finally {
       setDeletingOrg(false);
@@ -204,7 +201,7 @@ export function SystemUserManagementContent() {
       loadOrganizations(); // リロード
     } catch (err: unknown) {
       const e = err as Error;
-      showToast('error', e.message ?? '組織の更新に失敗しました');
+      showToast('error', e.message ?? 'テナントの更新に失敗しました');
     } finally {
       setUpdatingOrg(false);
     }
@@ -281,7 +278,7 @@ export function SystemUserManagementContent() {
         )}
       </div>
 
-      {/* ─── 組織作成フォーム ───────────────────────────────────────────── */}
+      {/* ─── テナント作成フォーム ───────────────────────────────────────────── */}
       <CreateOrgForm
         showForm={showOrgForm}
         onClose={() => setShowOrgForm(false)}
@@ -305,7 +302,7 @@ export function SystemUserManagementContent() {
       />
 
 
-      {/* ─── 組織一覧 ─────────────────────────────────────────────────────── */}
+      {/* ─── テナント一覧 ─────────────────────────────────────────────────────── */}
       <div className="space-y-8">
         {orgCategories.map((cat, idx) => (
           <div key={idx} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -355,9 +352,6 @@ export function SystemUserManagementContent() {
                                 </span>
                               )}
                             </div>
-                            {org.address && (
-                              <p className="text-xs text-slate-400 mt-0.5">{org.address}</p>
-                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -375,8 +369,6 @@ export function SystemUserManagementContent() {
                                   setEditOrgForm({
                                     name: org.name,
                                     type: org.type,
-                                    address: org.address || '',
-                                    phone: org.phone || '',
                                   });
                                   setEditOrg(org);
                                 }}
@@ -400,7 +392,7 @@ export function SystemUserManagementContent() {
                         </div>
                       </div>
 
-                      {/* アコーディオン: 組織に所属するアカウント一覧 */}
+                      {/* アコーディオン: テナントに所属するアカウント一覧 */}
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div
@@ -485,7 +477,7 @@ export function SystemUserManagementContent() {
         ))}
       </div>
 
-      {/* ─── システム管理者（組織未割当）アカウント一覧 ─── */}
+      {/* ─── システム管理者（テナント未割当）アカウント一覧 ─── */}
       {canManage && (() => {
         const sysAdmins = usersList.filter((u) => !u.organizationId);
         if (sysAdmins.length === 0) return null;
@@ -494,7 +486,7 @@ export function SystemUserManagementContent() {
             <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
               <h2 className="font-bold text-base flex items-center gap-2 text-slate-700">
                 <ShieldCheck size={17} className="text-indigo-500" />
-                行政書士アカウント（組織横断・フルアクセス）
+                行政書士アカウント（テナント横断・フルアクセス）
               </h2>
             </div>
             <div className="divide-y divide-slate-100">
@@ -556,7 +548,7 @@ export function SystemUserManagementContent() {
         );
       })()}
 
-      {/* ─── 組織削除確認ダイアログ ────────────────────────────── */}
+      {/* ─── テナント削除確認ダイアログ ────────────────────────────── */}
       <AnimatePresence>
         {confirmDeleteOrg && (
           <motion.div
@@ -663,6 +655,73 @@ export function SystemUserManagementContent() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── テナント情報編集モーダル ────────────────────────────── */}
+      <AnimatePresence>
+        {editOrg && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative"
+            >
+              <button
+                onClick={() => setEditOrg(null)}
+                className="absolute top-6 right-6 p-2 bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+
+              <h3 className="text-xl font-black text-slate-800 mb-2">テナント名の変更</h3>
+              <p className="text-sm text-slate-500 mb-6">ワークスペースの名称を変更します。</p>
+
+              <form onSubmit={handleUpdateOrg} className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">テナント名 (ワークスペース名) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editOrgForm.name}
+                    onChange={(e) => setEditOrgForm({ ...editOrgForm, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">テナント種別 *</label>
+                  <select
+                    value={editOrgForm.type}
+                    onChange={(e) => setEditOrgForm({ ...editOrgForm, type: e.target.value as OrganizationType })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer transition-all font-medium appearance-none"
+                  >
+                    <option value="union">組合（union）</option>
+                    <option value="enterprise">企業（enterprise）</option>
+                  </select>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditOrg(null)}
+                    disabled={updatingOrg}
+                    className="flex-1 py-3 text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatingOrg || !editOrgForm.name}
+                    className="flex-1 flex justify-center items-center py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {updatingOrg ? <Loader2 size={18} className="animate-spin" /> : '更新を保存'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

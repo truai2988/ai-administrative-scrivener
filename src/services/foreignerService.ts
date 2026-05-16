@@ -30,8 +30,8 @@ const COLLECTION_NAME = "foreigners";
 
 // 集計フィールドの増減を計算するヘルパー
 function getStatsChanges(oldStatus?: string, newStatus?: string): { pending: number, completed: number } {
-  const isPending = (s?: string) => s === '準備中' || s === '編集中' || s === 'チェック中' || s === '追加資料待機' || s === '入管審査中' || s === '差し戻し';
-  const isCompleted = (s?: string) => s === '完了' || s === '申請済';
+  const isPending = (s?: string) => s === '作成中' || s === '作成完了';
+  const isCompleted = (s?: string) => s === '申請済';
 
   let pending = 0;
   let completed = 0;
@@ -188,11 +188,11 @@ export const foreignerService = {
     // ステータスタブによる絞り込み
     if (statusFilter === 'pending') {
       // 進行中
-      constraints.push(where('status', 'in', ['準備中', '編集中', 'チェック中', '追加資料待機', '入管審査中', '差し戻し']));
+      constraints.push(where('status', 'in', ['作成中', '作成完了']));
       constraints.push(orderBy("updatedAt", "desc"));
     } else if (statusFilter === 'completed') {
       // 完了
-      constraints.push(where('status', 'in', ['完了', '申請済']));
+      constraints.push(where('status', 'in', ['申請済']));
       constraints.push(orderBy("updatedAt", "desc"));
     } else if (statusFilter === 'expiring') {
       // 期限切れ間近
@@ -258,7 +258,7 @@ export const foreignerService = {
       const statsDiff = getStatsChanges(oldStatus, newStatus);
       applyStatsIncrement(batch, { total: 0, ...statsDiff }, docSnap.data().unionId, docSnap.data().enterpriseId);
     } else {
-      const newStatus = data.status || '準備中';
+      const newStatus = data.status || '作成中';
       const insertData = {
         ...commonData,
         createdAt: new Date().toISOString(),
@@ -348,8 +348,7 @@ export const foreignerService = {
     const updatePayload: Partial<Foreigner> & Record<string, unknown> = {
       ...updatedData,
       isEditedByAdmin: true,
-      status: '編集中',
-      approvalStatus: 'draft', // 確認依頼前なのでクリア（draftに戻す）する
+      status: '作成中',
       updatedAt: new Date().toISOString(),
     };
     batch.update(docRef, updatePayload);
@@ -365,8 +364,8 @@ export const foreignerService = {
       diff: diff,
     });
 
-    // 4. 集計値の更新（ステータスが「編集中」に変わる）
-    const statsDiff = getStatsChanges(currentData.status, '編集中');
+    // 4. 集計値の更新（ステータスが「作成中」に変わる）
+    const statsDiff = getStatsChanges(currentData.status, '作成中');
     applyStatsIncrement(batch, { total: 0, ...statsDiff }, currentData.unionId, currentData.enterpriseId);
 
     // 5. バッチ送信
@@ -534,7 +533,7 @@ export const foreignerService = {
         birthDate: '1995-05-15',
         nationality: '中国',
         passportImageUrl: 'https://placehold.jp/400x300.png?text=Passport+Demo',
-        status: '準備中',
+        status: '作成中',
         company: '株式会社テクノレイド',
         visaType: '技術・人文知識・国際業務',
         aiReview: {
@@ -568,7 +567,7 @@ export const foreignerService = {
         birthDate: '1998-10-20',
         nationality: 'ベトナム',
         passportImageUrl: 'https://placehold.jp/400x300.png?text=Passport+Demo',
-        status: 'チェック中',
+        status: '作成完了',
         company: '未来創生建設',
         visaType: '技術・人文知識・国際業務',
         aiReview: {
@@ -640,64 +639,7 @@ export const foreignerService = {
     }
   },
 
-  /**
-   * 行政書士用: 確認待ち(pending_review)の外国人一覧を取得
-   */
-  async getPendingReviewForeigners(): Promise<Foreigner[]> {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where("approvalStatus", "==", "pending_review"),
-      orderBy("updatedAt", "desc"),
-      limit(50)
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Foreigner[];
-  },
 
-  /**
-   * 承認ステータスのみ更新（status フィールドとは独立）
-   */
-  async updateApprovalStatus(
-    id: string,
-    approvalStatus: string,
-    returnReason?: string
-  ): Promise<void> {
-    const docRef = doc(db, COLLECTION_NAME, id);
-    const updateData: Record<string, string> = {
-      approvalStatus,
-      updatedAt: new Date().toISOString(),
-    };
-    if (returnReason !== undefined) {
-      updateData.returnReason = returnReason;
-    }
-
-    // 進捗ステータス（status）の自動連動
-    if (approvalStatus === 'pending_review') {
-      updateData.status = 'チェック中';
-    } else if (approvalStatus === 'returned') {
-      updateData.status = '差し戻し';
-    } else if (approvalStatus === 'approved') {
-      updateData.status = '申請済';
-    }
-
-    const docOld = await getDoc(docRef);
-    if (docOld.exists()) {
-      const oldData = docOld.data();
-      const oldStatus = oldData.status;
-      const newStatus = updateData.status || oldStatus;
-
-      const batch = writeBatch(db);
-      batch.update(docRef, updateData);
-
-      const statsDiff = getStatsChanges(oldStatus, newStatus);
-      applyStatsIncrement(batch, { total: 0, ...statsDiff }, oldData.unionId, oldData.enterpriseId);
-
-      await batch.commit();
-    }
-  },
 
   /**
    * ⑦ 外国人マスタ（foreigners）への共通 Upsert（申請Service間のDRY違反を解消）

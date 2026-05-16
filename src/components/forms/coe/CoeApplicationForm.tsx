@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, Mail, CheckCircle, XCircle, CloudOff, Cloud, Send } from 'lucide-react';
+import { Loader2, Save, User, Building2, UserCircle2, Briefcase, FileText, Download, CloudOff, Cloud } from 'lucide-react';
 import { useAiDiagnostics } from '@/hooks/useAiDiagnostics';
 import { ClickToFillProvider } from '@/contexts/ClickToFillContext';
 import { AttachmentProvider } from '@/contexts/AttachmentContext';
@@ -17,7 +17,6 @@ import {
   type CoeApplicationFormData,
 } from '@/lib/schemas/coeApplicationSchema';
 import { useCoeFormSubmit } from '@/hooks/useCoeFormSubmit';
-import { useForeignerApproval } from '@/hooks/useForeignerApproval';
 import { useToast, ToastContainer } from '@/components/ui/Toast';
 
 import { IdentityInfoSubForm } from './sections/IdentityInfoSubForm';
@@ -204,22 +203,6 @@ export function CoeApplicationFormInner({
     initialDiagnostics: initialAiDiagnostics 
   });
 
-  const {
-    isScrivener,
-    isUploader,
-    hasApproveReturnPermission,
-    canExecuteApproveReturn,
-    hasRequestReviewPermission,
-    canExecuteRequestReview,
-    canExecuteDirectApprove,
-    canNotifySubmission,
-    handleApprove,
-    handleReturn,
-    handleRequestReview,
-    handleDirectApprove,
-    handleNotifyDocumentSubmission
-  } = useForeignerApproval(foreignerId);
-
 
   const nameEn = useWatch({ control: methods.control, name: 'identityInfo.nameEn' });
   const nameKanji = useWatch({ control: methods.control, name: 'identityInfo.nameKanji' });
@@ -330,61 +313,6 @@ export function CoeApplicationFormInner({
               <div className="flex flex-col items-end gap-1.5 w-full md:w-auto shrink-0">
                 <div className="applicant-context-actions flex items-center gap-2 flex-wrap w-full md:w-auto pb-1 md:pb-0 shrink-0">
 
-                  {/* === scrivener専用: 承認・保存・CSV === */}
-                  {isScrivener && (
-                    <>
-                  {/* scrivener専用: 確認依頼なしで直接承認 */}
-                  {isScrivener && (
-                    <button
-                      type="button"
-                      onClick={handleDirectApprove}
-                      disabled={!canExecuteDirectApprove}
-                      title={canExecuteDirectApprove ? "この内容で承認し、申請済みにする" : "現在は承認できません"}
-                      className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[120px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      承認（完了）
-                    </button>
-                  )}
-
-                  {hasRequestReviewPermission && (
-                    <button
-                      type="button"
-                      onClick={handleRequestReview}
-                      disabled={!canExecuteRequestReview}
-                      title={canExecuteRequestReview ? "行政書士へ確認依頼" : "現在は確認依頼できません"}
-                      className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[96px] shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      確認依頼
-                    </button>
-                  )}
-
-                  {hasApproveReturnPermission && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleReturn}
-                        disabled={!canExecuteApproveReturn}
-                        title={canExecuteApproveReturn ? "差し戻し" : "現在は差し戻しできません"}
-                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400"
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        差戻
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleApprove}
-                        disabled={!canExecuteApproveReturn}
-                        title={canExecuteApproveReturn ? "承認" : "現在は承認できません"}
-                        className="flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-bold rounded-lg transition-colors min-w-[80px] shrink-0 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        承認
-                      </button>
-                    </>
-                  )}
-
                   <button
                     type="button"
                     className="btn-outline btn-save h-8 px-3 text-xs font-bold shrink-0"
@@ -407,22 +335,6 @@ export function CoeApplicationFormInner({
                     {isExporting ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
                     <span className="hidden sm:inline">{isExporting ? '出力中...' : 'CSV出力'}</span>
                   </button>
-                    </>
-                  )}
-
-                  {/* === union_staff / enterprise_staff 用: 書類提出完了通知ボタン === */}
-                  {isUploader && (
-                    <button
-                      type="button"
-                      onClick={handleNotifyDocumentSubmission}
-                      disabled={!canNotifySubmission}
-                      title={canNotifySubmission ? "行政書士に書類の提出完了を通知します" : "現在は通知できません"}
-                      className="flex items-center justify-center gap-1.5 h-8 px-4 text-xs font-bold rounded-lg transition-colors shrink-0 bg-violet-600 text-white border border-violet-700 hover:bg-violet-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      行政書士へ書類提出完了を通知する
-                    </button>
-                  )}
               </div>
 
                 {/* ─── 保存状態インジケーター ─────────────────────────────── */}

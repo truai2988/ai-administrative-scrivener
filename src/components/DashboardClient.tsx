@@ -252,15 +252,6 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
-          {/* 未確認一覧（scrivenerのみ） */}
-          {userRole === 'scrivener' && (
-            <SidebarItem
-              icon={ClipboardList}
-              label="未確認一覧"
-              href="/pending-review"
-            />
-          )}
-
 
 
 

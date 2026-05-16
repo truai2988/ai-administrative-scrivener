@@ -66,26 +66,6 @@ export function sanitizeForFirestore<T>(obj: T): T {
   return cleaned !== undefined ? cleaned : ({} as T);
 }
 
-// ─── ステータスのマッピング ───────────────────────────────────────────────────
-
-/**
- * アプリケーションステータス文字列を Foreigner.approvalStatus に変換する。
- *
- * - 'editing' は「まだ確認待ちでない」ため 'draft' に戻す（意図的な設計）
- * - 不明なステータスはすべて 'draft' にフォールバックする
- *
- * @param appStatus - APPLICATION_STATUS の値（例: 'editing', 'pending_review'）
- * @returns Foreigner.approvalStatus に設定すべき文字列
- */
-export function mapApplicationStatusToApprovalStatus(appStatus: string): string {
-  switch (appStatus) {
-    case 'pending_review': return 'pending_review';
-    case 'approved':       return 'approved';
-    case 'returned':       return 'returned';
-    // 'draft' / 'editing' / その他はすべて下書き扱い
-    default:               return 'draft';
-  }
-}
 
 // ─── 名前文字列の有効性チェック ──────────────────────────────────────────────
 

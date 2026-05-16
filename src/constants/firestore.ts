@@ -17,10 +17,9 @@ export const COLLECTIONS = {
  * 更新申請書のステータス定数
  */
 export const APPLICATION_STATUS = {
-  DRAFT:          'draft',          // 下書き（先行保存・書類添付待ち）
-  EDITING:        'editing',        // 編集中（フォーム入力中）
-  PENDING_REVIEW: 'pending_review',
-  APPROVED:       'approved',
+  DRAFT:     'draft',          // 作成中
+  READY:     'ready',          // 作成完了
+  SUBMITTED: 'submitted',      // 申請済
 } as const;
 
 

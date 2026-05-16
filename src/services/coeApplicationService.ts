@@ -50,7 +50,7 @@ export const coeApplicationService = {
 
     // ⑦ マスタ同期用の識別子と変換済みデータを準備（COEはpassportNumberのみ）
     const buildSyncParams = (applicationId: string) => ({
-      syncData: mapCoeFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.EDITING) as import('@/types/database').Foreigner,
+      syncData: mapCoeFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.DRAFT) as import('@/types/database').Foreigner,
       identifiers: {
         passportNumber: safeFormData.identityInfo?.passportNumber,
         name: safeFormData.identityInfo?.nameKanji || safeFormData.identityInfo?.nameEn || '',
@@ -91,7 +91,7 @@ export const coeApplicationService = {
         formData: safeFormData,
         // ルートのattachmentsも同期させる
         attachments: mergedAttachments,
-        status: APPLICATION_STATUS.EDITING,
+        status: APPLICATION_STATUS.DRAFT,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
       };
@@ -119,7 +119,7 @@ export const coeApplicationService = {
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: CoeApplicationRecord = {
         id: newId,
-        status: APPLICATION_STATUS.EDITING,
+        status: APPLICATION_STATUS.DRAFT,
         formData: safeFormData,
         createdAt: now,
         updatedAt: now,

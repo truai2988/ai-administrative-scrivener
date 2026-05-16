@@ -145,7 +145,7 @@ export default function ForeignersNewPage() {
         // ログイン中のユーザーの organizationId を外国人の unionId または enterpriseId に使用（セキュリティルール要件）
         unionId: currentUser?.role === 'union_staff' ? (currentUser.organizationId || undefined) : (profile.unionId || undefined),
         enterpriseId: currentUser?.role === 'enterprise_staff' ? (currentUser.organizationId || undefined) : (profile.enterpriseId || undefined),
-        status: '準備中',
+        status: '作成中',
         isEditedByAdmin: true,
         ...(rcFrontUrl  && { residenceCardFrontUrl: rcFrontUrl }),
         ...(rcBackUrl   && { residenceCardBackUrl: rcBackUrl }),

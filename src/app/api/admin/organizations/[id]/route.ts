@@ -188,7 +188,7 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const { name, type, address, phone } = body;
+    const { name, type } = body;
 
     const db = getAdminDb();
     const orgRef = db.collection('organizations').doc(orgId);
@@ -203,8 +203,6 @@ export async function PATCH(
     };
     if (name !== undefined) updates.name = name;
     if (type !== undefined) updates.type = type;
-    if (address !== undefined) updates.address = address;
-    if (phone !== undefined) updates.phone = phone;
 
     await orgRef.update(updates);
 

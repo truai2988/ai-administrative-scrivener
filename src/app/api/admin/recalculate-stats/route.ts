@@ -5,8 +5,8 @@ export async function POST(req: Request) {
   try {
     const db = getAdminDb();
     
-    const isPending = (s?: string) => s === '準備中' || s === '編集中' || s === 'チェック中' || s === '追加資料待機' || s === '入管審査中' || s === '差し戻し';
-    const isCompleted = (s?: string) => s === '完了' || s === '申請済';
+    const isPending = (s?: string) => s === '作成中' || s === '作成完了';
+    const isCompleted = (s?: string) => s === '申請済';
 
     const globalStats = { total: 0, pending: 0, completed: 0 };
     const orgStats: Record<string, { total: number, pending: number, completed: number }> = {};

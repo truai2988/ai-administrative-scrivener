@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, AlertCircle, Building2, Tag, MapPin, Phone, Loader2 } from 'lucide-react';
+import { Plus, X, AlertCircle, Building2, Tag, Loader2 } from 'lucide-react';
 import type { OrganizationType } from '@/types/database';
 import { createOrganizationSchema } from '@/lib/schemas/organizationSchema';
 import { createOrganization } from '@/lib/api/adminClient';
@@ -18,8 +18,6 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
   const [orgFormData, setOrgFormData] = useState({
     name: '',
     type: 'union' as OrganizationType,
-    address: '',
-    phone: '',
   });
   const [orgFormError, setOrgFormError] = useState<string | null>(null);
   const [savingOrg, setSavingOrg] = useState(false);
@@ -38,7 +36,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
     try {
       await createOrganization(parsed.data);
       showToast('success', 'テナントを作成しました');
-      setOrgFormData({ name: '', type: 'union', address: '', phone: '' });
+      setOrgFormData({ name: '', type: 'union' });
       onSuccess();
     } catch (err: unknown) {
       const e = err as Error;
@@ -83,7 +81,7 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
               {/* テナント名 */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  テナント名 <span className="text-rose-400">*</span>
+                  テナント名（ワークスペース名） <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
@@ -118,39 +116,6 @@ export function CreateOrgForm({ showForm, onClose, onSuccess, showToast }: Creat
                 </div>
               </div>
 
-              {/* 住所 */}
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  住所
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                  <input
-                    type="text"
-                    value={orgFormData.address}
-                    onChange={(e) => setOrgFormData({ ...orgFormData, address: e.target.value })}
-                    placeholder="東京都千代田区..."
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* 電話番号 */}
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  電話番号
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                  <input
-                    type="tel"
-                    value={orgFormData.phone}
-                    onChange={(e) => setOrgFormData({ ...orgFormData, phone: e.target.value })}
-                    placeholder="03-0000-0000"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

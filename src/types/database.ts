@@ -72,17 +72,7 @@ export function isGlobalAdmin(role: UserRole): boolean {
 
 
 // ─── Foreigner (外国人データ) ─────────────────────────────────────────────────
-export type ForeignerStatus = '準備中' | '編集中' | 'チェック中' | '申請済' | '追加資料待機' | '入管審査中' | '完了' | '期限切れ警告' | '差し戻し';
-
-/** 承認ワークフロー専用ステータス（status フィールドとは独立して管理）*/
-export type ApprovalStatus = 'draft' | 'pending_review' | 'approved' | 'returned' | null;
-
-export const APPROVAL_STATUS_LABELS: Record<NonNullable<ApprovalStatus>, string> = {
-  draft: '入力中',
-  pending_review: '確認待ち',
-  approved: '承認済',
-  returned: '差し戻し',
-};
+export type ForeignerStatus = '作成中' | '作成完了' | '申請済';
 
 export interface Foreigner {
   id: string; // Firestore Document ID
@@ -144,9 +134,6 @@ export interface Foreigner {
   isEditedByAdmin?: boolean;
   originalSubmittedData?: Partial<Foreigner>;
 
-  // 承認ワークフロー
-  approvalStatus?: ApprovalStatus; // 承認ステータス（既存の status フィールドとは独立）
-  returnReason?: string; // 差し戻し時の理由
 
   // 最新申請とのリンク (申請書ファースト移行による追加)
   current_application_id?: string;

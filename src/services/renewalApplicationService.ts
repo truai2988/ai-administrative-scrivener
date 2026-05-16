@@ -57,7 +57,7 @@ export const renewalApplicationService = {
 
     // ⑦ マスタ同期用の識別子と変換済みデータを準備（Renewalは在留カード＋パスポート両対応）
     const buildSyncParams = (applicationId: string) => ({
-      syncData: mapFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.EDITING) as import('@/types/database').Foreigner,
+      syncData: mapFormDataToForeigner(safeFormData, applicationId, APPLICATION_STATUS.DRAFT) as import('@/types/database').Foreigner,
       identifiers: {
         residenceCardNumber: safeFormData.foreignerInfo?.residenceCardNumber,
         passportNumber: safeFormData.foreignerInfo?.passportNumber,
@@ -106,7 +106,7 @@ export const renewalApplicationService = {
         formData: safeFormData,
         // ルートのattachmentsもformDataと同期させる（次回読込時の整合性確保）
         attachments: safeFormData.attachments ?? {},
-        status: APPLICATION_STATUS.EDITING,
+        status: APPLICATION_STATUS.DRAFT,
         updatedAt: now,
         ...(foreignerId ? { foreignerId } : {}),
       };
@@ -134,7 +134,7 @@ export const renewalApplicationService = {
       const docRef = doc(db, COLLECTION_NAME, newId);
       const record: RenewalApplicationRecord = {
         id: newId,
-        status: APPLICATION_STATUS.EDITING,
+        status: APPLICATION_STATUS.DRAFT,
         formData: safeFormData,
         createdAt: now,
         updatedAt: now,

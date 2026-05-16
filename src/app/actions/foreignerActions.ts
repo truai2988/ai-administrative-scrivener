@@ -24,7 +24,7 @@ export async function registerForeignerByStaffAction(
       expiryDate: data.expiryDate || '',
       unionId: data.unionId || undefined,
       enterpriseId: data.enterpriseId || undefined,
-      status: '準備中',
+      status: '作成中',
       isEditedByAdmin: true,
       ...(data.email                 && { email: data.email }),
       ...(data.visaType              && { visaType: data.visaType }),
@@ -98,41 +98,3 @@ export async function correctDataAction(
   }
 }
 
-/**
- * 支部事務員: 行政書士へ確認依頼 (approvalStatus: pending_review へ)
- */
-export async function requestReviewAction(id: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    await foreignerService.updateApprovalStatus(id, 'pending_review');
-    return { success: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return { success: false, error: `確認依頼に失敗しました: ${errorMessage}` };
-  }
-}
-
-/**
- * 行政書士: 承認 (approvalStatus: approved へ)
- */
-export async function approveAction(id: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    await foreignerService.updateApprovalStatus(id, 'approved');
-    return { success: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return { success: false, error: `承認処理に失敗しました: ${errorMessage}` };
-  }
-}
-
-/**
- * 行政書士: 差し戻し (approvalStatus: returned へ)
- */
-export async function returnAction(id: string, reason: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    await foreignerService.updateApprovalStatus(id, 'returned', reason);
-    return { success: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return { success: false, error: `差し戻し処理に失敗しました: ${errorMessage}` };
-  }
-}

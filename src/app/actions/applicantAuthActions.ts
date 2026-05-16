@@ -61,7 +61,7 @@ export async function submitApplicantRegistrationAction(
       ...foreignerData,
       id: newForeignerId,
       unionId: resolvedUnionId,
-      status: "準備中", // 初期ステータス
+      status: "作成中", // 初期ステータス
       isEditedByAdmin: false,
       consentLog: {
         ipAddress,
@@ -81,7 +81,7 @@ export async function submitApplicantRegistrationAction(
     
     batch.set(foreignerRef, newForeigner);
 
-    // 統計情報の更新 (ステータスが "準備中" = pending の増加)
+    // 統計情報の更新 (ステータスが "作成中" = pending の増加)
     const diff = { total: 1, pending: 1, completed: 0 };
     
     // グローバル統計
