@@ -80,7 +80,7 @@ export const PhotoUploadZone: React.FC<PhotoUploadZoneProps> = ({
         </label>
         <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
           <Camera className="w-2.5 h-2.5" />
-          JPEG 50KB以下に自動圧縮
+          50KB以下に自動変換・圧縮
         </span>
       </div>
 
@@ -199,7 +199,7 @@ export const PhotoUploadZone: React.FC<PhotoUploadZoneProps> = ({
           <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 leading-relaxed space-y-1">
             <p className="font-bold text-slate-700">入管規定:</p>
             <p>• 縦40mm × 横30mm（証明写真サイズ）</p>
-            <p>• JPEG形式、50KB以下</p>
+            <p>• 画像ファイル（自動で50KB以下のJPEGに変換されます）</p>
             <p>• 背景は白または薄い色</p>
             <p className="text-amber-600 font-bold mt-2">
               スマホ写真でもOK — 自動で圧縮されます

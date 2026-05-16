@@ -118,6 +118,17 @@ service firebase.storage {
       allow write, delete: if isAuthenticated(); // クロスサービス参照エラーを回避するため一時的に緩和
     }
 
+    /**
+     * foreigners/{tempId}/{fileName}
+     *
+     * 申請人がアカウント作成前にパスポートや顔写真をアップロードするため、
+     * バリデーション付きで未認証の書き込みを許可する。読み取りは認証済みユーザーのみ。
+     */
+    match /foreigners/{tempId}/{fileName} {
+      allow write: if isValidUpload();
+      allow read: if isAuthenticated();
+    }
+
     // その他のパスはすべてのアクセスを拒否
     match /{allPaths=**} {
       allow read, write: if false;

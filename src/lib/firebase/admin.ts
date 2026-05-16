@@ -58,9 +58,18 @@ export function getAdminAuth(): Auth {
   return getAuth(getAdminApp());
 }
 
+let _db: Firestore | null = null;
+
 /** Firebase Admin Firestore インスタンス（遅延取得） */
 export function getAdminDb(): Firestore {
-  return getFirestore(getAdminApp());
+  if (_db) return _db;
+  _db = getFirestore(getAdminApp());
+  try {
+    _db.settings({ ignoreUndefinedProperties: true });
+  } catch (e) {
+    console.warn('[Firebase Admin] Failed to set ignoreUndefinedProperties:', e);
+  }
+  return _db;
 }
 
 /** Firebase Admin Storage インスタンス（遅延取得） */

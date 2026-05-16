@@ -119,7 +119,11 @@ export default function ProfileSettingsPage() {
         if (orgDoc.exists()) {
           setOrgName(orgDoc.data()?.name || '不明な組織');
         } else {
-          setOrgName('組織情報が見つかりません');
+          if (currentUser.organizationId === 'unassigned') {
+            setOrgName('未所属');
+          } else {
+            setOrgName('組織情報が見つかりません');
+          }
         }
       } catch (error) {
         console.error('Error fetching org:', error);

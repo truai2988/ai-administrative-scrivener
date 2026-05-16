@@ -3,15 +3,13 @@
  *
  * - scrivener ロールのみ実行可能（union_staff 以下は 403）
  * - 所属スタッフ（users コレクション）がいる場合は削除不可
- * - 所属外国人（foreigners コレクション）は自動的に「直接受任（scrivener_direct）」へ移管
+ * - 所属外国人（foreigners コレクション）は自動的に「未所属」へ移管
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, getAdminDb } from '@/lib/firebase/admin';
 import type { UserRole } from '@/types/database';
-
-/** 直接受任の unionId / organizationId */
-const DEFAULT_UNION_ID = 'scrivener_direct';
+import { FieldValue } from 'firebase-admin/firestore';
 
 /** 組織の削除が許可されたロール */
 const BRANCH_MANAGER_ROLES: UserRole[] = ['scrivener'];
@@ -86,13 +84,6 @@ export async function DELETE(
     return NextResponse.json({ error: '組織IDが指定されていません' }, { status: 400 });
   }
 
-  // 直接受任自体は削除不可
-  if (orgId === DEFAULT_UNION_ID) {
-    return NextResponse.json(
-      { error: '直接受任組織は削除できません' },
-      { status: 400 }
-    );
-  }
 
   try {
     const db = getAdminDb();
@@ -140,7 +131,7 @@ export async function DELETE(
 
         for (const doc of chunk) {
           batch.update(doc.ref, {
-            unionId: DEFAULT_UNION_ID,
+            unionId: FieldValue.delete(),
             updatedAt: now,
           });
         }
@@ -156,7 +147,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: true,
-        message: `「${orgName}」を削除しました。${migratedCount > 0 ? `所属外国人 ${migratedCount} 名を直接受任へ移管しました。` : ''}`,
+        message: `「${orgName}」を削除しました。${migratedCount > 0 ? `所属外国人 ${migratedCount} 名を未所属へ移管しました。` : ''}`,
         migratedForeigners: migratedCount,
       },
       { status: 200 }
@@ -194,13 +185,6 @@ export async function PATCH(
     return NextResponse.json({ error: '組織IDが指定されていません' }, { status: 400 });
   }
 
-  // 直接受任の更新は不可（必要に応じて許可してもよいが、一旦制限）
-  if (orgId === DEFAULT_UNION_ID) {
-    return NextResponse.json(
-      { error: '直接受任組織は設定から変更できません' },
-      { status: 400 }
-    );
-  }
 
   try {
     const body = await req.json();

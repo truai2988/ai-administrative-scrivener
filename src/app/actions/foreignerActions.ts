@@ -22,7 +22,7 @@ export async function registerForeignerByStaffAction(
       birthDate: data.birthDate || '',
       residenceCardNumber: data.residenceCardNumber || '',
       expiryDate: data.expiryDate || '',
-      unionId: data.unionId || 'scrivener_direct',
+      unionId: data.unionId || undefined,
       enterpriseId: data.enterpriseId || undefined,
       status: '準備中',
       isEditedByAdmin: true,

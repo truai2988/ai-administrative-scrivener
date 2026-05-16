@@ -555,8 +555,8 @@ export default function AdminOrganizationsPage() {
 
         {/* ─── システム管理者（組織未割当）アカウント一覧: 管理権限のみ表示 ─── */}
         {canManage && (() => {
-          // 直接受任（scrivener_direct）所属 または 組織未所属のユーザーを特権管理者として表示
-          const sysAdmins = usersList.filter((u) => !u.organizationId || u.organizationId === 'scrivener_direct');
+          // 組織未所属のユーザーを特権管理者として表示
+          const sysAdmins = usersList.filter((u) => !u.organizationId);
           if (sysAdmins.length === 0) return null;
           return (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-8">

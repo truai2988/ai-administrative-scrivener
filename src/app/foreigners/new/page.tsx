@@ -143,7 +143,7 @@ export default function ForeignersNewPage() {
       const payload: Partial<Foreigner> = {
         ...profile,
         // ログイン中のユーザーの organizationId を外国人の unionId または enterpriseId に使用（セキュリティルール要件）
-        unionId: currentUser?.role === 'union_staff' ? (currentUser.organizationId || undefined) : (profile.unionId || 'scrivener_direct'),
+        unionId: currentUser?.role === 'union_staff' ? (currentUser.organizationId || undefined) : (profile.unionId || undefined),
         enterpriseId: currentUser?.role === 'enterprise_staff' ? (currentUser.organizationId || undefined) : (profile.enterpriseId || undefined),
         status: '準備中',
         isEditedByAdmin: true,

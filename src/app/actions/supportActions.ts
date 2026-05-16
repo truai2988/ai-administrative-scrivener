@@ -31,24 +31,26 @@ export async function submitSupportInquiry(formData: { subject: string; body: st
 
     const userData = userDoc.data()!;
     const userRole = (userData.role as UserRole) || 'applicant';
-    const organizationId = userData.organizationId || 'scrivener_direct';
+    const organizationId = userData.organizationId || undefined;
     const tenantId = 'default';
     const senderEmail: string = userData.email || '';
     const senderName: string = userData.displayName || '不明（ユーザー名未登録）';
 
     // 組織名を取得（失敗しても継続）
-    let organizationName = organizationId;
-    if (organizationId && organizationId !== 'scrivener_direct') {
-      try {
-        const orgDoc = await adminDb.collection('organizations').doc(organizationId).get();
-        if (orgDoc.exists) {
-          organizationName = (orgDoc.data()?.name as string) || organizationId;
+    let organizationName = organizationId || '未所属';
+    if (organizationId) {
+      if (organizationId === 'unassigned') {
+        organizationName = '未所属';
+      } else {
+        try {
+          const orgDoc = await adminDb.collection('organizations').doc(organizationId).get();
+          if (orgDoc.exists) {
+            organizationName = (orgDoc.data()?.name as string) || organizationId;
+          }
+        } catch {
+          // 失敗時はIDをそのまま表示
         }
-      } catch {
-        // 失敗時はIDをそのまま表示
       }
-    } else if (organizationId === 'scrivener_direct') {
-      organizationName = '直接受任';
     }
 
     // 4. Save to Firestore

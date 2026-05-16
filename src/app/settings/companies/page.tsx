@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { companyMasterService } from '@/services/companyMasterService';
 import type { CompanyMaster } from '@/types/database';
-import { isGlobalAdmin, DEFAULT_UNION_ID } from '@/types/database';
+import { isGlobalAdmin } from '@/types/database';
 import type { UserRole } from '@/types/database';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
 import Link from 'next/link';
@@ -465,14 +465,13 @@ export default function CompanyMastersPage() {
   const [editTarget, setEditTarget] = useState<CompanyMaster | undefined>();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // RBAC: 所属 organizationId を解決
-  // scrivener → 'scrivener_direct'（全社マスタ）
+  // scrivener → 'hq_direct'（全社マスタ）
   // union_staff         → 自支部の organizationId
   const organizationId = (() => {
     if (!currentUser) return null;
     if (isGlobalAdmin(currentUser.role as UserRole)) return 'hq_direct';
     // union_staff は自支部 ID を使用
-    return currentUser.organizationId ?? DEFAULT_UNION_ID;
+    return currentUser.organizationId ?? null;
   })();
 
   // 戻るリンクは常にダッシュボード（ホーム）へ

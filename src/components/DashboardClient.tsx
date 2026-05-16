@@ -113,8 +113,10 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     }
   }, [showShareModal]);
 
+  const entryToken = currentUser?.organizationId || (currentUser?.role === 'scrivener' ? 'unassigned' : shareToken);
+
   const entryUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/signup/applicant?token=${currentUser?.organizationId || shareToken}` 
+    ? `${window.location.origin}/signup/applicant?token=${entryToken}` 
     : '';
 
   useEffect(() => {
@@ -188,7 +190,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
   /** orgId → 表示名のマッピング（組織APIから動的取得） */
   const getOrganizationLabel = (orgId: string): string => {
-    if (orgId === 'scrivener_direct') return '直接受任';
+    if (!orgId || orgId === 'unassigned') return '未所属';
     return organizationLabelMap[orgId] ?? orgId;
   };
 

@@ -72,8 +72,6 @@ export function isGlobalAdmin(role: UserRole): boolean {
   return role === 'scrivener';
 }
 
-/** 既存データ・直接受任用のデフォルト organizationId */
-export const DEFAULT_UNION_ID = 'scrivener_direct';
 
 // ─── Foreigner (外国人データ) ─────────────────────────────────────────────────
 export type ForeignerStatus = '準備中' | '編集中' | 'チェック中' | '申請済' | '追加資料待機' | '入管審査中' | '完了' | '期限切れ警告' | '差し戻し';
@@ -116,7 +114,11 @@ export interface Foreigner {
   periodOfStay?: string; // 在留期間（5年・3年 など）
   dateOfPermission?: string; // 許可年月日 (ISO 8601)
   dateOfDelivery?: string; // 交付年月日 (ISO 8601)
-  passportNumber?: string; // 旅案番号
+  passportNumber?: string; // 旅券番号
+  placeOfBirth?: string; // 出生地
+  passportIssueDate?: string; // パスポート発行日 (ISO 8601)
+  passportExpiryDate?: string; // パスポート有効期間満了日 (ISO 8601)
+  issuingAuthority?: string; // パスポート発行機関
   
   // 雇用・待遇情報
   salary?: string; // 基本給 (月額)

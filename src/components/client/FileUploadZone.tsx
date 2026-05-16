@@ -97,7 +97,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   };
 
   const compressionLabel = compressionType === 'photo'
-    ? '顔写真用 (JPEG 50KB以下に自動圧縮)'
+    ? '顔写真用 (50KB以下の画像に自動変換・圧縮)'
     : compressionType === 'document'
       ? '書類用 (PDF形式に自動変換)'
       : null;
@@ -140,7 +140,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             >
               <Loader2 className="w-8 h-8 text-teal-500 animate-spin mb-3" />
               <p className="text-sm font-bold text-teal-700">
-                {compressionType === 'photo' ? 'JPEG圧縮中...' : 'PDF変換中...'}
+                {compressionType === 'photo' ? '画像圧縮中...' : 'PDF変換中...'}
               </p>
               <div className="w-48 bg-teal-100 rounded-full h-1.5 mt-3 overflow-hidden">
                 <motion.div

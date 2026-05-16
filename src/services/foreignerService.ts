@@ -19,7 +19,7 @@ import {
   QueryConstraint
 } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
-import { Foreigner, UserRole, DEFAULT_UNION_ID } from "../types/database";
+import { Foreigner, UserRole } from "../types/database";
 import { emailService } from "./emailService";
 import { canViewAllForeigners } from "../utils/permissions";
 import { isValidPersonName } from "../lib/utils/firestoreUtils";
@@ -242,7 +242,7 @@ export const foreignerService = {
 
     const commonData = {
       ...data,
-      unionId: data.unionId || DEFAULT_UNION_ID,
+      unionId: data.unionId || undefined,
       enterpriseId: data.enterpriseId || undefined,
       updatedAt: new Date().toISOString(),
     };
@@ -518,7 +518,7 @@ export const foreignerService = {
   async seedDemoData(unionId?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const now = new Date();
-      const activeUnionId = unionId || DEFAULT_UNION_ID;
+      const activeUnionId = unionId || undefined;
       
       const date1 = new Date();
       date1.setMonth(now.getMonth() + 2);
@@ -744,7 +744,7 @@ export const foreignerService = {
       }
 
       const buildQuery = (field: string, value: string) => {
-        if (organizationId && organizationId !== DEFAULT_UNION_ID) {
+        if (organizationId) {
           return query(foreignersCol, where(field, '==', value), where('unionId', '==', organizationId), limit(1));
         }
         return query(foreignersCol, where(field, '==', value), limit(1));
@@ -765,7 +765,7 @@ export const foreignerService = {
       // 氏名＋生年月日で検索
       if (!matchedDocId && name && birthDate) {
         let q;
-        if (organizationId && organizationId !== DEFAULT_UNION_ID) {
+        if (organizationId) {
           q = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), where('unionId', '==', organizationId), limit(1));
         } else {
           q = query(foreignersCol, where('name', '==', name), where('birthDate', '==', birthDate), limit(1));
@@ -789,7 +789,7 @@ export const foreignerService = {
       await setDoc(docRef, {
         ...syncData,
         id: newId,
-        unionId: organizationId || DEFAULT_UNION_ID,
+        unionId: organizationId || undefined,
         enterpriseId: undefined,
         createdAt: now,
         updatedAt: now,

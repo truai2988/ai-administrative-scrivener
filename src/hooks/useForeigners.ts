@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { foreignerService } from '@/services/foreignerService';
-import { Foreigner, UserRole, DEFAULT_UNION_ID, isGlobalAdmin } from '@/types/database';
+import { Foreigner, UserRole, isGlobalAdmin } from '@/types/database';
 import { db } from '@/lib/firebase/client';
 import { doc, onSnapshot, collection, query, where, getCountFromServer, DocumentData, QueryDocumentSnapshot, Query } from 'firebase/firestore';
 
@@ -30,7 +30,12 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
 
     const targetId = isGlobalAdmin(currentUser.role as UserRole) 
       ? (activeBranchId === 'all' ? 'global' : activeBranchId) 
-      : (currentUser.organizationId || DEFAULT_UNION_ID);
+      : currentUser.organizationId;
+    
+    if (!targetId) {
+      if (isSubscribed) setStatsLoading(false);
+      return;
+    }
     const statsRef = doc(db, 'foreigner_stats', targetId);
 
     const fetchExpiringCount = async () => {
@@ -95,7 +100,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
 
     foreignerService.getForeignersPage(
       currentUser.role as UserRole,
-      isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || DEFAULT_UNION_ID),
+      isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || undefined),
       50,
       null,
       statusFilter
@@ -125,7 +130,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
     try {
       const res = await foreignerService.getForeignersPage(
         currentUser.role as UserRole,
-        isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || DEFAULT_UNION_ID),
+        isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || undefined),
         50,
         lastDoc,
         statusFilter
@@ -152,7 +157,7 @@ export function useForeigners(currentUser: UseForeignersUser | null, initialData
     setLoading(true);
     foreignerService.getForeignersPage(
       currentUser.role as UserRole,
-      isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || DEFAULT_UNION_ID),
+      isGlobalAdmin(currentUser.role as UserRole) ? (activeBranchId === 'all' ? undefined : activeBranchId) : (currentUser.organizationId || undefined),
       50,
       null,
       statusFilter

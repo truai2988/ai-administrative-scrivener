@@ -25,9 +25,9 @@ interface ForeignerListProps {
 }
 
 export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds, onSelectionChange, readonly, showOrganization, getOrganizationLabel, userRole, aiDiagnosticMap, onDeleteSelected }) => {
-  const [filterOrganization, setFilterOrganization] = useState('');
+  const [filterUnion, setFilterUnion] = useState('');
   const [filterNationality, setFilterNationality] = useState('');
-  const [filterCompany, setFilterCompany] = useState('');
+  const [filterEnterprise, setFilterEnterprise] = useState('');
   const [filterVisaType, setFilterVisaType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
               </div>
               {options.map(opt => {
                 let label = getLabel ? getLabel(opt) : opt;
-                if (filterKey === 'organization' && opt === 'scrivener_direct') label = '直接受任';
+                if ((filterKey === 'union' || filterKey === 'enterprise') && opt === 'unassigned') label = '未所属';
                 return (
                   <div 
                     key={opt}
@@ -84,11 +84,17 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
     );
   };
 
-  const { organizationOptions, nationalityOptions, companyOptions, visaTypeOptions, statusOptions } = useMemo(() => {
+  const { unionOptions, nationalityOptions, enterpriseOptions, visaTypeOptions, statusOptions } = useMemo(() => {
+    const rawUnions = new Set(data.map(d => d.unionId).filter(Boolean) as string[]);
+    const rawEnterprises = new Set(data.map(d => d.enterpriseId).filter(Boolean) as string[]);
+    
+    if (data.some(d => !d.unionId)) rawUnions.add('unassigned');
+    if (data.some(d => !d.enterpriseId)) rawEnterprises.add('unassigned');
+
     return {
-      organizationOptions: Array.from(new Set(['scrivener_direct', ...data.map(d => d.unionId).filter(Boolean) as string[], ...data.map(d => d.enterpriseId).filter(Boolean) as string[]])),
+      unionOptions: Array.from(rawUnions),
       nationalityOptions: Array.from(new Set(data.map(d => d.nationality).filter(Boolean) as string[])),
-      companyOptions: Array.from(new Set(data.map(d => d.company).filter(Boolean) as string[])),
+      enterpriseOptions: Array.from(rawEnterprises),
       visaTypeOptions: Array.from(new Set(data.map(d => d.visaType).filter(Boolean) as string[])),
       statusOptions: Array.from(new Set(data.map(d => d.status).filter(Boolean) as string[]))
     };
@@ -96,14 +102,26 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
-      if (filterOrganization && item.unionId !== filterOrganization && item.enterpriseId !== filterOrganization) return false;
+      if (filterUnion) {
+        if (filterUnion === 'unassigned') {
+          if (item.unionId) return false;
+        } else {
+          if (item.unionId !== filterUnion) return false;
+        }
+      }
       if (filterNationality && item.nationality !== filterNationality) return false;
-      if (filterCompany && item.company !== filterCompany) return false;
+      if (filterEnterprise) {
+        if (filterEnterprise === 'unassigned') {
+          if (item.enterpriseId) return false;
+        } else {
+          if (item.enterpriseId !== filterEnterprise) return false;
+        }
+      }
       if (filterVisaType && item.visaType !== filterVisaType) return false;
       if (filterStatus && item.status !== filterStatus) return false;
       return true;
     });
-  }, [data, filterOrganization, filterNationality, filterCompany, filterVisaType, filterStatus]);
+  }, [data, filterUnion, filterNationality, filterEnterprise, filterVisaType, filterStatus]);
 
   const displayedData = filteredData.slice(0, 100);
 
@@ -196,11 +214,11 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
               </th>
               {showOrganization && (
                 <th className={`px-2 py-3 ${colOrg} text-center`}>
-                  {renderFilterHeader('organization', '組合', filterOrganization, setFilterOrganization, organizationOptions, getOrganizationLabel)}
+                  {renderFilterHeader('union', '組合', filterUnion, setFilterUnion, unionOptions, getOrganizationLabel)}
                 </th>
               )}
               <th className={`px-2 py-3 ${colComp} text-center`}>
-                {renderFilterHeader('company', '所属企業', filterCompany, setFilterCompany, companyOptions)}
+                {renderFilterHeader('enterprise', '所属企業', filterEnterprise, setFilterEnterprise, enterpriseOptions, getOrganizationLabel)}
               </th>
               <th className={`px-2 py-3 ${colVisa} text-center`}>
                 {renderFilterHeader('visa', '在留資格', filterVisaType, setFilterVisaType, visaTypeOptions)}
@@ -260,13 +278,15 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
                   </td>
                   {showOrganization && (
                     <td className="px-2 py-3 text-center">
-                      <span className="block truncate text-xs font-medium text-slate-700">
-                        {getOrganizationLabel ? (getOrganizationLabel(person.unionId || "") || getOrganizationLabel(person.enterpriseId || "") || "未所属") : (person.unionId || person.enterpriseId || "未所属")}
+                      <span className="block truncate text-xs font-medium text-slate-700" title={getOrganizationLabel ? getOrganizationLabel(person.unionId || 'unassigned') : (!person.unionId ? '未所属' : person.unionId)}>
+                        {getOrganizationLabel ? getOrganizationLabel(person.unionId || 'unassigned') : (!person.unionId ? '未所属' : person.unionId)}
                       </span>
                     </td>
                   )}
                   <td className="px-2 py-3 text-center">
-                    <span className="block truncate text-xs font-medium text-slate-700" title={person.company || '未所属'}>{person.company || '未所属'}</span>
+                    <span className="block truncate text-xs font-medium text-slate-700" title={getOrganizationLabel ? getOrganizationLabel(person.enterpriseId || 'unassigned') : (!person.enterpriseId ? '未所属' : person.enterpriseId)}>
+                      {getOrganizationLabel ? getOrganizationLabel(person.enterpriseId || 'unassigned') : (!person.enterpriseId ? '未所属' : person.enterpriseId)}
+                    </span>
                   </td>
                   <td className="px-2 py-3 text-center">
                     <span className="block truncate text-xs text-slate-600" title={person.visaType || '−'}>{person.visaType || '−'}</span>
