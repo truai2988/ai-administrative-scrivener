@@ -15,7 +15,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWatch, type Control, type UseFormGetValues } from 'react-hook-form';
-import type { TabAssignments } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import type { ChangeOfStatusApplicationFormData } from '@/lib/schemas/changeOfStatusApplicationSchema';
 import { changeOfStatusApplicationService } from '@/services/changeOfStatusApplicationService';
 import { downloadImmigrationCSV } from '@/lib/utils/csvMapper';
@@ -29,9 +28,7 @@ interface UseChangeOfStatusFormSubmitOptions {
   foreignerId?: string;
   /** 所属する組織のID */
   organizationId?: string;
-  /** タブごとの担当者割り当て（SectionPermissionContextから渡す） */
-  assignments?: TabAssignments;
-  /** フォームがユーザーによって変更されたかどうかのフラグ */
+
   isDirty?: boolean;
   /** react-hook-form の control（特定のフィールドを監視するため） */
   control?: Control<ChangeOfStatusApplicationFormData>;
@@ -61,7 +58,7 @@ export function useChangeOfStatusFormSubmit({
   recordId,
   foreignerId,
   organizationId,
-  assignments,
+
   control,
   onSubmit,
 }: UseChangeOfStatusFormSubmitOptions = {}): UseChangeOfStatusFormSubmitReturn {
@@ -98,117 +95,17 @@ export function useChangeOfStatusFormSubmit({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // マウント時1回のみ
 
-  // ─── 2. オートセーブ機能: 特定フィールドの変更監視とDebounce保存 ────────────
-  // 担当者割り当て（assignments）フィールドを監視する
-  const watchedAssignments = useWatch({
-    control,
-    name: 'assignments',
-    disabled: !control,
-  });
 
-  const watchedAssignmentsStr = JSON.stringify(watchedAssignments);
-  const assignmentsStr = JSON.stringify(assignments);
-
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstMountForWatch = useRef(true);
-  const lastSavedAssignments = useRef<TabAssignments | null>(null);
-  const lastSavedData = useRef<ChangeOfStatusApplicationFormData | null>(null);
-
-  useEffect(() => {
-    // 初回マウント時や必要な引数が揃っていない場合はスキップ
-    if (isFirstMountForWatch.current) {
-      isFirstMountForWatch.current = false;
-      return;
-    }
-
-    const currentAssignments = assignments || watchedAssignments;
-    if (!savedRecordId || !currentAssignments) return;
-
-    // 前回のタイマーをクリア（Debounce）
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // 5000ms 後に自動保存を実行
-    debounceTimerRef.current = setTimeout(async () => {
-      // タイマーが発火した時点でキューから外す（これ以降のページ離脱は警告不要）
-      debounceTimerRef.current = null;
-      setIsAutoSaving(true);
-      try {
-        // 前回保存した assignments と完全一致する場合は書き込みをスキップ（Write削減）
-        if (isEqual(currentAssignments, lastSavedAssignments.current)) {
-          return;
-        }
-
-        await changeOfStatusApplicationService.updateAssignments(savedRecordId, currentAssignments as TabAssignments);
-        lastSavedAssignments.current = currentAssignments as TabAssignments;
-        // UX上頻繁に出ると煩わしいため、成功通知は省略
-      } catch (err) {
-        console.error('[オートセーブエラー]', err);
-        showToast('error', '担当者の自動保存に失敗しました');
-      } finally {
-        setIsAutoSaving(false);
-      }
-    }, 5000);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedAssignmentsStr, assignmentsStr, savedRecordId, showToast]);
-
-  // ─── 2.5. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────
-  const flushDataRef = useRef({ savedRecordId, assignments, watchedAssignments });
-  useEffect(() => {
-    flushDataRef.current = { savedRecordId, assignments, watchedAssignments };
-  }, [savedRecordId, assignments, watchedAssignments]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (debounceTimerRef.current) {
-        e.preventDefault();
-        e.returnValue = ''; // ほとんどのブラウザで標準の警告ダイアログが表示される
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      
-      // アンマウント時（ページ遷移など）に未保存キューがあれば即座に保存実行
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-        
-        const { savedRecordId, assignments, watchedAssignments } = flushDataRef.current;
-        const currentAssignments = assignments || watchedAssignments;
-        
-        if (savedRecordId && currentAssignments) {
-          if (!isEqual(currentAssignments, lastSavedAssignments.current)) {
-            // アンマウント時なのでawaitせずバックグラウンドで実行
-            changeOfStatusApplicationService.updateAssignments(savedRecordId, currentAssignments as TabAssignments).catch((err) => {
-              console.error('[アンマウント時オートセーブエラー]', err);
-            });
-          }
-        }
-      }
-    };
-  }, []);
 
   // ─── 共通: Firebase保存 ───────────────────────────────────────────────────
   const saveToFirebase = useCallback(
     async (data: ChangeOfStatusApplicationFormData): Promise<string> => {
-      const dataWithAssignments = { ...data, assignments: assignments || data.assignments };
-      const id = await changeOfStatusApplicationService.save(dataWithAssignments, savedRecordId, foreignerId, organizationId);
+      const id = await changeOfStatusApplicationService.save(data, savedRecordId, foreignerId, organizationId);
       setSavedRecordId(id);
-      lastSavedData.current = dataWithAssignments;
-      if (onSubmit) await onSubmit(dataWithAssignments);
+      if (onSubmit) await onSubmit(data);
       return id;
     },
-    [savedRecordId, foreignerId, organizationId, assignments, onSubmit]
+    [savedRecordId, foreignerId, organizationId, onSubmit]
   );
 
   // ─── ① 保存のみ ──────────────────────────────────────────────────────────

@@ -248,16 +248,7 @@ export function SystemUserManagementContent() {
   return (
     <div className="space-y-6">
       {/* ─── ヘッダーアクション ───────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <ShieldCheck size={22} className="text-indigo-600" />
-            システム・ユーザー管理
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">
-            行政書士専用 ─ アカウント管理テナントの作成とユーザー発行
-          </p>
-        </div>
+      <div className="flex items-center justify-end mb-6">
         {canManage && (
           <div className="flex items-center gap-2">
             <button

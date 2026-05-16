@@ -12,7 +12,7 @@ import { SummaryCards, SummaryTab } from '@/components/SummaryCards';
 import { ForeignerList } from '@/components/ForeignerList';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Settings, UserCircle, Bell, LogOut, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, FilePen, MessageSquare, Building2, Database, ClipboardList, Landmark } from 'lucide-react';
+import { LayoutDashboard, UserCircle, Bell, LogOut, Loader2, QrCode, Copy, Check, X, Sparkles, Shield, ShieldCheck, FilePen, MessageSquare, Building2, Settings } from 'lucide-react';
 import Link from 'next/link';
 import InquiryInbox, { useInquiryUnreadCount } from './dashboard/InquiryInbox';
 import SupportInquiryModal from '@/components/forms/SupportInquiryModal';
@@ -46,10 +46,7 @@ function ToastNotification({ message, subMessage, onClose }: { message: string; 
   );
 }
 
-// ─── Coming Soon Sidebar Items ───────────────────────────────────────────────
-const COMING_SOON_ITEMS: { icon: React.ElementType; label: string; toastMessage: string; badge?: number }[] = [
-  { icon: UserCircle, label: '外国人管理・台帳', toastMessage: '高度な外国人台帳管理' },
-];
+
 
 // ─── Scrivener専用: 通知ベルアイコン（ページ右上配置） ──────────────────────
 function NotificationBell({ onOpen, userRole }: { onOpen: () => void; userRole: string }) {
@@ -81,7 +78,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   const { currentUser, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState<boolean>(false);
-  const [isSeeding, setIsSeeding] = useState<boolean>(false);
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // activeTab: タブUI削除済み。useForeignersへ 'all' を固定で渡す
   const activeTab = 'all';
@@ -165,10 +162,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
     }
   }, [authLoading, currentUser, router]);
 
-  const showComingSoon = useCallback((message: string) => {
-    setToastMessage(message);
-    setToastSubMessage('要望があり次第実装予定');
-  }, []);
+
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -223,22 +217,14 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <SidebarItem icon={QrCode} label="新規作成" active onClick={() => setShowShareModal(true)} />
           )}
 
-          {COMING_SOON_ITEMS.map((item) => (
-            <SidebarItem
-              key={item.label}
-              icon={item.icon}
-              label={item.label}
-              badge={item.badge}
-              onClick={() => showComingSoon(item.toastMessage)}
-            />
-          ))}
 
 
-          {/* 設定・マスタ管理（scrivener / union_staff） */}
+
+          {/* マスタ管理（scrivener / union_staff） */}
           {(userRole === 'scrivener' || userRole === 'union_staff') && (
             <SidebarItem
               icon={Building2}
-              label="設定・マスタ管理"
+              label="マスタ管理"
               href="/settings/masters"
             />
           )}
@@ -252,18 +238,30 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             />
           )}
 
+          {/* ユーザー登録（scrivenerのみ） */}
+          {userRole === 'scrivener' && (
+            <SidebarItem
+              icon={ShieldCheck}
+              label="ユーザー登録"
+              href="/system-users"
+            />
+          )}
 
-
-
-
-          {/* 設定（scrivener用） */}
+          {/* システム設定（メンテナンス等） */}
           {userRole === 'scrivener' && (
             <SidebarItem
               icon={Settings}
-              label="設定"
+              label="システム"
               href="/settings"
             />
           )}
+
+          {/* プロフィール設定 */}
+          <SidebarItem
+            icon={UserCircle}
+            label="アカウント"
+            href="/settings/profile"
+          />
 
         </nav>
 
@@ -305,27 +303,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
             <div className="flex-1">
               <SidebarItem icon={LogOut} label="ログアウト" onClick={handleLogout} />
             </div>
-            {canCreateForeigner(userRole) && (
-              <button 
-                onClick={async () => {
-                  if (confirm('デモデータを3件投入します。よろしいですか？')) {
-                    setIsSeeding(true);
-                    const res = await foreignerService.seedDemoData(currentUser.organizationId ?? undefined);
-                    if (res.success) {
-                      const fetched = await foreignerService.getForeignersByRole(currentUser.role, currentUser.organizationId ?? undefined);
-                      setData(fetched);
-                    } else {
-                      alert('エラーが発生しました: ' + res.error);
-                    }
-                    setIsSeeding(false);
-                  }
-                }}
-                title="デモデータ一括投入"
-                className="p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-95"
-              >
-                <Database className="h-5 w-5" />
-              </button>
-            )}
+
           </div>
         </div>
       </aside>
@@ -349,7 +327,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
         )}
 
         {/* Content */}
-        {loading || isSeeding ? (
+        {loading ? (
           <div className="flex-1 flex flex-col items-center pt-[20vh] gap-4 min-h-[400px]">
             <Loader2 className="h-10 w-10 text-indigo-500 animate-spin" />
             <p className="text-slate-500 font-bold text-sm">データを読み込み中...</p>

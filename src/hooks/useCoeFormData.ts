@@ -17,12 +17,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { coeApplicationService, type CoeApplicationRecord } from '@/services/coeApplicationService';
 import { foreignerService } from '@/services/foreignerService';
 import { mapForeignerProfileToCoeFormData } from '@/lib/mappers/foreignerToFormData';
-import { getAssignmentTemplates } from '@/lib/constants/assignmentTemplates';
-import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 
 export type CoeFormLoadPhase =
   | { phase: 'loading' }
-  | { phase: 'ready'; record: CoeApplicationRecord | null; templatesRecord: Record<ApplicationKind, TabAssignmentTemplate> }
+  | { phase: 'ready'; record: CoeApplicationRecord | null }
   | { phase: 'error'; message: string };
 
 export function useCoeFormData(foreignerId: string): CoeFormLoadPhase {
@@ -44,11 +42,7 @@ export function useCoeFormData(foreignerId: string): CoeFormLoadPhase {
 
     const fetchData = async () => {
       try {
-        // 並列取得: 申請書データとシステム設定のテンプレート
-        const [record, templatesRecord] = await Promise.all([
-          coeApplicationService.getByForeignerId(foreignerId),
-          getAssignmentTemplates()
-        ]);
+        const record = await coeApplicationService.getByForeignerId(foreignerId);
 
         if (record) {
           if (record.attachments && record.formData) {
@@ -56,7 +50,7 @@ export function useCoeFormData(foreignerId: string): CoeFormLoadPhase {
           }
           
           // 既存の申請書データが見つかった場合はそのまま使用
-          if (!cancelled) setState({ phase: 'ready', record, templatesRecord });
+          if (!cancelled) setState({ phase: 'ready', record });
           return;
         }
 
@@ -74,7 +68,7 @@ export function useCoeFormData(foreignerId: string): CoeFormLoadPhase {
           console.warn('[useCoeFormData] プロフィールフォールバック取得失敗:', profileErr);
         }
 
-        if (!cancelled) setState({ phase: 'ready', record: fallbackRecord, templatesRecord });
+        if (!cancelled) setState({ phase: 'ready', record: fallbackRecord });
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : '不明なエラーが発生しました';

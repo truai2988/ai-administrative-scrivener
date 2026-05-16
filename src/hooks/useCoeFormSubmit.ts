@@ -17,7 +17,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWatch, type Control, type UseFormGetValues } from 'react-hook-form';
-import { type CoeApplicationFormData, type TabAssignments } from '@/lib/schemas/coeApplicationSchema';
+import { type CoeApplicationFormData } from '@/lib/schemas/coeApplicationSchema';
 import { coeApplicationService } from '@/services/coeApplicationService';
 import { downloadCoeCSV } from '@/lib/utils/coeCsvMapper';
 import { useToast } from '@/components/ui/Toast';
@@ -177,56 +177,7 @@ export function useCoeFormSubmit({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedFormData, savedRecordId, foreignerId, organizationId, getValues]);
 
-  // ─── 3. 担当者（assignments）の自動保存（5000ms） ───────────────────────
-  const watchedAssignments = useWatch({
-    control,
-    name: 'assignments',
-    disabled: !control,
-  });
 
-  const watchedAssignmentsStr = JSON.stringify(watchedAssignments);
-
-  const assignmentsTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstMountForAssignments = useRef(true);
-  const lastSavedAssignments = useRef<TabAssignments | null>(null);
-
-  useEffect(() => {
-    if (isFirstMountForAssignments.current) {
-      isFirstMountForAssignments.current = false;
-      return;
-    }
-
-    if (!savedRecordId || !watchedAssignments) return;
-
-    if (assignmentsTimerRef.current) {
-      clearTimeout(assignmentsTimerRef.current);
-    }
-
-    assignmentsTimerRef.current = setTimeout(async () => {
-      assignmentsTimerRef.current = null;
-      setIsAutoSaving(true);
-      try {
-        if (isEqual(watchedAssignments, lastSavedAssignments.current)) {
-          return;
-        }
-
-        await coeApplicationService.updateAssignments(savedRecordId, watchedAssignments as TabAssignments);
-        lastSavedAssignments.current = watchedAssignments as TabAssignments;
-        setLastSavedAt(new Date());
-      } catch (err) {
-        console.error('[オートセーブエラー]', err);
-        showToast('error', '担当者の自動保存に失敗しました');
-      } finally {
-        setIsAutoSaving(false);
-      }
-    }, ASSIGNMENTS_AUTOSAVE_DELAY_MS);
-
-    return () => {
-      if (assignmentsTimerRef.current) {
-        clearTimeout(assignmentsTimerRef.current);
-      }
-    };
-  }, [watchedAssignmentsStr, watchedAssignments, savedRecordId, showToast]);
 
   // ─── 4. ブラウザ離脱警告 & アンマウント時の強制保存 (Flush) ────────────────
   const flushDataRef = useRef({ savedRecordId, getValues });
@@ -236,7 +187,7 @@ export function useCoeFormSubmit({
 
   useEffect(() => {
     const hasPendingChanges = () =>
-      formAutoSaveTimerRef.current !== null || assignmentsTimerRef.current !== null;
+      formAutoSaveTimerRef.current !== null;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasPendingChanges()) {
@@ -266,10 +217,6 @@ export function useCoeFormSubmit({
         }
       }
 
-      if (assignmentsTimerRef.current) {
-        clearTimeout(assignmentsTimerRef.current);
-        assignmentsTimerRef.current = null;
-      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -665,14 +665,14 @@ export type AttachmentsMap = z.infer<typeof attachmentsMapSchema>;
  * タブIDをキー、担当者ユーザーIDを値とする割り当てマップ
  * キー例: 'foreigner' | 'employer' | 'simultaneous'
  */
-export const tabAssignmentsSchema = z.record(z.string(), z.string());
+
 
 export const changeOfStatusApplicationSchema = z.object({
   foreignerInfo: foreignerInfoSchema,
   employerInfo: employerInfoSchema,
   simultaneousApplication: simultaneousApplicationSchema,
   /** タブごとの担当者割り当て（tabId → userId） */
-  assignments: tabAssignmentsSchema.optional(),
+
   /**
    * タブごとの添付ファイルリスト（ドキュメントルートで一元管理）。
    * 全タブを横断した合計サイズ・ファイル数のバリデーションを容易にするため、
@@ -682,7 +682,7 @@ export const changeOfStatusApplicationSchema = z.object({
 });
 
 export type TabId = 'foreigner' | 'employer' | 'simultaneous';
-export type TabAssignments = Partial<Record<TabId, string>>;
+
 export type ChangeOfStatusApplicationFormData = z.infer<typeof changeOfStatusApplicationSchema>;
 
 // ─── 派生型エクスポート（extractor等で使用）────────────────────────────────

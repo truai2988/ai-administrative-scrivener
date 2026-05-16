@@ -24,7 +24,6 @@ import { ToastContainer, useToast } from '@/components/ui/Toast';
 import { useChangeOfStatusFormSubmit } from '@/hooks/useChangeOfStatusFormSubmit';
 import { useAuth } from '@/contexts/AuthContext';
 import { SectionPermissionProvider } from '@/contexts/SectionPermissionContext';
-import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 import { mergeWithDefaults } from '@/lib/utils/formUtils';
 
 import { useDiagnosticJumpLearning } from '@/hooks/useDiagnosticJumpLearning';
@@ -187,7 +186,6 @@ interface ChangeOfStatusFormProps {
   initialValues?: Partial<ChangeOfStatusApplicationFormData>;
   initialAiDiagnostics?: import('@/types/aiDiagnostics').DiagnosticItem[];
   hideHeader?: boolean;
-  templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
 export function ChangeOfStatusFormInner({
@@ -236,14 +234,11 @@ export function ChangeOfStatusFormInner({
     reset(mergedDefaultValues as any);
   }, [mergedDefaultValues, reset]);
 
-  const defaultAssignments = useMemo(() => ({ foreigner: '', employer: '', simultaneous: '' }), []);
-
   const { isSaving, isBusy, handleSaveOnly, savedRecordId } =
     useChangeOfStatusFormSubmit({
       recordId,
       foreignerId,
       organizationId: currentUser?.organizationId ?? undefined,
-      assignments: defaultAssignments,
       isDirty,
       control: methods.control,
       getValues: methods.getValues,
@@ -510,7 +505,6 @@ export function ChangeOfStatusForm({
   initialValues,
   initialAiDiagnostics,
   hideHeader,
-  templatesRecord,
 }: ChangeOfStatusFormProps) {
   const { currentUser } = useAuth();
   const userRole = currentUser?.role ?? 'union_staff';
@@ -518,7 +512,6 @@ export function ChangeOfStatusForm({
   return (
     <SectionPermissionProvider
       currentUserRole={userRole}
-      templatesRecord={templatesRecord}
     >
       <ChangeOfStatusFormInner
         onSubmit={onSubmit}

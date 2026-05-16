@@ -14,7 +14,7 @@ import {
   type RenewalApplicationFormData,
   type TabId,
 } from '@/lib/schemas/renewalApplicationSchema';
-import { type ApplicationKind, type TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
+
 import { ForeignerInfoSection }           from './sections/ForeignerInfoSection';
 import { EmployerInfoSection }            from './sections/EmployerInfoSection';
 import { SimultaneousApplicationSection } from './sections/SimultaneousApplicationSection';
@@ -194,8 +194,6 @@ interface RenewalApplicationFormProps {
   initialAiDiagnostics?: import('@/types/aiDiagnostics').DiagnosticItem[];
   /** フォーム上部のタイトルヘッダーを非表示にするかどうか */
   hideHeader?: boolean;
-  /** DBから取得した最新のテンプレート設定 */
-  templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
 // ─── 内部コンポーネント（SectionPermissionContext の中で動く） ────────────────
@@ -206,7 +204,7 @@ function RenewalApplicationFormInner({
   initialValues,
   initialAiDiagnostics,
   hideHeader,
-}: Omit<RenewalApplicationFormProps, 'initialAssignments' | 'templatesRecord'>) {
+}: Omit<RenewalApplicationFormProps, 'initialAssignments'>) {
   const [activeTab, setActiveTab] = useState<TabId>('foreigner');
   const { toasts, dismiss, show: showToast } = useToast();
   const { isEditable } = useSectionPermission();
@@ -521,7 +519,6 @@ export function RenewalApplicationForm({
   initialValues,
   initialAiDiagnostics,
   hideHeader,
-  templatesRecord,
 }: RenewalApplicationFormProps) {
   const { currentUser } = useAuth();
   const userRole = currentUser?.role ?? 'union_staff';
@@ -529,7 +526,6 @@ export function RenewalApplicationForm({
   return (
     <SectionPermissionProvider
       currentUserRole={userRole}
-      templatesRecord={templatesRecord}
     >
       <RenewalApplicationFormInner
         onSubmit={onSubmit}

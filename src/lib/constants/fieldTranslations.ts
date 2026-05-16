@@ -85,7 +85,7 @@ export function translateFieldPath(fieldPath: string): string {
     checkIntent: '申請メタデータ',
     freeFormat: '申請メタデータ',
     notificationEmail: '申請メタデータ',
-    assignments: '担当者',
+
   };
 
   return rootTranslations[rootKey] || '全体項目';

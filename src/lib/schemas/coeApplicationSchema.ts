@@ -328,7 +328,7 @@ export const employerInfoSchema = z.object({
 });
 
 // ─── COE申請フォーム全体スキーマ (COE Application Schema) ───────────────────────────
-export const tabAssignmentsSchema = z.record(z.string(), z.string());
+
 
 export const coeApplicationSchema = z.object({
   identityInfo: identityInfoSchema,
@@ -346,11 +346,11 @@ export const coeApplicationSchema = z.object({
   notificationEmail: z.string().email('正しいメールアドレスを入力してください').max(60, '60文字以内で入力してください').optional().or(z.literal('')).describe('通知送信用メールアドレス'),
 
   /** タブごとの担当者割り当て（tabId → userId） */
-  assignments: tabAssignmentsSchema.optional(),
+
 });
 
 export type TabId = 'identity' | 'applicant' | 'employer' | 'representative' | 'metadata';
-export type TabAssignments = Partial<Record<TabId, string>>;
+
 
 export type CoeApplicationFormData = z.infer<typeof coeApplicationSchema>;
 export type IdentityInfo = z.infer<typeof identityInfoSchema>;

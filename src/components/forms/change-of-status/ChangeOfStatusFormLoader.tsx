@@ -67,7 +67,7 @@ export function ChangeOfStatusFormLoader({ foreignerId }: ChangeOfStatusFormLoad
   }
 
   if (state.phase === 'ready') {
-    const { record, templatesRecord } = state;
+    const { record } = state;
     const initialValues = record?.formData ? { ...record.formData } : {};
     if (record?.attachments) {
       (initialValues as Record<string, unknown>).attachments = record.attachments;
@@ -79,7 +79,6 @@ export function ChangeOfStatusFormLoader({ foreignerId }: ChangeOfStatusFormLoad
         recordId={record?.id}
         initialValues={initialValues}
         initialAiDiagnostics={initialAiDiagnostics}
-        templatesRecord={templatesRecord}
       />
     );
   }

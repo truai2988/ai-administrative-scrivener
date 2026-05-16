@@ -26,7 +26,7 @@ import { RepresentativeSubForm } from './sections/RepresentativeSubForm';
 import { ApplicationMetadataFields } from './sections/ApplicationMetadataFields';
 import { useAuth } from '@/contexts/AuthContext';
 import { SectionPermissionProvider } from '@/contexts/SectionPermissionContext';
-import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
+
 
 type TabId = 'identity' | 'applicant' | 'employer' | 'representative' | 'metadata';
 
@@ -140,7 +140,6 @@ interface CoeApplicationFormProps {
   recordId?: string;
   foreignerId?: string;
   organizationId?: string;
-  templatesRecord?: Record<ApplicationKind, TabAssignmentTemplate>;
 }
 
 export function CoeApplicationFormInner({
@@ -438,7 +437,6 @@ export function CoeApplicationForm({
   recordId,
   foreignerId,
   organizationId,
-  templatesRecord,
 }: CoeApplicationFormProps) {
   const { currentUser } = useAuth();
   const userRole = currentUser?.role ?? 'union_staff';
@@ -446,7 +444,6 @@ export function CoeApplicationForm({
   return (
     <SectionPermissionProvider
       currentUserRole={userRole}
-      templatesRecord={templatesRecord}
     >
       <CoeApplicationFormInner
         initialValues={initialValues}

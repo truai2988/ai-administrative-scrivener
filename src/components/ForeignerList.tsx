@@ -156,11 +156,11 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
     onSelectionChange(next);
   };
 
-  const colName = readonly ? (showOrganization ? 'w-[14%]' : 'w-[16%]') : (showOrganization ? 'w-[12%]' : 'w-[14%]');
+  const colName = readonly ? (showOrganization ? 'w-[18%]' : 'w-[20%]') : (showOrganization ? 'w-[16%]' : 'w-[18%]');
   const colNat = readonly ? (showOrganization ? 'w-[10%]' : 'w-[11%]') : (showOrganization ? 'w-[8%]' : 'w-[9%]');
   const colOrg = readonly ? 'w-[11%]' : 'w-[9%]';
-  const colComp = readonly ? (showOrganization ? 'w-[17%]' : 'w-[20%]') : (showOrganization ? 'w-[14%]' : 'w-[17%]');
-  const colVisa = readonly ? (showOrganization ? 'w-[14%]' : 'w-[15%]') : (showOrganization ? 'w-[11%]' : 'w-[12%]');
+  const colComp = readonly ? (showOrganization ? 'w-[15%]' : 'w-[18%]') : (showOrganization ? 'w-[12%]' : 'w-[15%]');
+  const colVisa = readonly ? (showOrganization ? 'w-[12%]' : 'w-[13%]') : (showOrganization ? 'w-[9%]' : 'w-[10%]');
   const colExp = readonly ? (showOrganization ? 'w-[12%]' : 'w-[13%]') : (showOrganization ? 'w-[9%]' : 'w-[10%]');
   const colStat = readonly ? (showOrganization ? 'w-[12%]' : 'w-[13%]') : (showOrganization ? 'w-[9%]' : 'w-[10%]');
 
@@ -168,7 +168,7 @@ export const ForeignerList: React.FC<ForeignerListProps> = ({ data, selectedIds,
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-50 flex items-center gap-2">
         <Clock className="h-5 w-5 text-indigo-500" />
-        <h2 className="text-lg font-bold text-slate-800">管理対象者リスト</h2>
+        <h2 className="text-lg font-bold text-slate-800">申請者リスト</h2>
         {isSelectable && selectedIds && selectedIds.size > 0 && (
           <div className="flex items-center gap-3 ml-2">
             <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-100">

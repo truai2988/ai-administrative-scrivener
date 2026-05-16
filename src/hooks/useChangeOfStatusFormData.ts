@@ -11,12 +11,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { changeOfStatusApplicationService, type ChangeOfStatusApplicationRecord } from '@/services/changeOfStatusApplicationService';
 import { foreignerService } from '@/services/foreignerService';
 import { mapForeignerProfileToChangeOfStatusFormData } from '@/lib/mappers/foreignerToFormData';
-import { getAssignmentTemplates } from '@/lib/constants/assignmentTemplates';
-import type { ApplicationKind, TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
 
 export type ChangeOfStatusFormLoadPhase =
   | { phase: 'loading' }
-  | { phase: 'ready'; record: ChangeOfStatusApplicationRecord | null; templatesRecord: Record<ApplicationKind, TabAssignmentTemplate> }
+  | { phase: 'ready'; record: ChangeOfStatusApplicationRecord | null }
   | { phase: 'error'; message: string };
 
 export function useChangeOfStatusFormData(foreignerId: string): ChangeOfStatusFormLoadPhase {
@@ -36,16 +34,13 @@ export function useChangeOfStatusFormData(foreignerId: string): ChangeOfStatusFo
 
     const fetchData = async () => {
       try {
-        const [record, templatesRecord] = await Promise.all([
-          changeOfStatusApplicationService.getByForeignerId(foreignerId),
-          getAssignmentTemplates()
-        ]);
+        const record = await changeOfStatusApplicationService.getByForeignerId(foreignerId);
 
         if (record) {
           if (record.attachments && record.formData) {
             (record.formData as Record<string, unknown>).attachments = record.attachments;
           }
-          if (!cancelled) setState({ phase: 'ready', record, templatesRecord });
+          if (!cancelled) setState({ phase: 'ready', record });
           return;
         }
 
@@ -60,7 +55,7 @@ export function useChangeOfStatusFormData(foreignerId: string): ChangeOfStatusFo
           console.warn('[useChangeOfStatusFormData] プロフィールフォールバック取得失敗:', profileErr);
         }
 
-        if (!cancelled) setState({ phase: 'ready', record: fallbackRecord, templatesRecord });
+        if (!cancelled) setState({ phase: 'ready', record: fallbackRecord });
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : '不明なエラーが発生しました';

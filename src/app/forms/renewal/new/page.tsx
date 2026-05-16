@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import '../renewal-form.css';
 import { RenewalApplicationForm } from '@/components/forms/RenewalApplicationForm';
-import { getAssignmentTemplates } from '@/lib/constants/assignmentTemplates';
-import { type ApplicationKind, type TabAssignmentTemplate } from '@/lib/constants/assignmentTemplates';
+
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -15,25 +14,13 @@ import { useAuth } from '@/contexts/AuthContext';
  * フォームを描画する。
  */
 export default function RenewalFormNewPage() {
-  const [templates, setTemplates] = useState<Record<ApplicationKind, TabAssignmentTemplate> | null>(null);
   const { loading } = useAuth();
-
-  useEffect(() => {
-    if (loading) return;
-    
-    let mounted = true;
-    getAssignmentTemplates().then(data => {
-      if (mounted) setTemplates(data);
-    });
-    return () => { mounted = false; };
-  }, [loading]);
-
-  if (loading || !templates) {
+  if (loading) {
     return (
       <main className="renewal-page" style={{ alignItems: 'center' }}>
         <div className="flex flex-col items-center gap-2 text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin" />
-          <p>{loading ? '認証状態を確認中...' : '設定を読み込み中...'}</p>
+          <p>認証状態を確認中...</p>
         </div>
       </main>
     );
@@ -42,9 +29,7 @@ export default function RenewalFormNewPage() {
   return (
     <main className="renewal-page">
       <div className="renewal-form">
-        <RenewalApplicationForm 
-          templatesRecord={templates}
-        />
+        <RenewalApplicationForm />
       </div>
     </main>
   );

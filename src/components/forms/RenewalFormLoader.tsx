@@ -78,7 +78,7 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
     return <FormError message={state.message} foreignerId={foreignerId} />;
   }
 
-  const { record, templatesRecord } = state;
+  const { record } = state;
   const initialValues = record?.formData as RenewalApplicationFormData | undefined;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,7 +90,6 @@ export function RenewalFormLoader({ foreignerId }: RenewalFormLoaderProps) {
       foreignerId={foreignerId}
       initialValues={initialValues}
       initialAiDiagnostics={initialAiDiagnostics}
-      templatesRecord={templatesRecord}
     />
   );
 }

@@ -4,14 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Landmark, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
+import { Building2, Landmark, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { CompanyMasterContent } from './_components/CompanyMasterContent';
 import { UnionMasterContent } from './_components/UnionMasterContent';
-import { SystemUserManagementContent } from './_components/SystemUserManagementContent';
 
-type TabType = 'companies' | 'unions' | 'users';
+type TabType = 'companies' | 'unions';
 
 export default function MastersSettingsPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -40,13 +39,11 @@ export default function MastersSettingsPage() {
     );
   }
 
-  const isScrivener = currentUser.role === 'scrivener';
+
 
   const tabs = [
     { id: 'companies', label: '企業マスタ', icon: Building2 },
     { id: 'unions', label: '組合マスタ', icon: Landmark },
-    // Only Scrivener can see the user management tab
-    ...(isScrivener ? [{ id: 'users', label: 'システム・ユーザー管理', icon: ShieldCheck }] : []),
   ];
 
   return (
@@ -63,10 +60,10 @@ export default function MastersSettingsPage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
-                設定・マスタ管理
+                マスタ管理
               </h1>
               <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                書類印字用のマスタデータとシステムアカウントの管理
+                書類印字用のマスタデータの管理
               </p>
             </div>
           </div>
@@ -112,7 +109,6 @@ export default function MastersSettingsPage() {
           >
             {activeTab === 'companies' && <CompanyMasterContent />}
             {activeTab === 'unions' && <UnionMasterContent />}
-            {activeTab === 'users' && isScrivener && <SystemUserManagementContent />}
           </motion.div>
         </AnimatePresence>
       </main>
