@@ -101,7 +101,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
   // 共有モーダル用のステート
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showFormDropdown, setShowFormDropdown] = useState(false);
+
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareToken, setShareToken] = useState('dummy-token-123');
@@ -114,7 +114,7 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
   }, [showShareModal]);
 
   const entryUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/foreigner/entry/${shareToken}${currentUser?.organizationId ? `?b=${currentUser.organizationId}` : ''}` 
+    ? `${window.location.origin}/signup/applicant?token=${currentUser?.organizationId || shareToken}` 
     : '';
 
   useEffect(() => {
@@ -502,60 +502,17 @@ export function DashboardClient({ initialData = [] }: { initialData?: Foreigner[
 
                     {/* ─── 職員代理入力 ─── */}
                     <div className="mt-4 w-full">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center mb-2">職員が代わって申請書を作成</p>
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowFormDropdown((v) => !v)}
-                          className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 rounded-xl transition-colors"
-                        >
-                          <FilePen className="h-4 w-4 shrink-0" />
-                          申請書を選択
-                          <span className="ml-1 text-[10px] opacity-60">▼</span>
-                        </button>
-                        {showFormDropdown && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-40"
-                              onClick={() => setShowFormDropdown(false)}
-                            />
-                            <div className="absolute left-0 right-0 bottom-[calc(100%+4px)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                              <button
-                                onClick={() => {
-                                  setShowFormDropdown(false);
-                                  setShowShareModal(false);
-                                  window.open('/forms/coe/new', '_blank');
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-sky-600 hover:bg-sky-50 border-b border-slate-100 transition-colors"
-                              >
-                                <FilePen className="h-4 w-4 shrink-0" />
-                                在留資格認定証明書交付申請
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowFormDropdown(false);
-                                  setShowShareModal(false);
-                                  window.open('/forms/renewal', '_blank');
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-indigo-600 hover:bg-indigo-50 border-b border-slate-100 transition-colors"
-                              >
-                                <FilePen className="h-4 w-4 shrink-0" />
-                                期間更新許可申請
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowFormDropdown(false);
-                                  setShowShareModal(false);
-                                  window.open('/forms/change-of-status/new', '_blank');
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-teal-600 hover:bg-teal-50 transition-colors"
-                              >
-                                <FilePen className="h-4 w-4 shrink-0" />
-                                在留資格変更許可申請
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center mb-2">行政書士がアカウントを作成</p>
+                      <button
+                        onClick={() => {
+                          setShowShareModal(false);
+                          window.open(entryUrl, '_blank');
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 rounded-xl transition-colors"
+                      >
+                        <FilePen className="h-4 w-4 shrink-0" />
+                        代理で登録画面を開く
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 import {
   getAuth,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged as firebaseOnAuthStateChanged,
   type User as FirebaseUser,
@@ -15,6 +16,13 @@ const auth = getAuth(app);
  */
 export async function signIn(email: string, password: string) {
   return signInWithEmailAndPassword(auth, email, password);
+}
+
+/**
+ * メール・パスワードでユーザー登録
+ */
+export async function signUp(email: string, password: string) {
+  return createUserWithEmailAndPassword(auth, email, password);
 }
 
 /**

@@ -10,12 +10,13 @@
  * - scrivener     : 行政書士 / システム全体管理者（最上位権限）
  * - enterprise_staff: 企業担当者（担当タブのみ編集可）
  */
-export type UserRole = 'scrivener' | 'union_staff' | 'enterprise_staff';
+export type UserRole = 'scrivener' | 'union_staff' | 'enterprise_staff' | 'applicant';
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   scrivener: '行政書士',
   union_staff: '組合職員',
   enterprise_staff: '企業担当者',
+  applicant: '申請人',
 };
 
 /**
@@ -89,6 +90,7 @@ export const APPROVAL_STATUS_LABELS: Record<NonNullable<ApprovalStatus>, string>
 
 export interface Foreigner {
   id: string; // Firestore Document ID
+  userId?: string; // 申請人の Firebase Auth UID (申請人自身のアカウントと紐付け)
   unionId?: string; // 組合ID (RBAC フィルタリング用)
   enterpriseId?: string; // 企業ID (RBAC フィルタリング用)
   name: string;
